@@ -1,5 +1,5 @@
 {
-  "name": "font-extractor",
+  "name": "fontext",
   "version": "1.0.0",
   "description": "Script for extracting glyphes by ligatures from font and creating new minimized fonts with them",
   "keywords": [
@@ -15,8 +15,13 @@
     "convertor",
     "fontkit"
   ],
-  "author": "johndeathsmell@gmail.com",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/a3mitskevich/font-extractor.git"
+  },
+  "homepage": "https://github.com/a3mitskevich/font-extractor",
+  "author": "Aleksandr Mitskevich johndeathsmell@gmail.com",
+  "license": "MIT",
   "files": ["/dist"],
   "main": "src/index.js",
   "types": "src/index.d.ts",
