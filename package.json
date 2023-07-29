@@ -1,0 +1,63 @@
+{
+  "name": "font-extractor",
+  "version": "1.0.0",
+  "description": "Script for extracting glyphs by ligatures from font and creating new minimized fonts with them",
+  "keywords": [
+    "font",
+    "ligatures",
+    "minimizer",
+    "assets",
+    "svgFont",
+    "ttf",
+    "woff2",
+    "woff",
+    "eot",
+    "convertor",
+    "fontkit"
+  ],
+  "author": "johndeathsmell@gmail.com",
+  "license": "ISC",
+  "files": ["/dist"],
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc --build --clean",
+    "lint": "eslint ./**/*.ts"
+  },
+  "devDependencies": {
+    "@types/fontkit": "2.0.3",
+    "@types/jest": "29.5.3",
+    "@types/node": "20.4.5",
+    "@types/svg2ttf": "5.0.1",
+    "@types/svgicons2svgfont": "10.0.1",
+    "@types/ttf2eot": "2.0.0",
+    "@types/ttf2woff": "2.0.2",
+    "@types/ttf2woff2": "2.0.0",
+    "@typescript-eslint/eslint-plugin": "5.62.0",
+    "eslint": "8.46.0",
+    "eslint-config-standard-with-typescript": "37.0.0",
+    "eslint-plugin-import": "2.28.0",
+    "eslint-plugin-n": "16.0.1",
+    "eslint-plugin-promise": "6.1.1",
+    "jest": "29.6.2",
+    "ts-jest": "29.1.1",
+    "ts-node": "10.9.1",
+    "tsx": "^3.12.7",
+    "typescript": "5.1.6"
+  },
+  "dependencies": {
+    "esbuild": "^0.18.17",
+    "esbuild-plugin-tsc": "^0.4.0",
+    "fontkit": "2.0.2",
+    "handlebars": "4.7.7",
+    "svg2ttf": "6.0.3",
+    "svgicons2svgfont": "12.0.0",
+    "ttf2eot": "3.1.0",
+    "ttf2woff": "3.0.0",
+    "ttf2woff2": "5.0.0"
+  },
+  "engines": {
+    "node": ">=16.15.0"
+  }
+}

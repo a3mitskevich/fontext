@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "outDir": "build",
+    "removeComments": true,
+    "declaration": true,
+    "types": ["node_modules"],
+    "strictNullChecks": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "isolatedModules": true,
+    "skipLibCheck": false,
+    "resolveJsonModule": true
+  },
+  "exclude": [
+    "node_modules",
+    "test"
+  ]
+}
