@@ -1,6 +1,6 @@
 {
   "name": "fontext",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Script for extracting glyphes by ligatures from font and creating new minimized fonts with them",
   "keywords": [
     "font",
@@ -22,12 +22,14 @@
   "homepage": "https://github.com/a3mitskevich/font-extractor",
   "author": "Aleksandr Mitskevich johndeathsmell@gmail.com",
   "license": "MIT",
-  "files": ["/dist"],
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "files": [
+    "build"
+  ],
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "scripts": {
     "test": "jest",
-    "build": "tsc --build --clean",
+    "build": "tsc",
     "lint": "eslint ./**/*.ts"
   },
   "devDependencies": {
