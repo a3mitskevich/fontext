@@ -10,9 +10,10 @@
         "node": true
       },
       "files": [
-        ".eslintrc.{js,cjs}"
+        "**/*.js"
       ],
       "parserOptions": {
+        "project": "./tsconfig.json",
         "sourceType": "script"
       }
     }

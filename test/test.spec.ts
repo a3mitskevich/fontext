@@ -1,7 +1,6 @@
-import extract from '../src'
 import fs from 'fs'
 import path from 'path'
-import { type Formats } from '../src/types'
+import extract, { type Formats } from '../lib'
 
 const resolve = (format: Formats): string => path.resolve(__dirname, `../assets/font.${format}`)
 

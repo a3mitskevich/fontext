@@ -29,11 +29,11 @@ const options = {
 
 // Extract and convert the font glyphs
 extract(fontBuffer, options)
-.then(result => {
-// 'result' will be an object containing the extracted font data
-// You can access the converted formats using 'result.ttf', 'result.woff', etc.
-})
-.catch(error => { console.error('Font extraction error:', error) });
+  .then(result => {
+  // 'result' will be an object containing the extracted font data
+  // You can access the converted formats using 'result.ttf', 'result.woff', etc.
+  })
+  .catch(error => { console.error('Font extraction error:', error) });
 ```
 ## API
 ```
@@ -45,9 +45,9 @@ The main function that extracts font glyphs and converts them into different for
 * **content** `Buffer`: The font file as a Buffer.
 * **option** `MinifyOption`: An object containing extraction options.
   * **fontName** `string`: The desired name for the output font.
-  * **formats** `Formats[]`: An array of output formats to generate. Valid values: 'svg', 'ttf', 'woff', 'woff2', 'eot'.
   * **ligatures** `string[]`: An array of ligatures to include in the font.
-  * **withWhitespace** `boolean`: Set to true if you want to include whitespace glyphs in the font.
+  * **formats** `Formats[] | undefined`: An array of output formats to generate. Valid values: 'svg', 'ttf', 'woff', 'woff2', 'eot'.
+  * **withWhitespace** `boolean | undefined`: Set to true if you want to include whitespace glyphs in the font.
   
 ### Returns
 * **Promise\<ExtractedResult\>**: A promise that resolves to an object containing the extracted font data, with keys corresponding to the specified output formats.

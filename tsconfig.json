@@ -1,27 +1,19 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "rootDir": "src",
-    "outDir": "build",
-    "removeComments": true,
+    "target": "ES2017",
+    "module": "CommonJS",
     "declaration": true,
-    "types": ["node_modules"],
+    "outDir": "lib/",
+    "lib": ["ES2021"],
+    "strict": true,
+    "noImplicitAny": true,
     "strictNullChecks": false,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
+    "alwaysStrict": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "isolatedModules": true,
-    "skipLibCheck": false,
-    "resolveJsonModule": true
+    "skipLibCheck": true,
+    "moduleResolution": "node",
   },
-  "exclude": [
-    "node_modules",
-    "test"
-  ]
+  "include": ["src", "test"],
+  "exclude": ["node_modules", "lib"]
 }
