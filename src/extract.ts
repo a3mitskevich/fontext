@@ -12,6 +12,7 @@ import { type Formats, type ExtractedResult, type GlyphStream, type GlyphMeta, t
 
 const DEFAULT_FORMATS = [Format.TTF, Format.EOT, Format.WOFF, Format.WOFF2, Format.SVG]
 const WHITESPACE = ' '
+const DEFAULT_FONT_SIZE = 1000
 
 function getSvgTemplate (): HandlebarsTemplateDelegate<{
   path: string
@@ -69,7 +70,7 @@ function createGlyphStream (content: string): GlyphStream {
 async function convertToSvgFont (fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return await new Promise(resolve => {
     let svgFontBuffer = Buffer.alloc(0)
-    const stream = new SVGIcons2SVGFontStream({ fontName, fontHeight: 1000 })
+    const stream = new SVGIcons2SVGFontStream({ fontName, fontHeight: DEFAULT_FONT_SIZE })
       .on('data', (data) => {
         svgFontBuffer = Buffer.concat([svgFontBuffer, data])
       })
@@ -93,10 +94,16 @@ function codePointsToName (symbols: number[]): string {
   return symbols.map(symbol => String.fromCharCode(symbol)).join('')
 }
 
+function getMetrics (glyph: any): { advanceWidth: number, advanceHeight: number } {
+  return glyph._metrics
+}
+
 function toSvg (glyph: Glyph): string {
   const path = glyph.path.toSVG()
-  const width = Math.max((glyph as any)._metrics.advanceWidth, 1000)
-  const height = Math.max((glyph as any)._metrics.advanceHeight, 1000)
+  const {
+    advanceWidth: width = DEFAULT_FONT_SIZE,
+    advanceHeight: height = DEFAULT_FONT_SIZE
+  } = getMetrics(glyph)
 
   const template = getSvgTemplate()
 
@@ -108,7 +115,7 @@ function toSvg (glyph: Glyph): string {
 }
 
 export default async function extract (content: Buffer, option: MinifyOption): Promise<ExtractedResult> {
-  const { fontName = '', formats = DEFAULT_FORMATS, ligatures = [], withWhitespace } = option
+  const { fontName = '', formats = DEFAULT_FORMATS, ligatures = [], withWhitespace = false } = option
   if ((ligatures.length === 0) || (formats.length === 0) || (fontName === '')) {
     throw Error('Illegal option')
   }
