@@ -70,7 +70,7 @@ function createGlyphStream (content: string): GlyphStream {
 async function convertToSvgFont (fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return await new Promise(resolve => {
     let svgFontBuffer = Buffer.alloc(0)
-    const stream = new SVGIcons2SVGFontStream({ fontName, fontHeight: DEFAULT_FONT_SIZE })
+    const stream = new SVGIcons2SVGFontStream({ fontName, normalize: true })
       .on('data', (data) => {
         svgFontBuffer = Buffer.concat([svgFontBuffer, data])
       })
@@ -99,7 +99,7 @@ function getMetrics (glyph: any): { advanceWidth: number, advanceHeight: number 
 }
 
 function toSvg (glyph: Glyph): string {
-  const path = glyph.path.toSVG()
+  const path = glyph.path.scale(-1, 1).rotate(Math.PI).toSVG()
   const {
     advanceWidth: width = DEFAULT_FONT_SIZE,
     advanceHeight: height = DEFAULT_FONT_SIZE
