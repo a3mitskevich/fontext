@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Readable } from 'stream'
-import fontkit, { type Glyph } from 'fontkit'
+import { type Glyph, create } from 'fontkit'
 import svg2ttf from 'svg2ttf'
 import ttf2woff from 'ttf2woff'
 import ttf2woff2 from 'ttf2woff2'
@@ -9,6 +9,7 @@ import SVGIcons2SVGFontStream from 'svgicons2svgfont'
 import handlebars from 'handlebars'
 import path from 'path'
 import { type Formats, type ExtractedResult, type GlyphStream, type GlyphMeta, type MinifyOption, Format } from './types'
+import { fileURLToPath } from 'url'
 
 const DEFAULT_FORMATS = [Format.TTF, Format.EOT, Format.WOFF, Format.WOFF2, Format.SVG]
 const WHITESPACE = ' '
@@ -19,7 +20,8 @@ function getSvgTemplate (): HandlebarsTemplateDelegate<{
   width: number
   height: number
 }> {
-  const templatePath = path.resolve(__dirname, 'svg.hbs')
+  const dirname = path.dirname(fileURLToPath(import.meta.url))
+  const templatePath = path.resolve(dirname, 'svg.hbs')
   const source = fs.readFileSync(templatePath, 'utf8')
   return handlebars.compile(source)
 }
@@ -119,7 +121,7 @@ export default async function extract (content: Buffer, option: MinifyOption): P
   if ((ligatures.length === 0) || (formats.length === 0) || (fontName === '')) {
     throw Error('Illegal option')
   }
-  const font = fontkit.create(content)
+  const font = create(content)
   const [whitespaceGlyph] = font.glyphsForString(WHITESPACE)
   const layout = font.layout(ligatures.join(WHITESPACE))
   const glyphs = Array.from<Glyph>(new Set(layout.glyphs))
