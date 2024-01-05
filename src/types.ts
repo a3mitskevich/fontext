@@ -10,7 +10,7 @@ export enum Format {
   SVG = 'svg',
 }
 
-export type ExtractedResult = { [key in Formats]?: Buffer }
+export type ExtractedResult = { [key in Formats]?: Buffer } & { meta: GlyphMeta[] }
 
 export interface GlyphMeta {
   name: string

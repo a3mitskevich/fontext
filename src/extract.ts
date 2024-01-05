@@ -11,7 +11,7 @@ import path from 'path'
 import { type Formats, type ExtractedResult, type GlyphStream, type GlyphMeta, type MinifyOption, Format } from './types'
 import { fileURLToPath } from 'url'
 
-const DEFAULT_FORMATS = [Format.TTF, Format.EOT, Format.WOFF, Format.WOFF2, Format.SVG]
+const DEFAULT_FORMATS = Object.values(Format)
 const WHITESPACE = ' '
 const DEFAULT_FONT_SIZE = 1000
 
@@ -57,9 +57,9 @@ function convertByFormats (svgFont: Buffer, formats: Formats[]): ExtractedResult
         acc[format] = byFormat
       }
       return acc
-    }, {})
+    }, { meta: [] })
   }
-  return { svg: svgFont }
+  return { svg: svgFont, meta: [] }
 }
 
 function createGlyphStream (content: string): GlyphStream {
@@ -133,6 +133,7 @@ export default async function extract (content: Buffer, option: MinifyOption): P
   }))
 
   const svgFont = await convertToSvgFont(fontName, glyphsMeta)
-
-  return convertByFormats(svgFont, formats)
+  const result = convertByFormats(svgFont, formats)
+  result.meta = glyphsMeta
+  return result
 }
