@@ -1,8 +1,9 @@
+import { expect, describe, it } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
-import extract, { type Formats } from '../lib'
+import extract, { type Formats } from '../src'
 
-const resolve = (format: Formats): string => path.resolve(__dirname, `../assets/font.${format}`)
+const resolve = (format: Formats): string => path.resolve(__dirname, `../assets/font.${format as string}`)
 
 const ttfOriginalFont = fs.readFileSync(resolve('ttf'))
 const woff2OriginalFont = fs.readFileSync(resolve('woff2'))

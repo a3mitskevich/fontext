@@ -4,22 +4,8 @@
     "es2021": true
   },
   "extends": "standard-with-typescript",
-  "overrides": [
-    {
-      "env": {
-        "node": true
-      },
-      "files": [
-        "**/*.js"
-      ],
-      "parserOptions": {
-        "project": "./tsconfig.json",
-        "sourceType": "script"
-      }
-    }
-  ],
   "parserOptions": {
-    "project": "./tsconfig.json",
+    "project": "./tsconfig.*.json",
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
