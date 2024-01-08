@@ -1,6 +1,6 @@
 {
   "name": "fontext",
-  "version": "1.0.11",
+  "version": "1.0.10",
   "description": "Script for extracting glyphes by ligatures from font and creating new minimized fonts with them",
   "keywords": [
     "font",
@@ -22,7 +22,9 @@
   "homepage": "https://github.com/a3mitskevich/font-extractor",
   "author": "Aleksandr Mitskevich johndeathsmell@gmail.com",
   "license": "MIT",
-  "files": ["dist/*"],
+  "files": [
+    "dist/*"
+  ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -36,9 +38,16 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "jest",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest",
+    "test:local": "TEST_TARGET=local npm run test",
+    "test:dist": "TEST_TARGET=dist npm run test",
     "build": "tsup && cp src/svg.hbs dist/svg.hbs",
-    "lint": "eslint ./**/*.ts"
+    "lint": "eslint src/**/*.[tj]s test/**/*.[tj]s --cache --cache-strategy content",
+    "lint:fix": "npm run lint -- --fix",
+    "versioning": "npm version $PART -m \"Updating the application version to %s\"",
+    "versioning:patch": "npm run versioning --PART patch",
+    "versioning:minor": "npm run versioning --PART minor",
+    "versioning:major": "npm run versioning --PART major"
   },
   "devDependencies": {
     "@types/fontkit": "2.0.3",
@@ -62,6 +71,7 @@
     "typescript": "5.1.6"
   },
   "dependencies": {
+    "@tsconfig/node20": "20.1.2",
     "fontkit": "2.0.2",
     "handlebars": "4.7.7",
     "svg2ttf": "6.0.3",

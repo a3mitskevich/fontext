@@ -1,0 +1,12 @@
+{
+  "extends": "@tsconfig/node20",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "strict": false
+  },
+  "include": [
+    "*.d.ts",
+    "src/**/*.ts",
+    "test/**/*.ts",
+  ],
+}

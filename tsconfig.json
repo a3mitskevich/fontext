@@ -1,19 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "declaration": true,
-    "outDir": "lib/",
-    "lib": ["ES2021"],
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": false,
-    "alwaysStrict": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "moduleResolution": "node"
-  },
-  "include": ["src", "test"],
-  "exclude": ["node_modules", "lib"]
+  "files": [],
+  "references": [
+    { "path": "tsconfig.lib.json" },
+    { "path": "tsconfig.test.json" },
+    { "path": "tsconfig.config.json" },
+  ]
 }

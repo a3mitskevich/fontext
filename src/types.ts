@@ -1,14 +1,14 @@
 import type { Readable } from 'stream'
 
-export type Formats = 'ttf' | 'eot' | 'woff' | 'woff2' | 'svg'
+export const Format = {
+  TTF: 'ttf',
+  EOT: 'eot',
+  WOFF: 'woff',
+  WOFF2: 'woff2',
+  SVG: 'svg',
+} as const
 
-export enum Format {
-  TTF = 'ttf',
-  EOT = 'eot',
-  WOFF = 'woff',
-  WOFF2 = 'woff2',
-  SVG = 'svg',
-}
+export type Formats = typeof Format[keyof typeof Format]
 
 export type ExtractedResult = { [key in Formats]?: Buffer } & { meta: GlyphMeta[] }
 
