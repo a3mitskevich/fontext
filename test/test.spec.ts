@@ -1,12 +1,12 @@
 import fs from 'fs'
 import path from 'path'
-import type { Formats, Extract } from '../src'
+import type { Format, Extract } from '../src'
 import { createCachedImport } from './utils'
 const importTargets = {
   local: createCachedImport(async () => import('../src')),
   dist: createCachedImport(async () => import('../dist')),
 }
-const resolve = (format: Formats): string => path.resolve(__dirname, `../assets/font.${format}`)
+const resolve = (format: Format): string => path.resolve(__dirname, `../assets/font.${format}`)
 
 const ttfOriginalFont = fs.readFileSync(resolve('ttf'))
 const woff2OriginalFont = fs.readFileSync(resolve('woff2'))

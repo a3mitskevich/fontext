@@ -14,7 +14,7 @@ yarn add fontext
 ```
 ## Usage
 ```javascript
-import extract from 'fontext';
+import { extract } from 'fontext';
 
 // Your font file as a Buffer
 const fontBuffer = fs.readFileSync('path/to/your/font.ttf');
