@@ -1,6 +1,6 @@
 {
   "name": "fontext",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "Script for extracting glyphes by ligatures from font and creating new minimized fonts with them",
   "keywords": [
     "font",
