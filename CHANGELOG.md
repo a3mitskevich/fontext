@@ -1,4 +1,10 @@
-## 1.1.0
+## 1.1.2
+
+# Patch
+
+- Fixed exports
+
+## 1.1.1
 
 # Patch
 

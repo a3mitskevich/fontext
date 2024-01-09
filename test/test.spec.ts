@@ -15,7 +15,7 @@ const ABC_SVG_PATH = 'd="M448 -277L416 -277L416 -288L373 -288L373 -224L416 -224L
 const extract: Extract = async (...args: any[]): Promise<any> => {
   const testTarget = process.env.TEST_TARGET as keyof typeof importTargets
   const { default: index } = await importTargets[testTarget]()
-  return index.default.apply(null, args)
+  return index.apply(null, args)
 }
 
 describe('extract', () => {
