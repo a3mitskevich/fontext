@@ -1,10 +1,6 @@
 import fs from 'fs'
 import { Readable } from 'stream'
-import {
-  type Glyph,
-  type GlyphRun,
-  create,
-} from 'fontkit'
+import { create, type Font, type Glyph, type GlyphRun, type Lookup } from 'fontkit'
 import svg2ttf from 'svg2ttf'
 import ttf2woff from 'ttf2woff'
 import ttf2woff2 from 'ttf2woff2'
@@ -13,12 +9,12 @@ import SVGIcons2SVGFontStream from 'svgicons2svgfont'
 import handlebars from 'handlebars'
 import path from 'path'
 import {
-  type Formats,
   type ExtractedResult,
-  type GlyphStream,
-  type GlyphMeta,
-  type MinifyOption,
   Format,
+  type Formats,
+  type GlyphMeta,
+  type GlyphStream,
+  type MinifyOption,
 } from './types'
 
 const DEFAULT_FORMATS = Object.values(Format)
@@ -130,22 +126,109 @@ function toSvg (glyph: Glyph): string {
   })
 }
 
-export default async function extract (content: Buffer, option: MinifyOption): Promise<ExtractedResult> {
-  const { fontName = '', formats = DEFAULT_FORMATS, ligatures = [], withWhitespace = false } = option
-  if ((ligatures.length === 0) || (formats.length === 0) || (fontName === '')) {
-    throw Error('Illegal option')
+const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
+  if (!raws.length) {
+    return []
   }
+
+  // Need several font instances because find process made layout result incorrect
   const font = create(content)
+
+  const lookupList = font.GSUB?.lookupList.toArray().find((list: Lookup) => list.lookupType === 4)
+  if (!lookupList) {
+    const message = 'Font no contain GSUB table'
+    console.error(message)
+    return []
+  }
+
+  const {
+    coverage: { glyphs, rangeRecords },
+    ligatureSets,
+  } = lookupList.subTables[0]
+
+  const leadingChars: string[] = rangeRecords
+    ? rangeRecords.reduce(
+      (acc: string[], { start, end }) => {
+        const array = Array(end - start + 1)
+        return [
+          ...acc,
+          ...Array.from(
+            array,
+            (_, position) => position + start).map((item) => font.stringsForGlyph(item)[0],
+          ),
+        ]
+      },
+      [],
+    )
+    : glyphs.map((id) => {
+      const result = font.stringsForGlyph(id)
+      return result.join('')
+    })
+
+  const map = new Map<number, Array<{
+    ligature: any
+    leading: string
+  }>>()
+
+  const ligaturesLists = ligatureSets.toArray()
+
+  for (let index = 0; index < ligaturesLists.length; index++) {
+    const currentList = ligaturesLists[index]
+    const leading = leadingChars[index]
+    for (const ligature of currentList) {
+      const id = ligature.glyph
+      if (!map.has(id)) {
+        map.set(id, [])
+      }
+      map.get(id)?.push({
+        ligature,
+        leading,
+      })
+    }
+  }
+
+  return raws.map(raw => {
+    const glyph = font.glyphsForString(raw)[0]
+    const ligaturesMetas = map.get(glyph.id)
+    if (!ligaturesMetas) {
+      const message = `Target font not contain a ligature for "${raw}"`
+      console.error(message)
+      return ''
+    }
+    return ligaturesMetas.map((meta) => {
+      const ligatureBody = meta.ligature.components
+        .map((code: number) => font.stringsForGlyph(code)[0])
+        .join('') as string
+      return meta.leading + ligatureBody
+    })
+  }).flat()
+}
+
+const findMetaByLigatures = (font: Font, ligatures: string[], withWhitespace: boolean): GlyphMeta[] => {
+  if (!ligatures.length) {
+    return []
+  }
+
   const [whitespaceGlyph] = font.glyphsForString(WHITESPACE)
   const layout = font.layout(ligatures.join(WHITESPACE))
   const glyphs = Array.from<Glyph>(new Set(layout.glyphs))
     .filter(glyph => withWhitespace || glyph.id !== whitespaceGlyph?.id)
-  const glyphsMeta = glyphs.map<GlyphMeta>(glyph => ({
+  return glyphs.map<GlyphMeta>(glyph => ({
     name: codePointsToName(glyph.codePoints),
     unicode: font.stringsForGlyph(glyph.id),
     svg: toSvg(glyph),
   }))
+}
 
+// TODO: potentially may find several ligatures for single raw. Rework in feature
+export default async function extract (content: Buffer, option: MinifyOption): Promise<ExtractedResult> {
+  const { fontName = '', formats = DEFAULT_FORMATS, ligatures = [], raws = [], withWhitespace = false } = option
+  if ((ligatures.length === 0 && raws.length === 0) || (formats.length === 0) || (fontName === '')) {
+    throw Error('Illegal option')
+  }
+
+  const foundLigatures = findLigaturesByRaws(content, raws)
+  const glyphsMeta = findMetaByLigatures(create(content), [ligatures, foundLigatures].flat(), withWhitespace)
   const svgFont = await convertToSvgFont(fontName, glyphsMeta)
   const result = convertByFormats(svgFont, formats)
   result.meta = glyphsMeta

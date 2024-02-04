@@ -9,9 +9,9 @@ const jestConfig: JestConfigWithTsJest = {
       'ts-jest',
       {
         tsconfig: 'tsconfig.test.json',
-      }
-    ]
-  }
+      },
+    ],
+  },
 }
 
 export default jestConfig

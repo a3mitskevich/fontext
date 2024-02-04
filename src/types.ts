@@ -27,7 +27,10 @@ export interface GlyphStream extends Readable {
 
 export interface MinifyOption {
   fontName: string
-  ligatures: string[]
+  ligatures?: string[]
+  raws?: string[]
   formats?: Formats[]
   withWhitespace?: boolean
+  // TODO: add in future
+  // unicodeOnly: boolean
 }

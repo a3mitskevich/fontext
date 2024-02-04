@@ -24,6 +24,7 @@ const options = {
     fontName: 'YourFontName', // Name of the output font
     formats: ['ttf', 'woff', 'woff2'], // Output formats you want to generate
     ligatures: ['fi', 'fl'], // Ligatures to include in the font
+    raws: [''], // Raws unicode that auto find ligatures and include in the font
     withWhitespace: true, // Include whitespace glyphs in the font
 };
 
@@ -45,7 +46,8 @@ The main function that extracts font glyphs and converts them into different for
 * **content** `Buffer`: The font file as a Buffer.
 * **option** `MinifyOption`: An object containing extraction options.
   * **fontName** `string`: The desired name for the output font.
-  * **ligatures** `string[]`: An array of ligatures to include in the font.
+  * **ligatures** `string[] | undefined`: An array of ligatures to include in the font.
+  * **raws** `string[] | undefined`: An array of unicode and symbols that auto find and include in the font.
   * **formats** `Formats[] | undefined`: An array of output formats to generate. Valid values: 'svg', 'ttf', 'woff', 'woff2', 'eot'.
   * **withWhitespace** `boolean | undefined`: Set to true if you want to include whitespace glyphs in the font.
   

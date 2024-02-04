@@ -50,7 +50,7 @@
     "versioning:major": "npm run versioning --PART major"
   },
   "devDependencies": {
-    "@types/fontkit": "2.0.3",
+    "@types/fontkit": "2.0.6",
     "@types/jest": "29.5.3",
     "@types/node": "20.4.5",
     "@types/svg2ttf": "5.0.1",
