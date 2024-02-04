@@ -2,7 +2,8 @@
   "extends": "@tsconfig/node20",
   "compilerOptions": {
     "types": ["node", "jest"],
-    "strict": false
+    "strict": false,
+    "moduleResolution": "Bundler"
   },
   "include": [
     "*.d.ts",

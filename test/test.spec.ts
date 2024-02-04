@@ -14,8 +14,8 @@ const ABC_SVG_PATH = 'd="M448 -277L416 -277L416 -288L373 -288L373 -224L416 -224L
 
 const extract: Extract = async (...args: any[]): Promise<any> => {
   const testTarget = process.env.TEST_TARGET as keyof typeof importTargets
-  const { default: index } = await importTargets[testTarget]()
-  return index.default.apply(null, args)
+  const { default: index } = await importTargets[testTarget ?? 'local']()
+  return index.apply(null, args)
 }
 
 describe('extract', () => {
@@ -52,4 +52,23 @@ describe('extract', () => {
     expect(glyphMeta.unicode).toEqual([''])
     expect(glyphMeta.svg.includes(ABC_SVG_PATH)).toBeTruthy()
   })
+
+  const createTestForRawFunctionality = (type: string, source: Buffer): void => {
+    it(`should extract by raw unicode by ${type}`, async () => {
+      const { meta } = await extract(
+        woff2OriginalFont,
+        { fontName: 'test-icons', raws: [''], formats: ['woff2'] },
+      )
+      expect(meta).toHaveLength(1)
+      const [glyphMeta] = meta
+      expect(glyphMeta.name).toEqual('abc')
+      expect(glyphMeta.unicode).toEqual([''])
+      expect(glyphMeta.svg.includes(ABC_SVG_PATH)).toBeTruthy()
+    })
+  }
+
+  [
+    ['ttf', ttfOriginalFont],
+    ['woff2', woff2OriginalFont],
+  ].forEach(([type, source]) => { createTestForRawFunctionality(type.toString(), Buffer.from(source)) })
 })
