@@ -71,7 +71,7 @@
     "typescript": "5.1.6"
   },
   "dependencies": {
-    "@tsconfig/node20": "20.1.2",
+    "@tsconfig/node20": "20.1.4",
     "fontkit": "2.0.2",
     "handlebars": "4.7.7",
     "svg2ttf": "6.0.3",
