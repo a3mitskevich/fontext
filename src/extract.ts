@@ -73,6 +73,8 @@ function createGlyphStream (content: string): GlyphStream {
   return stream as GlyphStream
 }
 
+const uniq = <T>(array: T[]): T[] => array.filter((candidate, index) => array.indexOf(candidate) === index)
+
 async function convertToSvgFont (fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return new Promise(resolve => {
     let svgFontBuffer = Buffer.alloc(0)
@@ -93,7 +95,7 @@ async function convertToSvgFont (fontName: string, glyphsMeta: GlyphMeta[]): Pro
       const glyphStream = createGlyphStream(meta.svg)
       glyphStream.metadata = {
         name: meta.name,
-        unicode: [...meta.unicode, meta.name],
+        unicode: uniq([...meta.unicode, meta.name]),
       }
       stream.write(glyphStream)
     })
@@ -137,8 +139,8 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
   const lookupList = font.GSUB?.lookupList.toArray().find((list: Lookup) => list.lookupType === 4)
   if (!lookupList) {
     const message = 'Font no contain GSUB table'
-    console.error(message)
-    return []
+    console.warn(message)
+    return raws
   }
 
   const {
