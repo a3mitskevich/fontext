@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.10.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.9.1...fontext-v1.10.0) (2026-03-22)
+
+
+### Features
+
+* **ci:** add commit message and pre-commit lint/format hooks ([b528167](https://github.com/a3mitskevich/fontext/commit/b528167124f243017f927addbe078f9d91185099))
+
 ## [1.9.1](https://github.com/a3mitskevich/fontext/compare/fontext-v1.9.0...fontext-v1.9.1) (2026-03-22)
 
 
