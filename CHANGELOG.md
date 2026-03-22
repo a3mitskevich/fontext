@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.1](https://github.com/a3mitskevich/fontext/compare/fontext-v1.9.0...fontext-v1.9.1) (2026-03-22)
+
+
+### Bug Fixes
+
+* update repository and homepage URLs to fontext ([d41e106](https://github.com/a3mitskevich/fontext/commit/d41e106cabe325864d0a8e1a009bc2d2b7faa05f))
+
 ## [1.9.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.8.0...fontext-v1.9.0) (2026-03-22)
 
 
