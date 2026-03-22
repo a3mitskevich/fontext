@@ -77,7 +77,7 @@ function createGlyphStream(content: string): GlyphStream {
 }
 
 async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let svgFontBuffer = Buffer.alloc(0);
     const config: SVGIcons2SVGFontStream.SvgIcons2FontOptions = {
       fontName,
@@ -91,6 +91,9 @@ async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Prom
       })
       .on("end", () => {
         resolve(svgFontBuffer);
+      })
+      .on("error", (err) => {
+        reject(err);
       });
     glyphsMeta.forEach((meta) => {
       const glyphStream = createGlyphStream(meta.svg);
