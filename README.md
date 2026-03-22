@@ -23,6 +23,22 @@ Icon fonts like Material Icons or custom ligature-based fonts often contain 1000
 npm install fontext
 ```
 
+## CLI
+
+```bash
+npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
+```
+
+| Flag | Description |
+|------|-------------|
+| `-i, --input` | Path to the font file (required) |
+| `-n, --font-name` | Name for the output font (required) |
+| `-l, --ligatures` | Comma-separated ligature names |
+| `-r, --raws` | Comma-separated raw unicode characters |
+| `-f, --formats` | Output formats: `svg,ttf,woff,woff2,eot` (default: all) |
+| `-o, --output` | Output directory (default: `.`) |
+| `-w, --with-whitespace` | Include whitespace glyph |
+
 ## Quick Start
 
 ```javascript
