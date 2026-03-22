@@ -1,4 +1,3 @@
-import fs from "fs";
 import { Readable } from "stream";
 import {
   create,
@@ -13,8 +12,6 @@ import ttf2woff from "ttf2woff";
 import ttf2woff2 from "ttf2woff2";
 import ttf2eot from "ttf2eot";
 import { SVGIcons2SVGFontStream, type SVGIcons2SVGFontStreamOptions } from "svgicons2svgfont";
-import handlebars from "handlebars";
-import path from "path";
 import {
   type ExtractedResult,
   Format,
@@ -36,23 +33,8 @@ function createFont(content: Buffer): Font {
   return font;
 }
 
-let cachedTemplate: HandlebarsTemplateDelegate<{
-  path: string;
-  width: number;
-  height: number;
-}> | null = null;
-
-function getSvgTemplate(): HandlebarsTemplateDelegate<{
-  path: string;
-  width: number;
-  height: number;
-}> {
-  if (!cachedTemplate) {
-    const templatePath = path.resolve(__dirname, "svg.hbs");
-    const source = fs.readFileSync(templatePath, "utf8");
-    cachedTemplate = handlebars.compile(source);
-  }
-  return cachedTemplate;
+function renderSvg(svgPath: string, width: number, height: number): string {
+  return `<svg viewBox="0 -${height} ${width} ${height}" xmlns="http://www.w3.org/2000/svg">\n  <path d="${svgPath}" />\n</svg>`;
 }
 
 function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffer | null {
@@ -137,17 +119,10 @@ function codePointsToName(symbols: number[]): string {
 }
 
 function toSvg(glyph: Glyph): string {
-  const path = glyph.path.scale(-1, 1).rotate(Math.PI).toSVG();
+  const svgPath = glyph.path.scale(-1, 1).rotate(Math.PI).toSVG();
   const width = glyph.advanceWidth ?? DEFAULT_FONT_SIZE;
   const height = glyph.advanceHeight ?? DEFAULT_FONT_SIZE;
-
-  const template = getSvgTemplate();
-
-  return template({
-    path,
-    width,
-    height,
-  });
+  return renderSvg(svgPath, width, height);
 }
 
 const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
