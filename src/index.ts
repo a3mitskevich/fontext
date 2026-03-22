@@ -4,6 +4,7 @@ export {
   type Formats,
   type MinifyOption,
   type ExtractedResult,
+  type OptimizationReport,
   type Formats as Format,
 } from "./types";
 export type Extract = typeof extract;

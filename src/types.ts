@@ -10,7 +10,15 @@ export const Format = {
 
 export type Formats = (typeof Format)[keyof typeof Format];
 
-export type ExtractedResult = { [key in Formats]?: Buffer } & { meta: GlyphMeta[] };
+export interface OptimizationReport {
+  originalSize: number;
+  formats: Partial<Record<Formats, { size: number; saving: number }>>;
+}
+
+export type ExtractedResult = { [key in Formats]?: Buffer } & {
+  meta: GlyphMeta[];
+  report: OptimizationReport;
+};
 
 export interface GlyphMeta {
   name: string;
