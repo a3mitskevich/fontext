@@ -53,7 +53,7 @@ export async function extractSubset(
   content: Buffer,
   option: MinifyOption,
 ): Promise<ExtractedResult> {
-  const { fontName = "", formats = DEFAULT_FORMATS } = option;
+  const { formats = DEFAULT_FORMATS } = option;
 
   const codePoints = collectCodePoints(option);
   if (codePoints.length === 0) {
