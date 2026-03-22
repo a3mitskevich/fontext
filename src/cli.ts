@@ -39,10 +39,19 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
 
+${c.bold}Config file:${c.reset}
+  Create ${c.cyan}.fontextrc.json${c.reset} in your project root with default options.
+  CLI flags override config values. Searched upward from cwd.
+
+  ${c.dim}Example .fontextrc.json:${c.reset}
+  ${c.dim}{ "input": "icons.woff2", "fontName": "my-icons",${c.reset}
+  ${c.dim}  "ligatures": ["home","search"], "formats": ["woff2","ttf"] }${c.reset}
+
 ${c.bold}Examples:${c.reset}
   ${c.dim}$${c.reset} fontext -i icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
   ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -r "" -f woff2
   ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -u U+E000-U+E010 -f woff2
+  ${c.dim}$${c.reset} fontext ${c.dim}# uses .fontextrc.json${c.reset}
 `);
 }
 
@@ -96,6 +105,31 @@ function createSpinner(text: string): { stop: () => void } {
   };
 }
 
+interface ConfigFile {
+  input?: string;
+  output?: string;
+  fontName?: string;
+  ligatures?: string[];
+  raws?: string[];
+  unicodeRanges?: string[];
+  formats?: string[];
+  withWhitespace?: boolean;
+}
+
+function findConfig(): ConfigFile | null {
+  let dir = process.cwd();
+  while (true) {
+    const configPath = path.join(dir, ".fontextrc.json");
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, "utf8"));
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
@@ -124,37 +158,51 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  if (!values.input) {
+  const config = findConfig();
+
+  const input = values.input ?? config?.input;
+  const fontName = values["font-name"] ?? config?.fontName;
+  const ligaturesRaw = values.ligatures;
+  const rawsRaw = values.raws;
+  const unicodeRangesRaw = values["unicode-ranges"];
+
+  if (!input) {
     printError("--input is required");
     printHelp();
     process.exit(1);
   }
 
-  if (!values["font-name"]) {
+  if (!fontName) {
     printError("--font-name is required");
     printHelp();
     process.exit(1);
   }
 
-  if (!values.ligatures && !values.raws && !values["unicode-ranges"]) {
+  const ligatures = ligaturesRaw ? ligaturesRaw.split(",") : (config?.ligatures ?? []);
+  const raws = rawsRaw ? rawsRaw.split(",") : (config?.raws ?? []);
+  const unicodeRanges = unicodeRangesRaw
+    ? unicodeRangesRaw.split(",")
+    : (config?.unicodeRanges ?? []);
+
+  if (ligatures.length === 0 && raws.length === 0 && unicodeRanges.length === 0) {
     printError("at least one of --ligatures, --raws, or --unicode-ranges is required");
     printHelp();
     process.exit(1);
   }
 
-  const inputPath = path.resolve(values.input);
+  const inputPath = path.resolve(input);
   if (!fs.existsSync(inputPath)) {
     printError(`file not found: ${inputPath}`);
     process.exit(1);
   }
 
-  const outputDir = path.resolve(values.output!);
-  const fontName = values["font-name"];
-  const ligatures = values.ligatures ? values.ligatures.split(",") : [];
-  const raws = values.raws ? values.raws.split(",") : [];
-  const unicodeRanges = values["unicode-ranges"] ? values["unicode-ranges"].split(",") : [];
-  const formats = values.formats ? (values.formats.split(",") as Formats[]) : undefined;
-  const withWhitespace = values["with-whitespace"];
+  const outputDir = path.resolve(values.output !== "." ? values.output! : (config?.output ?? "."));
+  const formats = values.formats
+    ? (values.formats.split(",") as Formats[])
+    : config?.formats
+      ? (config.formats as Formats[])
+      : undefined;
+  const withWhitespace = values["with-whitespace"] || (config?.withWhitespace ?? false);
 
   const content = fs.readFileSync(inputPath);
   const spinner = !values.json ? createSpinner("Extracting glyphs...") : { stop: () => {} };
