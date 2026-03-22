@@ -148,18 +148,31 @@ async function main(): Promise<void> {
   );
   console.log();
 
+  const outputs: Array<{ filePath: string; size: string; saving: number }> = [];
+
   for (const format of VALID_FORMATS) {
     const buffer = result[format];
     if (buffer) {
       const filePath = path.join(outputDir, `${fontName}.${format}`);
       fs.writeFileSync(filePath, buffer);
       const formatReport = result.report.formats[format];
-      const saving = formatReport?.saving ?? 0;
-      const relPath = path.relative(process.cwd(), filePath);
-      console.log(
-        `  ${c.green}✓${c.reset} ${c.cyan}${relPath}${c.reset}  ${c.dim}${formatBytes(buffer.length)}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
-      );
+      outputs.push({
+        filePath,
+        size: formatBytes(buffer.length),
+        saving: formatReport?.saving ?? 0,
+      });
     }
+  }
+
+  const maxPathLen = Math.max(...outputs.map((o) => o.filePath.length));
+  const maxSizeLen = Math.max(...outputs.map((o) => o.size.length));
+
+  for (const { filePath, size, saving } of outputs) {
+    const paddedPath = filePath.padEnd(maxPathLen);
+    const paddedSize = size.padStart(maxSizeLen);
+    console.log(
+      `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
+    );
   }
 
   console.log();
