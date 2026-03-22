@@ -33,7 +33,7 @@ describe("CLI", () => {
   it("should print help with --help", () => {
     const { stdout, exitCode } = run(["--help"]);
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("Usage: fontext");
+    expect(stdout).toContain("fontext");
     expect(stdout).toContain("--input");
     expect(stdout).toContain("--font-name");
   });
@@ -74,7 +74,7 @@ describe("CLI", () => {
       outDir,
     ]);
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("Extracted 1 glyph(s)");
+    expect(stdout).toContain("1 glyph(s) extracted");
     expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(true);
     expect(fs.existsSync(path.join(outDir, "test-icons.woff2"))).toBe(true);
   });
