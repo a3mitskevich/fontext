@@ -21,14 +21,23 @@ const DEFAULT_FORMATS = Object.values(Format);
 const WHITESPACE = " ";
 const DEFAULT_FONT_SIZE = 1000;
 
+let cachedTemplate: HandlebarsTemplateDelegate<{
+  path: string;
+  width: number;
+  height: number;
+}> | null = null;
+
 function getSvgTemplate(): HandlebarsTemplateDelegate<{
   path: string;
   width: number;
   height: number;
 }> {
-  const templatePath = path.resolve(__dirname, "svg.hbs");
-  const source = fs.readFileSync(templatePath, "utf8");
-  return handlebars.compile(source);
+  if (!cachedTemplate) {
+    const templatePath = path.resolve(__dirname, "svg.hbs");
+    const source = fs.readFileSync(templatePath, "utf8");
+    cachedTemplate = handlebars.compile(source);
+  }
+  return cachedTemplate;
 }
 
 function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffer | null {
