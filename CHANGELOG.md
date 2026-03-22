@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.8.0...fontext-v1.9.0) (2026-03-22)
+
+
+### Features
+
+* add browser-compatible entry point ([91693c6](https://github.com/a3mitskevich/fontext/commit/91693c655fb80d91327984f6989dc3e8d588f409))
+* add dual engine architecture with subset support ([aca7927](https://github.com/a3mitskevich/fontext/commit/aca7927172c9b4ce6c90aed77a149a8bb6777ad5))
+
 ## [1.8.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.7.0...fontext-v1.8.0) (2026-03-22)
 
 
