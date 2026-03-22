@@ -58,6 +58,7 @@
     "@tsconfig/node20": "^20.1.9",
     "@types/fontkit": "^2.0.9",
     "@types/node": "^25.5.0",
+    "@types/subset-font": "^2.3.0",
     "@types/svg2ttf": "^5.0.3",
     "@types/ttf2eot": "^2.0.2",
     "@types/ttf2woff": "^2.0.4",
@@ -70,6 +71,7 @@
   },
   "dependencies": {
     "fontkit": "^2.0.4",
+    "subset-font": "^2.4.0",
     "svg2ttf": "6.0.3",
     "svgicons2svgfont": "^15.0.1",
     "ttf2eot": "3.1.0",

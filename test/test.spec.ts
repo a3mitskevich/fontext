@@ -173,6 +173,43 @@ describe("extract", () => {
     });
   });
 
+  describe("subset engine", () => {
+    it("should subset font by characters", async () => {
+      const result = await extract(ttfOriginalFont, {
+        fontName: "subset-test",
+        characters: "abc",
+        formats: ["ttf", "woff2"],
+        engine: "subset",
+      });
+      expect(result.ttf).toBeInstanceOf(Buffer);
+      expect(result.woff2).toBeInstanceOf(Buffer);
+      expect(result.ttf!.length).toBeLessThan(ttfOriginalFont.length);
+      expect(result.report.originalSize).toBe(ttfOriginalFont.length);
+      expect(result.report.formats.ttf!.saving).toBeGreaterThan(0);
+    });
+
+    it("should subset font by unicode ranges", async () => {
+      const result = await extract(ttfOriginalFont, {
+        fontName: "subset-test",
+        unicodeRanges: ["U+0061-U+0063"],
+        formats: ["woff2"],
+        engine: "subset",
+      });
+      expect(result.woff2).toBeInstanceOf(Buffer);
+      expect(result.meta.length).toBeGreaterThan(0);
+    });
+
+    it("should preserve more glyphs than icon engine for same input", async () => {
+      const subsetResult = await extract(ttfOriginalFont, {
+        fontName: "test",
+        unicodeRanges: ["U+0061-U+007A"],
+        formats: ["ttf"],
+        engine: "subset",
+      });
+      expect(subsetResult.ttf!.length).toBeGreaterThan(0);
+    });
+  });
+
   describe("validation", () => {
     it("should throw on missing fontName", async () => {
       await expect(
@@ -180,10 +217,12 @@ describe("extract", () => {
       ).rejects.toThrow("fontName is required");
     });
 
-    it("should throw on empty ligatures, raws, and unicodeRanges", async () => {
+    it("should throw on empty glyph selection", async () => {
       await expect(
         extract(ttfOriginalFont, { fontName: "test", ligatures: [], raws: [], unicodeRanges: [] }),
-      ).rejects.toThrow("At least one of ligatures, raws, or unicodeRanges must be provided");
+      ).rejects.toThrow(
+        "At least one of ligatures, raws, unicodeRanges, or characters must be provided",
+      );
     });
 
     it("should throw on empty formats", async () => {

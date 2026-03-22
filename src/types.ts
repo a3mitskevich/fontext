@@ -33,11 +33,15 @@ export interface GlyphStream extends Readable {
   };
 }
 
+export type Engine = "icon" | "subset";
+
 export interface MinifyOption {
   fontName: string;
   ligatures?: string[];
   raws?: string[];
   unicodeRanges?: string[];
+  characters?: string;
   formats?: Formats[];
   withWhitespace?: boolean;
+  engine?: Engine;
 }
