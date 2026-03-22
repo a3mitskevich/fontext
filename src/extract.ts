@@ -247,8 +247,21 @@ export default async function extract(
     raws = [],
     withWhitespace = false,
   } = option;
-  if ((ligatures.length === 0 && raws.length === 0) || formats.length === 0 || fontName === "") {
-    throw Error("Illegal option");
+  if (!fontName) {
+    throw new Error("fontName is required");
+  }
+  if (ligatures.length === 0 && raws.length === 0) {
+    throw new Error("At least one of ligatures or raws must be provided");
+  }
+  if (formats.length === 0) {
+    throw new Error("At least one output format must be specified");
+  }
+  const validFormats = new Set(Object.values(Format));
+  const invalidFormats = formats.filter((f) => !validFormats.has(f));
+  if (invalidFormats.length > 0) {
+    throw new Error(
+      `Invalid format(s): ${invalidFormats.join(", ")}. Valid formats: ${[...validFormats].join(", ")}`,
+    );
   }
 
   const foundLigatures = findLigaturesByRaws(content, raws);
