@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed
+- Minimum Node.js version raised to 20.0.0 (Node 18 is EOL)
+- Added `.nvmrc` (Node 24) for development environment
+- Updated `svgicons2svgfont` to 15.0.1, `ttf2woff2` to 8.0.1, `fontkit` to 2.0.4, `handlebars` to 4.7.8
+- Updated all `@types/*` dev dependencies to latest
+- CI now tests on Node 20, 22, and 24
+- Font collections (TTC/DFONT) now throw a clear error instead of failing silently
+
 ## [1.3.0] - 2026-03-22
 
 ### Fixed

@@ -1,11 +1,18 @@
 import fs from "fs";
 import { Readable } from "stream";
-import { create, type Font, type Glyph, type Ligature, type Lookup } from "fontkit";
+import {
+  create,
+  type Font,
+  type FontCollection,
+  type Glyph,
+  type Ligature,
+  type Lookup,
+} from "fontkit";
 import svg2ttf from "svg2ttf";
 import ttf2woff from "ttf2woff";
 import ttf2woff2 from "ttf2woff2";
 import ttf2eot from "ttf2eot";
-import SVGIcons2SVGFontStream from "svgicons2svgfont";
+import { SVGIcons2SVGFontStream, type SVGIcons2SVGFontStreamOptions } from "svgicons2svgfont";
 import handlebars from "handlebars";
 import path from "path";
 import {
@@ -20,6 +27,14 @@ import {
 const DEFAULT_FORMATS = Object.values(Format);
 const WHITESPACE = " ";
 const DEFAULT_FONT_SIZE = 1000;
+
+function createFont(content: Buffer): Font {
+  const font = create(content);
+  if ("fonts" in font) {
+    throw new Error("Font collections (TTC/DFONT) are not supported. Provide a single font file.");
+  }
+  return font;
+}
 
 let cachedTemplate: HandlebarsTemplateDelegate<{
   path: string;
@@ -88,15 +103,15 @@ function createGlyphStream(content: string): GlyphStream {
 async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let svgFontBuffer = Buffer.alloc(0);
-    const config: SVGIcons2SVGFontStream.SvgIcons2FontOptions = {
+    const config: Partial<SVGIcons2SVGFontStreamOptions> = {
       fontName,
       normalize: true,
       fontHeight: DEFAULT_FONT_SIZE,
-      log: () => {},
     };
     const stream = new SVGIcons2SVGFontStream(config)
-      .on("data", (data) => {
-        svgFontBuffer = Buffer.concat([svgFontBuffer, data]);
+      .on("data", (data: Buffer | string) => {
+        const chunk = typeof data === "string" ? Buffer.from(data) : data;
+        svgFontBuffer = Buffer.concat([svgFontBuffer, chunk]);
       })
       .on("end", () => {
         resolve(svgFontBuffer);
@@ -141,7 +156,7 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
   }
 
   // Need several font instances because find process made layout result incorrect
-  const font = create(content);
+  const font = createFont(content);
 
   const lookupList = font.GSUB?.lookupList.toArray().find((list: Lookup) => list.lookupType === 4);
   if (!lookupList) {
@@ -262,7 +277,7 @@ export default async function extract(
 
   const foundLigatures = findLigaturesByRaws(content, raws);
   const glyphsMeta = findMetaByLigatures(
-    create(content),
+    createFont(content),
     [ligatures, foundLigatures].flat(),
     withWhitespace,
   );
