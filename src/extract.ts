@@ -106,7 +106,7 @@ async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Prom
       const glyphStream = createGlyphStream(meta.svg);
       glyphStream.metadata = {
         name: meta.name,
-        unicode: [...meta.unicode, meta.name],
+        unicode: [...new Set([...meta.unicode, meta.name])],
       };
       stream.write(glyphStream);
     });
@@ -201,6 +201,43 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
     .flat();
 };
 
+function parseUnicodeRanges(ranges: string[]): number[] {
+  const codePoints: number[] = [];
+  for (const range of ranges) {
+    const match = range.match(/^U\+([0-9A-Fa-f]+)(?:-U?\+?([0-9A-Fa-f]+))?$/);
+    if (!match) {
+      throw new Error(
+        `Invalid unicode range: "${range}". Expected format: U+XXXX or U+XXXX-U+XXXX`,
+      );
+    }
+    const start = parseInt(match[1], 16);
+    const end = match[2] ? parseInt(match[2], 16) : start;
+    if (end < start) {
+      throw new Error(`Invalid unicode range: "${range}". End must be >= start`);
+    }
+    for (let cp = start; cp <= end; cp++) {
+      codePoints.push(cp);
+    }
+  }
+  return codePoints;
+}
+
+const findMetaByCodePoints = (font: Font, codePoints: number[]): GlyphMeta[] => {
+  const glyphs: Glyph[] = [];
+  for (const cp of codePoints) {
+    const glyph = font.glyphForCodePoint(cp);
+    if (glyph && glyph.id !== 0) {
+      glyphs.push(glyph);
+    }
+  }
+  const unique = Array.from(new Map(glyphs.map((g) => [g.id, g])).values());
+  return unique.map<GlyphMeta>((glyph) => ({
+    name: codePointsToName(glyph.codePoints),
+    unicode: font.stringsForGlyph(glyph.id),
+    svg: toSvg(glyph),
+  }));
+};
+
 const findMetaByLigatures = (
   font: Font,
   ligatures: string[],
@@ -232,13 +269,14 @@ export default async function extract(
     formats = DEFAULT_FORMATS,
     ligatures = [],
     raws = [],
+    unicodeRanges = [],
     withWhitespace = false,
   } = option;
   if (!fontName) {
     throw new Error("fontName is required");
   }
-  if (ligatures.length === 0 && raws.length === 0) {
-    throw new Error("At least one of ligatures or raws must be provided");
+  if (ligatures.length === 0 && raws.length === 0 && unicodeRanges.length === 0) {
+    throw new Error("At least one of ligatures, raws, or unicodeRanges must be provided");
   }
   if (formats.length === 0) {
     throw new Error("At least one output format must be specified");
@@ -251,12 +289,24 @@ export default async function extract(
     );
   }
 
+  const font = createFont(content);
   const foundLigatures = findLigaturesByRaws(content, raws);
-  const glyphsMeta = findMetaByLigatures(
-    createFont(content),
+  const ligatureMeta = findMetaByLigatures(
+    font,
     [ligatures, foundLigatures].flat(),
     withWhitespace,
   );
+  const unicodeMeta =
+    unicodeRanges.length > 0 ? findMetaByCodePoints(font, parseUnicodeRanges(unicodeRanges)) : [];
+
+  const seen = new Set<string>();
+  const glyphsMeta: GlyphMeta[] = [];
+  for (const meta of [...ligatureMeta, ...unicodeMeta]) {
+    if (!seen.has(meta.name)) {
+      seen.add(meta.name);
+      glyphsMeta.push(meta);
+    }
+  }
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
   const result = convertByFormats(svgFont, formats);
   result.meta = glyphsMeta;
