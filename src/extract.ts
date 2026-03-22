@@ -19,6 +19,7 @@ import {
   type GlyphMeta,
   type GlyphStream,
   type MinifyOption,
+  type OptimizationReport,
 } from "./types";
 
 const DEFAULT_FORMATS = Object.values(Format);
@@ -69,10 +70,10 @@ function convertByFormats(svgFont: Buffer, formats: Formats[]): ExtractedResult 
         }
         return acc;
       },
-      { meta: [] },
+      { meta: [], report: { originalSize: 0, formats: {} } },
     );
   }
-  return { svg: svgFont, meta: [] };
+  return { svg: svgFont, meta: [], report: { originalSize: 0, formats: {} } };
 }
 
 function createGlyphStream(content: string): GlyphStream {
@@ -259,5 +260,18 @@ export default async function extract(
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
   const result = convertByFormats(svgFont, formats);
   result.meta = glyphsMeta;
+
+  const originalSize = content.length;
+  const reportFormats: OptimizationReport["formats"] = {};
+  for (const format of formats) {
+    const buffer = result[format];
+    if (buffer) {
+      const size = buffer.length;
+      const saving = originalSize > 0 ? ((originalSize - size) / originalSize) * 100 : 0;
+      reportFormats[format] = { size, saving: Math.round(saving * 10) / 10 };
+    }
+  }
+  result.report = { originalSize, formats: reportFormats };
+
   return result;
 }

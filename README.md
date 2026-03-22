@@ -90,13 +90,23 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 ### `ExtractedResult`
 
-An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `woff2`, `eot`), each containing a `Buffer`. Also includes a `meta` array of `GlyphMeta` objects:
+An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `woff2`, `eot`), each containing a `Buffer`. Also includes `meta` and `report`:
 
 ```typescript
 interface GlyphMeta {
   name: string;      // ligature name
   unicode: string[];  // unicode mappings
   svg: string;        // SVG markup for the glyph
+}
+
+interface OptimizationReport {
+  originalSize: number;  // input font size in bytes
+  formats: {
+    [format: string]: {
+      size: number;    // output size in bytes
+      saving: number;  // percentage saved (0-100)
+    };
+  };
 }
 ```
 

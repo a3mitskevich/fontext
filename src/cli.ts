@@ -114,11 +114,17 @@ async function main(): Promise<void> {
     if (buffer) {
       const filePath = path.join(outputDir, `${fontName}.${format}`);
       fs.writeFileSync(filePath, buffer);
-      written.push(`  ${path.relative(process.cwd(), filePath)} (${formatBytes(buffer.length)})`);
+      const formatReport = result.report.formats[format];
+      const saving = formatReport ? `, saved ${formatReport.saving}%` : "";
+      written.push(
+        `  ${path.relative(process.cwd(), filePath)} (${formatBytes(buffer.length)}${saving})`,
+      );
     }
   }
 
-  console.log(`Extracted ${result.meta.length} glyph(s):`);
+  console.log(
+    `Extracted ${result.meta.length} glyph(s) from ${formatBytes(result.report.originalSize)} source:`,
+  );
   written.forEach((line) => console.log(line));
 }
 
