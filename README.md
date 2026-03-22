@@ -65,6 +65,13 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 > At least one of `ligatures` or `raws` must be provided.
 
+### Error Handling
+
+`extract()` throws in the following cases:
+- Missing or empty `fontName`, `ligatures`/`raws`, or `formats` — `"Illegal option"`
+- Font lacks a GSUB ligature lookup table (required for `raws`) — `"Font does not contain a GSUB ligature lookup table"`
+- A raw unicode character has no matching ligature — `"Font does not contain a ligature for \"...\""`
+
 ### `ExtractedResult`
 
 An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `woff2`, `eot`), each containing a `Buffer`. Also includes a `meta` array of `GlyphMeta` objects:
