@@ -224,14 +224,14 @@ async function main(): Promise<void> {
     if (!fs.existsSync(inputPath)) throw new Error(`file not found: ${inputPath}`);
 
     const outputDir = path.resolve(
-      cliOverrides && values.output !== "." ? values.output! : (entry.output ?? "."),
+      cliOverrides && values.output !== "." ? (values.output ?? ".") : (entry.output ?? "."),
     );
-    const formats =
-      cliOverrides && values.formats
-        ? (values.formats.split(",") as Formats[])
-        : entry.formats
-          ? (entry.formats as Formats[])
-          : undefined;
+    let formats: Formats[] | undefined;
+    if (cliOverrides && values.formats) {
+      formats = values.formats.split(",") as Formats[];
+    } else if (entry.formats) {
+      formats = entry.formats as Formats[];
+    }
     const withWhitespace =
       (cliOverrides && values["with-whitespace"]) || (entry.withWhitespace ?? false);
 
@@ -265,7 +265,7 @@ async function main(): Promise<void> {
 
     fs.mkdirSync(outputDir, { recursive: true });
 
-    const files: Array<{ path: string; format: string; size: number; saving: number }> = [];
+    const files: { path: string; format: string; size: number; saving: number }[] = [];
 
     for (const format of VALID_FORMATS) {
       const buffer = result[format];
@@ -317,7 +317,7 @@ async function main(): Promise<void> {
     console.log();
   }
 
-  const jsonResults: any[] = [];
+  const jsonResults: unknown[] = [];
 
   // Batch mode: config has batch array
   if (config?.batch && config.batch.length > 0 && !values.input) {
@@ -340,8 +340,8 @@ async function main(): Promise<void> {
           try {
             await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
             console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
-          } catch (err: any) {
-            printError(err.message);
+          } catch (err: unknown) {
+            printError((err as Error).message);
           }
         }, 200);
       });

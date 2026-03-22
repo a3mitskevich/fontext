@@ -1,7 +1,6 @@
 import subsetFont from "subset-font";
 import {
   type ExtractedResult,
-  Format,
   type Formats,
   type MinifyOption,
   type OptimizationReport,
@@ -79,7 +78,8 @@ export async function extractSubset(
     const ttfSubset =
       result.ttf ?? Buffer.from(await subsetFont(content, text, { targetFormat: "truetype" }));
     // Dynamic import to avoid loading ttf2eot unless needed
-    const ttf2eot = (await import("ttf2eot")).default;
+    const ttf2eotModule = await import("ttf2eot");
+    const ttf2eot = ttf2eotModule.default;
     result.eot = Buffer.from(ttf2eot(new Uint8Array(ttfSubset)) as unknown as ArrayBuffer);
     if (!formats.includes("ttf") && !result.ttf) {
       // TTF was only needed for EOT conversion, don't include in output

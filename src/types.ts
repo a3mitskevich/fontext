@@ -15,7 +15,7 @@ export interface OptimizationReport {
   formats: Partial<Record<Formats, { size: number; saving: number }>>;
 }
 
-export type ExtractedResult = { [key in Formats]?: Buffer } & {
+export type ExtractedResult = Partial<Record<Formats, Buffer>> & {
   meta: GlyphMeta[];
   report: OptimizationReport;
 };
