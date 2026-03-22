@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.5.0...fontext-v1.6.0) (2026-03-22)
+
+
+### Features
+
+* add optimization report with size savings ([64faba1](https://github.com/a3mitskevich/fontext/commit/64faba1f3c2bf12855d62448ce6ff98262318218))
+* colorful CLI output with progress bars ([2f07dd0](https://github.com/a3mitskevich/fontext/commit/2f07dd090c0be869b8f41ce3708b4cf66c108671))
+
+
+### Bug Fixes
+
+* use absolute paths and align CLI output columns ([ad88acd](https://github.com/a3mitskevich/fontext/commit/ad88acd7e77aaa4a000f944d80c9ce42dd0b98f8))
+
 ## [1.5.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.4.0...fontext-v1.5.0) (2026-03-22)
 
 
