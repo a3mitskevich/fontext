@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.4.0...fontext-v1.5.0) (2026-03-22)
+
+
+### Features
+
+* add CLI interface ([43923cd](https://github.com/a3mitskevich/fontext/commit/43923cd4810e2d399078f3ab65bc70f997542ef5))
+
 ## [1.4.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.3.0...fontext-v1.4.0) (2026-03-22)
 
 
