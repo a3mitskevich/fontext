@@ -1,0 +1,17 @@
+# <type>(<scope>): <description>
+#
+# [optional body]
+#
+# [optional footer(s)]
+#
+# Types: feat, fix, chore, docs, ci, test, perf, style, refactor, build
+# Scope: optional, e.g. (extract), (cli), (types)
+#
+# Examples:
+#   feat: add WOFF2 browser support
+#   fix(extract): handle empty ligature tables
+#   chore: update dependencies
+#   perf: cache compiled SVG template
+#
+# Breaking changes: add "!" after type/scope, e.g. feat!: remove Node 18 support
+# Or add "BREAKING CHANGE: ..." in the footer
