@@ -80,4 +80,44 @@ describe("extract", () => {
   ).forEach(([type, source]) => {
     createTestForRawFunctionality(type, Buffer.from(source));
   });
+
+  describe("validation", () => {
+    it("should throw on missing fontName", async () => {
+      await expect(
+        extract(ttfOriginalFont, { fontName: "", ligatures: ["abc"], formats: ["ttf"] }),
+      ).rejects.toThrow("fontName is required");
+    });
+
+    it("should throw on empty ligatures and raws", async () => {
+      await expect(
+        extract(ttfOriginalFont, { fontName: "test", ligatures: [], raws: [] }),
+      ).rejects.toThrow("At least one of ligatures or raws must be provided");
+    });
+
+    it("should throw on empty formats", async () => {
+      await expect(
+        extract(ttfOriginalFont, { fontName: "test", ligatures: ["abc"], formats: [] }),
+      ).rejects.toThrow("At least one output format must be specified");
+    });
+
+    it("should throw on invalid format", async () => {
+      await expect(
+        extract(ttfOriginalFont, {
+          fontName: "test",
+          ligatures: ["abc"],
+          formats: ["invalid" as any],
+        }),
+      ).rejects.toThrow("Invalid format(s): invalid");
+    });
+
+    it("should throw on non-existent ligature in raws", async () => {
+      await expect(
+        extract(ttfOriginalFont, {
+          fontName: "test",
+          raws: ["\u{FFFF}"],
+          formats: ["ttf"],
+        }),
+      ).rejects.toThrow("Font does not contain a ligature for");
+    });
+  });
 });
