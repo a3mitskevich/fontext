@@ -33,3 +33,27 @@
 - [x] **5.2** Unicode range extraction — extract by code point ranges (`U+E000-U+E100`)
 - [x] **5.3** ESM-native template loading — inline template, remove handlebars + svg.hbs
 - [x] **5.4** Optimization report — show size diff (before/after/saved)
+
+## Phase 6 — Packaging & Correctness
+
+- [ ] **6.1** Add npm publish step to CI — auto-publish to npm after release-please creates a GitHub Release
+- [ ] **6.2** Move `@tsconfig/node20` from `dependencies` to `devDependencies` — it's only used at build time
+- [ ] **6.3** Fix "Supported Input Formats" in README — remove TTC/DFONT (not supported) or add font collection support
+
+## Phase 7 — Performance
+
+- [ ] **7.1** Parallel format conversion — convert WOFF/WOFF2/EOT in parallel via `Promise.all` instead of sequential `reduce`
+- [ ] **7.2** Optimize stream buffering — collect chunks in array and `Buffer.concat` once in `end`, not per-chunk
+
+## Phase 8 — CLI Enhancements
+
+- [ ] **8.1** `--json` flag — output result as JSON for CI pipelines and build script integration
+- [ ] **8.2** Progress indicator — show extraction progress for large fonts with many glyphs
+- [ ] **8.3** Config file support — `.fontextrc.json` or `fontext` field in `package.json` for default options
+- [ ] **8.4** Watch mode — `fontext --watch` to re-extract on source font changes
+- [ ] **8.5** Batch mode — process multiple fonts in a single invocation
+
+## Phase 9 — Architecture
+
+- [ ] **9.1** Extract GSUB parser into separate module — move `findLigaturesByRaws` and related code out of `extract.ts`
+- [ ] **9.2** Browser-compatible build — separate entry point without `fs`/`stream` for browser usage
