@@ -1,8 +1,12 @@
-# Fontext
+<p align="center">
+  <img src="assets/logo.png" alt="Fontext" width="260" />
+</p>
 
-[![npm version](https://img.shields.io/npm/v/fontext)](https://www.npmjs.com/package/fontext)
-[![license](https://img.shields.io/npm/l/fontext)](./LICENSE)
-[![node](https://img.shields.io/node/v/fontext)](./package.json)
+<p align="center">
+  <a href="https://www.npmjs.com/package/fontext"><img src="https://img.shields.io/npm/v/fontext" alt="npm version" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/npm/l/fontext" alt="license" /></a>
+  <a href="./package.json"><img src="https://img.shields.io/node/v/fontext" alt="node" /></a>
+</p>
 
 Extract glyphs from fonts and generate optimized, minimal font files.
 
