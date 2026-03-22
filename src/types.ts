@@ -37,8 +37,7 @@ export interface MinifyOption {
   fontName: string;
   ligatures?: string[];
   raws?: string[];
+  unicodeRanges?: string[];
   formats?: Formats[];
   withWhitespace?: boolean;
-  // TODO: add in future
-  // unicodeOnly: boolean
 }

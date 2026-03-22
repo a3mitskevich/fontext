@@ -33,6 +33,7 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
   ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters
   ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
+  ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(e.g. U+E000-U+E100,U+F000)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
@@ -40,6 +41,7 @@ ${c.bold}Options:${c.reset}
 ${c.bold}Examples:${c.reset}
   ${c.dim}$${c.reset} fontext -i icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
   ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -r "" -f woff2
+  ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -u U+E000-U+E010 -f woff2
 `);
 }
 
@@ -82,6 +84,7 @@ async function main(): Promise<void> {
       "font-name": { type: "string", short: "n" },
       ligatures: { type: "string", short: "l" },
       raws: { type: "string", short: "r" },
+      "unicode-ranges": { type: "string", short: "u" },
       formats: { type: "string", short: "f" },
       "with-whitespace": { type: "boolean", short: "w", default: false },
       help: { type: "boolean", short: "h", default: false },
@@ -112,8 +115,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  if (!values.ligatures && !values.raws) {
-    printError("at least one of --ligatures or --raws is required");
+  if (!values.ligatures && !values.raws && !values["unicode-ranges"]) {
+    printError("at least one of --ligatures, --raws, or --unicode-ranges is required");
     printHelp();
     process.exit(1);
   }
@@ -128,6 +131,7 @@ async function main(): Promise<void> {
   const fontName = values["font-name"];
   const ligatures = values.ligatures ? values.ligatures.split(",") : [];
   const raws = values.raws ? values.raws.split(",") : [];
+  const unicodeRanges = values["unicode-ranges"] ? values["unicode-ranges"].split(",") : [];
   const formats = values.formats ? (values.formats.split(",") as Formats[]) : undefined;
   const withWhitespace = values["with-whitespace"];
 
@@ -136,6 +140,7 @@ async function main(): Promise<void> {
     fontName,
     ligatures,
     raws,
+    unicodeRanges,
     formats,
     withWhitespace,
   });

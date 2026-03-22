@@ -126,6 +126,36 @@ describe("extract", () => {
     });
   });
 
+  describe("unicode ranges", () => {
+    it("should extract glyphs by unicode range", async () => {
+      const { meta } = await extract(ttfOriginalFont, {
+        fontName: "test-icons",
+        unicodeRanges: ["U+0061-U+0063"],
+        formats: ["ttf"],
+      });
+      expect(meta.length).toBe(3);
+    });
+
+    it("should extract glyphs by single unicode point", async () => {
+      const { meta } = await extract(ttfOriginalFont, {
+        fontName: "test-icons",
+        unicodeRanges: ["U+0061"],
+        formats: ["ttf"],
+      });
+      expect(meta.length).toBe(1);
+    });
+
+    it("should throw on invalid unicode range format", async () => {
+      await expect(
+        extract(ttfOriginalFont, {
+          fontName: "test-icons",
+          unicodeRanges: ["invalid"],
+          formats: ["ttf"],
+        }),
+      ).rejects.toThrow("Invalid unicode range");
+    });
+  });
+
   describe("optimization report", () => {
     it("should include report with original size and format savings", async () => {
       const result = await extract(ttfOriginalFont, {
@@ -150,10 +180,10 @@ describe("extract", () => {
       ).rejects.toThrow("fontName is required");
     });
 
-    it("should throw on empty ligatures and raws", async () => {
+    it("should throw on empty ligatures, raws, and unicodeRanges", async () => {
       await expect(
-        extract(ttfOriginalFont, { fontName: "test", ligatures: [], raws: [] }),
-      ).rejects.toThrow("At least one of ligatures or raws must be provided");
+        extract(ttfOriginalFont, { fontName: "test", ligatures: [], raws: [], unicodeRanges: [] }),
+      ).rejects.toThrow("At least one of ligatures, raws, or unicodeRanges must be provided");
     });
 
     it("should throw on empty formats", async () => {
