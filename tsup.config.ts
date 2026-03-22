@@ -10,6 +10,12 @@ export default defineConfig([
     clean: true,
   },
   {
+    entry: ["src/browser.ts"],
+    tsconfig: "./tsconfig.lib.json",
+    dts: true,
+    format: ["esm"],
+  },
+  {
     entry: ["src/cli.ts"],
     tsconfig: "./tsconfig.lib.json",
     format: ["cjs"],

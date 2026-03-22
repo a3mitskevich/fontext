@@ -37,6 +37,10 @@
       "require": "./dist/index.js",
       "default": "./dist/index.mjs"
     },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
