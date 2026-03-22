@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.7.0...fontext-v1.8.0) (2026-03-22)
+
+
+### Features
+
+* add --json flag for machine-readable CLI output ([6cd6aba](https://github.com/a3mitskevich/fontext/commit/6cd6abacee22fb7b40c6c98921162b5baeba5b4b))
+* add --watch mode for auto re-extraction ([54e81e3](https://github.com/a3mitskevich/fontext/commit/54e81e3139db47ea9ccca9cbc279a278f986e3a7))
+* add .fontextrc.json config file support ([162aa7f](https://github.com/a3mitskevich/fontext/commit/162aa7ff77bccffe576a2b06a9e87740e5307e31))
+* add animated spinner during extraction ([50d01f0](https://github.com/a3mitskevich/fontext/commit/50d01f0f6d28a89b7dbbad340eb5c577b7266a72))
+* add batch mode for processing multiple fonts ([91f5431](https://github.com/a3mitskevich/fontext/commit/91f5431657497941c0f45c90481de350aac21a15))
+* add CLI interface ([bfddbca](https://github.com/a3mitskevich/fontext/commit/bfddbcae773e0b8d118b1729ac9408a90eb7fb72))
+* add extracting by raws ([f1e6c92](https://github.com/a3mitskevich/fontext/commit/f1e6c92603feee55749b6d222c0cd4fa7d459c7e))
+* add meta info to result ([1db9a25](https://github.com/a3mitskevich/fontext/commit/1db9a255561c3a3035d81dc77c767870cd202da5))
+* add optimization report with size savings ([69a42b5](https://github.com/a3mitskevich/fontext/commit/69a42b5e35a769bf2d2e617b23e589347cf68eee))
+* add unicode range extraction ([9f5a236](https://github.com/a3mitskevich/fontext/commit/9f5a2366c8cf7550d3c2b0379d023eb63b541183))
+* colorful CLI output with progress bars ([69e7b6f](https://github.com/a3mitskevich/fontext/commit/69e7b6fd75e52e8ef9e44fd537af0dfd7d2cd0bb))
+
+
+### Bug Fixes
+
+* add error handling to SVG font stream conversion ([7598523](https://github.com/a3mitskevich/fontext/commit/75985232109b0fb8ddc5dba4850d45224fc7f32f))
+* add input validation for extract options ([44328ab](https://github.com/a3mitskevich/fontext/commit/44328ab24f91d2e0b1dd5bdb18143febf4c83a48))
+* add proper Ligature type and remove any from GSUB parsing ([744be7d](https://github.com/a3mitskevich/fontext/commit/744be7d4a430e5a23a2b8212687f38a4393bd11c))
+* clean up fontkit type augmentation ([5099b90](https://github.com/a3mitskevich/fontext/commit/5099b90cdb6ef0c68eed4d128cfb963958f29eac))
+* exports ([972930d](https://github.com/a3mitskevich/fontext/commit/972930d3c815ca5c1d646d17314bcd9b9349a276))
+* index exports ([27fba87](https://github.com/a3mitskevich/fontext/commit/27fba87c91641fa01ab8ba7e9ab19f5d3b3d3f4f))
+* move @tsconfig/node20 to devDependencies and fix supported formats docs ([75cb1cd](https://github.com/a3mitskevich/fontext/commit/75cb1cd9d76f20799683a989ae11e195f171e5a7))
+* remove unsafe _metrics access on fontkit Glyph ([1b8f9e0](https://github.com/a3mitskevich/fontext/commit/1b8f9e044b6fab732ac25dab6dfc9edb030bb7d0))
+* replace console.error with thrown errors ([9b908f1](https://github.com/a3mitskevich/fontext/commit/9b908f14612b61239bdab741f60c3e5ac0cc3389))
+* use absolute paths and align CLI output columns ([3211923](https://github.com/a3mitskevich/fontext/commit/32119233f2b8db76a0b4b8179b9aa634b9aece49))
+
+
+### Performance Improvements
+
+* cache SVG template compilation ([7cb9d4f](https://github.com/a3mitskevich/fontext/commit/7cb9d4f6f070c7c7d5310e0997b173b792869191))
+* optimize stream buffering in convertToSvgFont ([fe39d6c](https://github.com/a3mitskevich/fontext/commit/fe39d6c2a46dacb526d580ac1c76bafa9eed6ab3))
+* parallelize format conversion with Promise.all ([aa1198d](https://github.com/a3mitskevich/fontext/commit/aa1198ddaae4dbdee34cc333bd3c14e64d2e528d))
+
 ## [1.7.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.6.0...fontext-v1.7.0) (2026-03-22)
 
 
