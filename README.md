@@ -4,20 +4,25 @@
 [![license](https://img.shields.io/npm/l/fontext)](./LICENSE)
 [![node](https://img.shields.io/node/v/fontext)](./package.json)
 
-Extract only the glyphs you need from icon fonts and generate optimized, minimal font files.
+Extract glyphs from fonts and generate optimized, minimal font files.
 
-Instead of shipping a full icon font with hundreds of glyphs to your users, Fontext lets you pull out just the ones you
-use — by ligature name or raw unicode — and produces a new font containing only those glyphs. The result is a
-dramatically smaller file in any format you need.
+Two engines for different use cases:
+
+- **Icon engine** — extract glyphs from ligature-based icon fonts (Material Icons, etc.)
+- **Subset engine** — subset any font by characters or unicode ranges, preserving kerning and OpenType features
 
 ## Why Fontext?
 
-Icon fonts like Material Icons or custom ligature-based fonts often contain 1000+ glyphs. If your app only uses 20
-icons, you're forcing users to download the entire font. Fontext solves this:
+Icon fonts often contain 1000+ glyphs. Text fonts ship entire alphabets when you only need a subset. Fontext solves
+both:
 
-- **Extract by ligature** — pass ligature names like `"home"`, `"search"`, `"menu"`
-- **Extract by raw unicode** — pass the actual unicode character and Fontext resolves the ligature automatically
+- **Extract by ligature** — pass ligature names like `"home"`, `"search"`, `"menu"` (icon engine)
+- **Extract by raw unicode** — pass the actual unicode character and Fontext resolves the ligature automatically (icon
+  engine)
+- **Subset by characters** — pass `"ABCabc0123"` to keep only those characters (subset engine)
+- **Subset by unicode range** — pass `U+0400-U+04FF` for Cyrillic block (both engines)
 - **Multiple output formats** — SVG, TTF, WOFF, WOFF2, EOT
+- **Preserves font features** — subset engine keeps kerning, hinting, GSUB/GPOS via HarfBuzz
 - **Glyph metadata** — get name, unicode mappings, and SVG path data for each extracted glyph
 
 ## Installation
@@ -81,10 +86,12 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | `ligatures`      | `string[]`  | `[]`        | Ligature strings to extract (e.g. `['home', 'search']`)                     |
 | `raws`           | `string[]`  | `[]`        | Raw unicode characters — Fontext will resolve their ligatures automatically |
 | `unicodeRanges`  | `string[]`  | `[]`        | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)              |
+| `characters`     | `string`    | —           | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only               |
+| `engine`         | `Engine`    | `'icon'`    | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning)  |
 | `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`              |
 | `withWhitespace` | `boolean`   | `false`     | Include whitespace glyph in the output                                      |
 
-> At least one of `ligatures`, `raws`, or `unicodeRanges` must be provided.
+> At least one of `ligatures`, `raws`, `unicodeRanges`, or `characters` must be provided.
 
 ### Error Handling
 
@@ -119,14 +126,15 @@ interface OptimizationReport {
 
 ## Supported Input Formats
 
-Single font files supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2. Font collections (TTC, DFONT) are not supported.
+Single font files supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2. Font collections (
+TTC, DFONT) are not supported.
 
 ## Browser Usage
 
 A browser-compatible entry point is available for glyph discovery and SVG extraction (without format conversion):
 
 ```javascript
-import { createFont, findMetaByLigatures, findMetaByCodePoints, parseUnicodeRanges } from 'fontext/browser';
+import {createFont, findMetaByLigatures, findMetaByCodePoints, parseUnicodeRanges} from 'fontext/browser';
 
 const response = await fetch('/fonts/icons.woff2');
 const data = new Uint8Array(await response.arrayBuffer());
