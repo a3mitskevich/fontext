@@ -119,7 +119,7 @@ interface OptimizationReport {
 
 ## Supported Input Formats
 
-Any font format supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2, TTC, DFONT.
+Single font files supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2. Font collections (TTC, DFONT) are not supported.
 
 ## License
 
