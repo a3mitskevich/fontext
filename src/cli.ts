@@ -48,6 +48,13 @@ ${c.bold}Config file:${c.reset}
   ${c.dim}{ "input": "icons.woff2", "fontName": "my-icons",${c.reset}
   ${c.dim}  "ligatures": ["home","search"], "formats": ["woff2","ttf"] }${c.reset}
 
+  ${c.dim}Batch mode — process multiple fonts:${c.reset}
+  ${c.dim}{ "output": "./fonts", "formats": ["woff2"],${c.reset}
+  ${c.dim}  "batch": [${c.reset}
+  ${c.dim}    { "input": "icons.woff2", "fontName": "icons", "ligatures": ["home"] },${c.reset}
+  ${c.dim}    { "input": "symbols.ttf", "fontName": "symbols", "unicodeRanges": ["U+E000-U+E100"] }${c.reset}
+  ${c.dim}  ] }${c.reset}
+
 ${c.bold}Examples:${c.reset}
   ${c.dim}$${c.reset} fontext -i icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
   ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -r "" -f woff2
@@ -106,7 +113,7 @@ function createSpinner(text: string): { stop: () => void } {
   };
 }
 
-interface ConfigFile {
+interface ConfigEntry {
   input?: string;
   output?: string;
   fontName?: string;
@@ -115,6 +122,10 @@ interface ConfigFile {
   unicodeRanges?: string[];
   formats?: string[];
   withWhitespace?: boolean;
+}
+
+interface ConfigFile extends ConfigEntry {
+  batch?: ConfigEntry[];
 }
 
 function findConfig(): ConfigFile | null {
@@ -161,57 +172,66 @@ async function main(): Promise<void> {
   }
 
   const config = findConfig();
-
-  const input = values.input ?? config?.input;
-  const fontName = values["font-name"] ?? config?.fontName;
-  const ligaturesRaw = values.ligatures;
-  const rawsRaw = values.raws;
-  const unicodeRangesRaw = values["unicode-ranges"];
-
-  if (!input) {
-    printError("--input is required");
-    printHelp();
-    process.exit(1);
-  }
-
-  if (!fontName) {
-    printError("--font-name is required");
-    printHelp();
-    process.exit(1);
-  }
-
-  const ligatures = ligaturesRaw ? ligaturesRaw.split(",") : (config?.ligatures ?? []);
-  const raws = rawsRaw ? rawsRaw.split(",") : (config?.raws ?? []);
-  const unicodeRanges = unicodeRangesRaw
-    ? unicodeRangesRaw.split(",")
-    : (config?.unicodeRanges ?? []);
-
-  if (ligatures.length === 0 && raws.length === 0 && unicodeRanges.length === 0) {
-    printError("at least one of --ligatures, --raws, or --unicode-ranges is required");
-    printHelp();
-    process.exit(1);
-  }
-
-  const inputPath = path.resolve(input);
-  if (!fs.existsSync(inputPath)) {
-    printError(`file not found: ${inputPath}`);
-    process.exit(1);
-  }
-
-  const outputDir = path.resolve(values.output !== "." ? values.output! : (config?.output ?? "."));
-  const formats = values.formats
-    ? (values.formats.split(",") as Formats[])
-    : config?.formats
-      ? (config.formats as Formats[])
-      : undefined;
-  const withWhitespace = values["with-whitespace"] || (config?.withWhitespace ?? false);
-
-  const extractOpts = { fontName, ligatures, raws, unicodeRanges, formats, withWhitespace };
   const isJson = values.json;
 
-  async function runExtraction(): Promise<void> {
+  function resolveEntry(
+    entry: ConfigEntry,
+    cliOverrides: boolean,
+  ): {
+    inputPath: string;
+    outputDir: string;
+    fontName: string;
+    extractOpts: Parameters<typeof extract>[1];
+  } {
+    const input = cliOverrides ? (values.input ?? entry.input) : entry.input;
+    const fontName = cliOverrides ? (values["font-name"] ?? entry.fontName) : entry.fontName;
+
+    if (!input) throw new Error("input is required");
+    if (!fontName) throw new Error("fontName is required");
+
+    const ligatures =
+      cliOverrides && values.ligatures ? values.ligatures.split(",") : (entry.ligatures ?? []);
+    const raws = cliOverrides && values.raws ? values.raws.split(",") : (entry.raws ?? []);
+    const unicodeRanges =
+      cliOverrides && values["unicode-ranges"]
+        ? values["unicode-ranges"].split(",")
+        : (entry.unicodeRanges ?? []);
+
+    if (ligatures.length === 0 && raws.length === 0 && unicodeRanges.length === 0) {
+      throw new Error("at least one of ligatures, raws, or unicodeRanges is required");
+    }
+
+    const inputPath = path.resolve(input);
+    if (!fs.existsSync(inputPath)) throw new Error(`file not found: ${inputPath}`);
+
+    const outputDir = path.resolve(
+      cliOverrides && values.output !== "." ? values.output! : (entry.output ?? "."),
+    );
+    const formats =
+      cliOverrides && values.formats
+        ? (values.formats.split(",") as Formats[])
+        : entry.formats
+          ? (entry.formats as Formats[])
+          : undefined;
+    const withWhitespace =
+      (cliOverrides && values["with-whitespace"]) || (entry.withWhitespace ?? false);
+
+    return {
+      inputPath,
+      outputDir,
+      fontName,
+      extractOpts: { fontName, ligatures, raws, unicodeRanges, formats, withWhitespace },
+    };
+  }
+
+  async function runOne(
+    inputPath: string,
+    outputDir: string,
+    fontName: string,
+    extractOpts: Parameters<typeof extract>[1],
+  ): Promise<void> {
     const content = fs.readFileSync(inputPath);
-    const spinner = !isJson ? createSpinner("Extracting glyphs...") : { stop: () => {} };
+    const spinner = !isJson ? createSpinner(`Extracting ${fontName}...`) : { stop: () => {} };
     const result = await extract(content, extractOpts);
     spinner.stop();
 
@@ -235,57 +255,73 @@ async function main(): Promise<void> {
     }
 
     if (isJson) {
-      const jsonOutput = {
+      return void jsonResults.push({
         fontName,
         glyphs: result.meta.length,
         originalSize: result.report.originalSize,
-        files: files.map(({ path: filePath, format, size, saving }) => ({
-          path: filePath,
+        files: files.map(({ path: p, format, size, saving }) => ({
+          path: p,
           format,
           size,
           saving,
         })),
         meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
-      };
-      console.log(JSON.stringify(jsonOutput, null, 2));
-    } else {
-      console.log();
+      });
+    }
+
+    console.log();
+    console.log(
+      `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
+    );
+    console.log();
+
+    const maxPathLen = Math.max(...files.map((f) => f.path.length));
+    const maxSizeLen = Math.max(...files.map((f) => formatBytes(f.size).length));
+
+    for (const { path: filePath, size, saving } of files) {
+      const paddedPath = filePath.padEnd(maxPathLen);
+      const paddedSize = formatBytes(size).padStart(maxSizeLen);
       console.log(
-        `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
+        `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
       );
-      console.log();
+    }
 
-      const maxPathLen = Math.max(...files.map((f) => f.path.length));
-      const maxSizeLen = Math.max(...files.map((f) => formatBytes(f.size).length));
+    console.log();
+  }
 
-      for (const { path: filePath, size, saving } of files) {
-        const paddedPath = filePath.padEnd(maxPathLen);
-        const paddedSize = formatBytes(size).padStart(maxSizeLen);
-        console.log(
-          `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
-        );
-      }
+  const jsonResults: any[] = [];
 
-      console.log();
+  // Batch mode: config has batch array
+  if (config?.batch && config.batch.length > 0 && !values.input) {
+    for (const entry of config.batch) {
+      const merged = { ...config, ...entry };
+      const { inputPath, outputDir, fontName, extractOpts } = resolveEntry(merged, false);
+      await runOne(inputPath, outputDir, fontName, extractOpts);
+    }
+  } else {
+    // Single mode: CLI flags + config fallback
+    const entry = resolveEntry(config ?? {}, true);
+    await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
+
+    if (values.watch) {
+      console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+      let debounce: ReturnType<typeof setTimeout> | null = null;
+      fs.watch(entry.inputPath, () => {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(async () => {
+          try {
+            await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
+            console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+          } catch (err: any) {
+            printError(err.message);
+          }
+        }, 200);
+      });
     }
   }
 
-  await runExtraction();
-
-  if (values.watch) {
-    console.log(`  ${c.dim}Watching ${inputPath} for changes...${c.reset}`);
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    fs.watch(inputPath, () => {
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(async () => {
-        try {
-          await runExtraction();
-          console.log(`  ${c.dim}Watching ${inputPath} for changes...${c.reset}`);
-        } catch (err: any) {
-          printError(err.message);
-        }
-      }, 200);
-    });
+  if (isJson) {
+    console.log(JSON.stringify(jsonResults.length === 1 ? jsonResults[0] : jsonResults, null, 2));
   }
 }
 
