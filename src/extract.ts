@@ -40,14 +40,14 @@ function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffe
   }
   if (format === "woff") {
     const ttfArrayBuffer = new Uint8Array(ttfBuffer);
-    return Buffer.from(ttf2woff(ttfArrayBuffer));
+    return Buffer.from(ttf2woff(ttfArrayBuffer) as unknown as ArrayBuffer);
   }
   if (format === "woff2") {
-    return Buffer.from(ttf2woff2(ttfBuffer));
+    return Buffer.from(ttf2woff2(ttfBuffer) as unknown as ArrayBuffer);
   }
   if (format === "eot") {
     const ttfArrayBuffer = new Uint8Array(ttfBuffer);
-    return Buffer.from(ttf2eot(ttfArrayBuffer));
+    return Buffer.from(ttf2eot(ttfArrayBuffer) as unknown as ArrayBuffer);
   }
   return null;
 }

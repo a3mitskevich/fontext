@@ -72,10 +72,12 @@ describe("extract", () => {
     });
   };
 
-  [
-    ["ttf", ttfOriginalFont],
-    ["woff2", woff2OriginalFont],
-  ].forEach(([type, source]) => {
-    createTestForRawFunctionality(type.toString(), Buffer.from(source));
+  (
+    [
+      ["ttf", ttfOriginalFont],
+      ["woff2", woff2OriginalFont],
+    ] as const
+  ).forEach(([type, source]) => {
+    createTestForRawFunctionality(type, Buffer.from(source));
   });
 });

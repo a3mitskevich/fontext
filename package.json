@@ -52,9 +52,9 @@
   },
   "devDependencies": {
     "@types/fontkit": "2.0.6",
-    "@types/jest": "29.5.14",
-    "@types/node": "20.4.5",
-    "@types/svg2ttf": "5.0.3",
+    "@types/jest": "29.5.3",
+    "@types/node": "^25.5.0",
+    "@types/svg2ttf": "5.0.1",
     "@types/svgicons2svgfont": "10.0.1",
     "@types/ttf2eot": "2.0.2",
     "@types/ttf2woff": "2.0.4",
@@ -63,12 +63,12 @@
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "ts-jest": "29.1.1",
-    "ts-node": "10.9.2",
-    "tsup": "8.5.0",
-    "typescript": "5.1.6"
+    "ts-node": "10.9.1",
+    "tsup": "8.0.1",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@tsconfig/node20": "20.1.4",
+    "@tsconfig/node20": "^20.1.9",
     "fontkit": "2.0.2",
     "handlebars": "4.7.7",
     "svg2ttf": "6.0.3",
