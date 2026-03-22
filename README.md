@@ -121,6 +121,21 @@ interface OptimizationReport {
 
 Single font files supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2. Font collections (TTC, DFONT) are not supported.
 
+## Browser Usage
+
+A browser-compatible entry point is available for glyph discovery and SVG extraction (without format conversion):
+
+```javascript
+import { createFont, findMetaByLigatures, findMetaByCodePoints, parseUnicodeRanges } from 'fontext/browser';
+
+const response = await fetch('/fonts/icons.woff2');
+const data = new Uint8Array(await response.arrayBuffer());
+
+const font = createFont(data);
+const meta = findMetaByLigatures(font, ['home', 'search']);
+// meta[0].svg — SVG markup for the glyph
+```
+
 ## License
 
 [MIT](./LICENSE)
