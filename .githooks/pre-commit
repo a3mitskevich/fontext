@@ -1,0 +1,21 @@
+#!/bin/sh
+
+echo "Running pre-commit checks..."
+
+# Lint
+echo "→ Linting..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "✗ Lint failed. Fix errors before committing."
+  exit 1
+fi
+
+# Format check
+echo "→ Checking formatting..."
+npm run format:check
+if [ $? -ne 0 ]; then
+  echo "✗ Format check failed. Run 'npm run format' to fix."
+  exit 1
+fi
+
+echo "✓ All pre-commit checks passed."

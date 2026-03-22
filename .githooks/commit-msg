@@ -1,0 +1,32 @@
+#!/bin/sh
+
+commit_msg_file="$1"
+commit_msg=$(head -1 "$commit_msg_file")
+
+# Skip merge commits
+if echo "$commit_msg" | grep -qE "^Merge "; then
+  exit 0
+fi
+
+# Skip release-please commits
+if echo "$commit_msg" | grep -qE "^chore\(main\): release"; then
+  exit 0
+fi
+
+# Validate conventional commit format
+# type(scope)!: description
+pattern="^(feat|fix|chore|docs|ci|test|perf|style|refactor|build)(\(.+\))?!?: .+"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo "✗ Invalid commit message format."
+  echo ""
+  echo "Expected: <type>(<scope>): <description>"
+  echo "Types: feat, fix, chore, docs, ci, test, perf, style, refactor, build"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add WOFF2 browser support"
+  echo "  fix(extract): handle empty ligature tables"
+  echo ""
+  echo "Your message: $commit_msg"
+  exit 1
+fi

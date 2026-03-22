@@ -52,7 +52,8 @@
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts",
-    "format:check": "oxfmt --check src/ test/ *.ts"
+    "format:check": "oxfmt --check src/ test/ *.ts",
+    "prepare": "git config core.hooksPath .githooks && git config commit.template .gitmessage"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.9",
