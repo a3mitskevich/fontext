@@ -2,30 +2,30 @@
 
 ## Phase 1 — Documentation & Structure
 
-- [ ] **1.1** Restructure `README.md` — clear value proposition, usage examples, API docs, badges
-- [ ] **1.2** Update `CHANGELOG.md` — adopt Keep a Changelog format, document all planned changes going forward
+- [x] **1.1** Restructure `README.md` — clear value proposition, usage examples, API docs, badges
+- [x] **1.2** Update `CHANGELOG.md` — adopt Keep a Changelog format, document all planned changes going forward
 
 ## Phase 2 — Tooling Modernization
 
-- [ ] **2.1** Replace ESLint with Oxlint — remove ESLint and all related plugins, configure Oxlint
-- [ ] **2.2** Add Oxfmt — configure as the project formatter, format the codebase
-- [ ] **2.3** Update TypeScript to 5.8+
-- [ ] **2.4** Update remaining dev dependencies (Jest, ts-jest, ts-node, tsup)
-- [ ] **2.5** Update CI workflow — replace lint step, add format check
+- [x] **2.1** Replace ESLint with Oxlint — remove ESLint and all related plugins, configure Oxlint
+- [x] **2.2** Add Oxfmt — configure as the project formatter, format the codebase
+- [x] **2.3** Update TypeScript to 5.9
+- [x] **2.4** Update remaining dev dependencies (Jest 30, ts-jest, tsup 8.5)
+- [x] **2.5** Update CI workflow — add lint and format check jobs
 
 ## Phase 3 — Stability & Error Handling
 
-- [ ] **3.1** Fix stream error handling in `convertToSvgFont` — add `reject` on stream `error` event
-- [ ] **3.2** Cache SVG template — lazy singleton instead of reading from disk on every glyph
-- [ ] **3.3** Replace `console.error` with proper error propagation (thrown errors or configurable logger)
-- [ ] **3.4** Add input validation — check buffer magic bytes, validate format values
+- [x] **3.1** Fix stream error handling in `convertToSvgFont` — add `reject` on stream `error` event
+- [x] **3.2** Cache SVG template — lazy singleton instead of reading from disk on every glyph
+- [x] **3.3** Replace `console.error` with proper error propagation (thrown errors)
+- [x] **3.4** Add input validation — validate format values, specific error messages
 - [ ] **3.5** Remove unsafe `_metrics` access — use public fontkit API or wrap safely
 
 ## Phase 4 — Test Coverage
 
-- [ ] **4.1** Add negative tests — invalid buffer, font without GSUB, non-existent ligatures, invalid formats
-- [ ] **4.2** Add per-format output tests — verify SVG, EOT, WOFF outputs individually
-- [ ] **4.3** Add human-readable coverage reporter for local development
+- [x] **4.1** Add negative tests — missing fontName, empty ligatures/raws, invalid formats, non-existent ligatures
+- [x] **4.2** Add per-format output tests — verify SVG, EOT, WOFF outputs individually
+- [x] **4.3** Add human-readable coverage reporter for local development
 
 ## Phase 5 — Features
 
