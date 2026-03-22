@@ -37,7 +37,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:local": "TEST_TARGET=local npm run test",
     "test:dist": "TEST_TARGET=dist npm run test",
     "build": "tsup && cp src/svg.hbs dist/svg.hbs",
@@ -52,20 +53,17 @@
   },
   "devDependencies": {
     "@types/fontkit": "2.0.6",
-    "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
     "@types/svg2ttf": "5.0.1",
     "@types/svgicons2svgfont": "10.0.1",
     "@types/ttf2eot": "2.0.2",
     "@types/ttf2woff": "2.0.4",
     "@types/ttf2woff2": "2.0.0",
-    "jest": "^30.3.0",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
-    "ts-jest": "^29.4.6",
-    "ts-node": "10.9.1",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "@tsconfig/node20": "^20.1.9",
