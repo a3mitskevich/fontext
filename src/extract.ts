@@ -149,9 +149,7 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
 
   const lookupList = font.GSUB?.lookupList.toArray().find((list: Lookup) => list.lookupType === 4);
   if (!lookupList) {
-    const message = "Font no contain GSUB table";
-    console.error(message);
-    return [];
+    throw new Error("Font does not contain a GSUB ligature lookup table");
   }
 
   const {
@@ -204,9 +202,7 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
       const glyph = font.glyphsForString(raw)[0];
       const ligaturesMetas = map.get(glyph.id);
       if (!ligaturesMetas) {
-        const message = `Target font not contain a ligature for "${raw}"`;
-        console.error(message);
-        return "";
+        throw new Error(`Font does not contain a ligature for "${raw}"`);
       }
       return ligaturesMetas.map((meta) => {
         const ligatureBody = meta.ligature.components
