@@ -78,4 +78,30 @@ describe("CLI", () => {
     expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(true);
     expect(fs.existsSync(path.join(outDir, "test-icons.woff2"))).toBe(true);
   });
+
+  it("should output JSON with --json flag", () => {
+    const outDir = path.join(tmpDir, "json-out");
+    const { stdout, exitCode } = run([
+      "--input",
+      FONT,
+      "--font-name",
+      "test-icons",
+      "--ligatures",
+      "abc",
+      "--formats",
+      "ttf",
+      "--output",
+      outDir,
+      "--json",
+    ]);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.fontName).toBe("test-icons");
+    expect(parsed.glyphs).toBe(1);
+    expect(parsed.originalSize).toBeGreaterThan(0);
+    expect(parsed.files).toHaveLength(1);
+    expect(parsed.files[0].format).toBe("ttf");
+    expect(parsed.files[0].saving).toBeGreaterThan(0);
+    expect(parsed.meta).toHaveLength(1);
+  });
 });
