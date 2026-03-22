@@ -19,7 +19,7 @@
 - [x] **3.2** Cache SVG template — lazy singleton instead of reading from disk on every glyph
 - [x] **3.3** Replace `console.error` with proper error propagation (thrown errors)
 - [x] **3.4** Add input validation — validate format values, specific error messages
-- [ ] **3.5** Remove unsafe `_metrics` access — use public fontkit API or wrap safely
+- [x] **3.5** Remove unsafe `_metrics` access — use public fontkit API or wrap safely
 
 ## Phase 4 — Test Coverage
 
