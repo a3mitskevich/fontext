@@ -1,64 +1,86 @@
-# Fontext (Font Extractor)
-**`fontext`** is a `Node.js` library that allows you to extract font glyphs and convert them into various formats, including SVG, TTF, WOFF, WOFF2, and EOT. It provides an easy-to-use interface for converting font glyphs to different formats, making it suitable for use in web development projects and font manipulation tasks.
+# Fontext
+
+[![npm version](https://img.shields.io/npm/v/fontext)](https://www.npmjs.com/package/fontext)
+[![license](https://img.shields.io/npm/l/fontext)](./LICENSE)
+[![node](https://img.shields.io/node/v/fontext)](./package.json)
+
+Extract only the glyphs you need from icon fonts and generate optimized, minimal font files.
+
+Instead of shipping a full icon font with hundreds of glyphs to your users, Fontext lets you pull out just the ones you use — by ligature name or raw unicode — and produces a new font containing only those glyphs. The result is a dramatically smaller file in any format you need.
+
+## Why Fontext?
+
+Icon fonts like Material Icons or custom ligature-based fonts often contain 1000+ glyphs. If your app only uses 20 icons, you're forcing users to download the entire font. Fontext solves this:
+
+- **Extract by ligature** — pass ligature names like `"home"`, `"search"`, `"menu"`
+- **Extract by raw unicode** — pass the actual unicode character and Fontext resolves the ligature automatically
+- **Multiple output formats** — SVG, TTF, WOFF, WOFF2, EOT
+- **Glyph metadata** — get name, unicode mappings, and SVG path data for each extracted glyph
 
 ## Installation
-To install fontext, use npm or yarn:
 
 ```bash
 npm install fontext
 ```
-or
 
-```bash
-yarn add fontext
-```
-## Usage
+## Quick Start
+
 ```javascript
 import { extract } from 'fontext';
+import fs from 'fs';
 
-// Your font file as a Buffer
-const fontBuffer = fs.readFileSync('path/to/your/font.ttf');
+const font = fs.readFileSync('material-icons.woff2');
 
-// Specify the extraction options
-const options = {
-    fontName: 'YourFontName', // Name of the output font
-    formats: ['ttf', 'woff', 'woff2'], // Output formats you want to generate
-    ligatures: ['fi', 'fl'], // Ligatures to include in the font
-    raws: [''], // Raws unicode that auto find ligatures and include in the font
-    withWhitespace: true, // Include whitespace glyphs in the font
-};
+const result = await extract(font, {
+  fontName: 'my-icons',
+  ligatures: ['home', 'search', 'menu'],
+  formats: ['woff2', 'ttf'],
+});
 
-// Extract and convert the font glyphs
-extract(fontBuffer, options)
-  .then(result => {
-  // 'result' will be an object containing the extracted font data
-  // You can access the converted formats using 'result.ttf', 'result.woff', etc.
-  })
-  .catch(error => { console.error('Font extraction error:', error) });
+// result.woff2 — Buffer with optimized WOFF2 font
+// result.ttf  — Buffer with optimized TTF font
+// result.meta — glyph metadata (name, unicode, svg)
+
+fs.writeFileSync('my-icons.woff2', result.woff2);
 ```
+
 ## API
-```
-extract(content: Buffer, option: MinifyOption): Promise<ExtractedResult>
-```
-The main function that extracts font glyphs and converts them into different formats.
 
-### Parameters
-* **content** `Buffer`: The font file as a Buffer.
-* **option** `MinifyOption`: An object containing extraction options.
-  * **fontName** `string`: The desired name for the output font.
-  * **ligatures** `string[] | undefined`: An array of ligatures to include in the font.
-  * **raws** `string[] | undefined`: An array of unicode and symbols that auto find and include in the font.
-  * **formats** `Formats[] | undefined`: An array of output formats to generate. Valid values: 'svg', 'ttf', 'woff', 'woff2', 'eot'.
-  * **withWhitespace** `boolean | undefined`: Set to true if you want to include whitespace glyphs in the font.
-  
-### Returns
-* **Promise\<ExtractedResult\>**: A promise that resolves to an object containing the extracted font data, with keys corresponding to the specified output formats.
-  
+### `extract(content, options): Promise<ExtractedResult>`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `content` | `Buffer` | Font file contents (TTF, WOFF2, or any format supported by fontkit) |
+| `options` | `MinifyOption` | Extraction configuration (see below) |
+
+### `MinifyOption`
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `fontName` | `string` | — | **Required.** Name for the output font |
+| `ligatures` | `string[]` | `[]` | Ligature strings to extract (e.g. `['home', 'search']`) |
+| `raws` | `string[]` | `[]` | Raw unicode characters — Fontext will resolve their ligatures automatically |
+| `formats` | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'` |
+| `withWhitespace` | `boolean` | `false` | Include whitespace glyph in the output |
+
+> At least one of `ligatures` or `raws` must be provided.
+
+### `ExtractedResult`
+
+An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `woff2`, `eot`), each containing a `Buffer`. Also includes a `meta` array of `GlyphMeta` objects:
+
+```typescript
+interface GlyphMeta {
+  name: string;      // ligature name
+  unicode: string[];  // unicode mappings
+  svg: string;        // SVG markup for the glyph
+}
+```
+
+## Supported Input Formats
+
+Any font format supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2, TTC, DFONT.
+
 ## License
-  fontext is released under the MIT License. See the LICENSE file for details.
 
-## Contributions
-Contributions are welcome! If you find a bug or want to add a new feature, please open an issue or submit a pull request.
-
-## Credits
-fontext is built on top of various open-source libraries like fontkit, svg2ttf, ttf2woff, ttf2woff2, ttf2eot, SVGIcons2SVGFontStream, handlebars, and more. Thanks to all the developers and contributors of these projects.
+[MIT](./LICENSE)
