@@ -6,24 +6,40 @@ import { Format, type Formats } from "./types";
 
 const VALID_FORMATS = Object.values(Format);
 
+const useColor = !process.env.NO_COLOR && process.stdout.isTTY !== false;
+
+const c = {
+  reset: useColor ? "\x1b[0m" : "",
+  bold: useColor ? "\x1b[1m" : "",
+  dim: useColor ? "\x1b[2m" : "",
+  red: useColor ? "\x1b[31m" : "",
+  green: useColor ? "\x1b[32m" : "",
+  yellow: useColor ? "\x1b[33m" : "",
+  cyan: useColor ? "\x1b[36m" : "",
+  magenta: useColor ? "\x1b[35m" : "",
+};
+
 function printHelp(): void {
   console.log(`
-Usage: fontext [options]
+${c.bold}fontext${c.reset} — extract glyphs from icon fonts
 
-Options:
-  -i, --input <path>        Path to the font file (required)
-  -o, --output <dir>        Output directory (default: current directory)
-  -n, --font-name <name>    Name for the output font (required)
-  -l, --ligatures <list>    Comma-separated ligature names
-  -r, --raws <list>         Comma-separated raw unicode characters
-  -f, --formats <list>      Comma-separated output formats: ${VALID_FORMATS.join(", ")} (default: all)
-  -w, --with-whitespace     Include whitespace glyph in the output
-  -h, --help                Show this help message
-  -v, --version             Show version
+${c.bold}Usage:${c.reset}
+  fontext ${c.dim}[options]${c.reset}
 
-Examples:
-  fontext -i icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
-  fontext -i icons.ttf -n my-icons -r "" -f woff2
+${c.bold}Options:${c.reset}
+  ${c.cyan}-i${c.reset}, ${c.cyan}--input${c.reset} <path>        Path to the font file ${c.dim}(required)${c.reset}
+  ${c.cyan}-o${c.reset}, ${c.cyan}--output${c.reset} <dir>        Output directory ${c.dim}(default: .)${c.reset}
+  ${c.cyan}-n${c.reset}, ${c.cyan}--font-name${c.reset} <name>    Name for the output font ${c.dim}(required)${c.reset}
+  ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
+  ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters
+  ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
+  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+  ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
+  ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
+
+${c.bold}Examples:${c.reset}
+  ${c.dim}$${c.reset} fontext -i icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
+  ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -r "" -f woff2
 `);
 }
 
@@ -38,6 +54,24 @@ function formatBytes(bytes: number): string {
   if (kb < 1024) return `${kb.toFixed(1)} KB`;
   const mb = kb / 1024;
   return `${mb.toFixed(1)} MB`;
+}
+
+function savingColor(saving: number): string {
+  if (saving >= 90) return c.green;
+  if (saving >= 50) return c.yellow;
+  return c.red;
+}
+
+function savingBar(saving: number): string {
+  const width = 20;
+  const filled = Math.round((saving / 100) * width);
+  const empty = width - filled;
+  const color = savingColor(saving);
+  return `${color}${"█".repeat(filled)}${c.dim}${"░".repeat(empty)}${c.reset}`;
+}
+
+function printError(msg: string): void {
+  console.error(`${c.red}${c.bold}error${c.reset}${c.red}: ${msg}${c.reset}`);
 }
 
 async function main(): Promise<void> {
@@ -67,26 +101,26 @@ async function main(): Promise<void> {
   }
 
   if (!values.input) {
-    console.error("Error: --input is required");
+    printError("--input is required");
     printHelp();
     process.exit(1);
   }
 
   if (!values["font-name"]) {
-    console.error("Error: --font-name is required");
+    printError("--font-name is required");
     printHelp();
     process.exit(1);
   }
 
   if (!values.ligatures && !values.raws) {
-    console.error("Error: at least one of --ligatures or --raws is required");
+    printError("at least one of --ligatures or --raws is required");
     printHelp();
     process.exit(1);
   }
 
   const inputPath = path.resolve(values.input);
   if (!fs.existsSync(inputPath)) {
-    console.error(`Error: file not found: ${inputPath}`);
+    printError(`file not found: ${inputPath}`);
     process.exit(1);
   }
 
@@ -108,27 +142,30 @@ async function main(): Promise<void> {
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const written: string[] = [];
+  console.log();
+  console.log(
+    `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
+  );
+  console.log();
+
   for (const format of VALID_FORMATS) {
     const buffer = result[format];
     if (buffer) {
       const filePath = path.join(outputDir, `${fontName}.${format}`);
       fs.writeFileSync(filePath, buffer);
       const formatReport = result.report.formats[format];
-      const saving = formatReport ? `, saved ${formatReport.saving}%` : "";
-      written.push(
-        `  ${path.relative(process.cwd(), filePath)} (${formatBytes(buffer.length)}${saving})`,
+      const saving = formatReport?.saving ?? 0;
+      const relPath = path.relative(process.cwd(), filePath);
+      console.log(
+        `  ${c.green}✓${c.reset} ${c.cyan}${relPath}${c.reset}  ${c.dim}${formatBytes(buffer.length)}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
       );
     }
   }
 
-  console.log(
-    `Extracted ${result.meta.length} glyph(s) from ${formatBytes(result.report.originalSize)} source:`,
-  );
-  written.forEach((line) => console.log(line));
+  console.log();
 }
 
 main().catch((err: Error) => {
-  console.error(`Error: ${err.message}`);
+  printError(err.message);
   process.exit(1);
 });
