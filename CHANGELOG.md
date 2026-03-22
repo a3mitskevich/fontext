@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-22
+
+### Fixed
+- Stream errors in SVG font conversion now properly reject the promise instead of hanging
+- Silent `console.error` failures replaced with thrown errors for missing GSUB table and non-existent ligatures
+- Input validation now provides specific error messages instead of generic "Illegal option"
+- Invalid format values are now validated against the Format enum
+
+### Changed
+- SVG template is now cached after first load instead of reading from disk on every glyph
+
 ## [1.2.0] - 2026-03-22
 
 ### Changed
