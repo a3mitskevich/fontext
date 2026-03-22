@@ -1,6 +1,6 @@
 import fs from "fs";
 import { Readable } from "stream";
-import { create, type Font, type Glyph, type GlyphRun, type Lookup } from "fontkit";
+import { create, type Font, type Glyph, type Lookup } from "fontkit";
 import svg2ttf from "svg2ttf";
 import ttf2woff from "ttf2woff";
 import ttf2woff2 from "ttf2woff2";
@@ -121,14 +121,10 @@ function codePointsToName(symbols: number[]): string {
   return symbols.map((symbol) => String.fromCharCode(symbol)).join("");
 }
 
-function getMetrics(glyph: Glyph): GlyphRun {
-  return glyph._metrics;
-}
-
 function toSvg(glyph: Glyph): string {
   const path = glyph.path.scale(-1, 1).rotate(Math.PI).toSVG();
-  const { advanceWidth: width = DEFAULT_FONT_SIZE, advanceHeight: height = DEFAULT_FONT_SIZE } =
-    getMetrics(glyph);
+  const width = glyph.advanceWidth ?? DEFAULT_FONT_SIZE;
+  const height = (glyph as any).advanceHeight ?? DEFAULT_FONT_SIZE;
 
   const template = getSvgTemplate();
 
