@@ -19,7 +19,7 @@ function renderSvg(svgPath: string, width: number, height: number): string {
 }
 
 function codePointsToName(symbols: number[]): string {
-  return symbols.map((symbol) => String.fromCharCode(symbol)).join("");
+  return symbols.map((symbol) => String.fromCodePoint(symbol)).join("");
 }
 
 function toSvg(glyph: Glyph): string {
@@ -72,7 +72,7 @@ export function findMetaByLigatures(
   ligatures: string[],
   withWhitespace = false,
 ): GlyphMeta[] {
-  if (!ligatures.length) {
+  if (ligatures.length === 0) {
     return [];
   }
 
@@ -97,7 +97,7 @@ export function findMetaByCodePoints(font: Font, codePoints: number[]): GlyphMet
 }
 
 export function findLigaturesByRaws(data: Uint8Array | ArrayBuffer, raws: string[]): string[] {
-  if (!raws.length) {
+  if (raws.length === 0) {
     return [];
   }
 
@@ -114,21 +114,17 @@ export function findLigaturesByRaws(data: Uint8Array | ArrayBuffer, raws: string
   } = lookupList.subTables[0];
 
   const leadingChars: string[] = rangeRecords
-    ? rangeRecords.reduce((acc: string[], { start, end }) => {
-        const array = Array(end - start + 1);
-        return [
-          ...acc,
-          ...Array.from(array, (_, position) => position + start).map(
-            (item) => font.stringsForGlyph(item)[0],
-          ),
-        ];
-      }, [])
+    ? rangeRecords.flatMap(({ start, end }) =>
+        Array.from({ length: end - start + 1 }, (_, position) => position + start).map(
+          (item) => font.stringsForGlyph(item)[0],
+        ),
+      )
     : glyphs.map((id) => {
         const result = font.stringsForGlyph(id);
         return result.join("");
       });
 
-  const map = new Map<number, Array<{ ligature: Ligature; leading: string }>>();
+  const map = new Map<number, { ligature: Ligature; leading: string }[]>();
 
   const ligaturesLists = ligatureSets.toArray();
 
@@ -144,19 +140,17 @@ export function findLigaturesByRaws(data: Uint8Array | ArrayBuffer, raws: string
     }
   }
 
-  return raws
-    .map((raw) => {
-      const glyph = font.glyphsForString(raw)[0];
-      const ligaturesMetas = map.get(glyph.id);
-      if (!ligaturesMetas) {
-        throw new Error(`Font does not contain a ligature for "${raw}"`);
-      }
-      return ligaturesMetas.map((meta) => {
-        const ligatureBody = meta.ligature.components
-          .map((code) => font.stringsForGlyph(code)[0])
-          .join("");
-        return meta.leading + ligatureBody;
-      });
-    })
-    .flat();
+  return raws.flatMap((raw) => {
+    const glyph = font.glyphsForString(raw)[0];
+    const ligaturesMetas = map.get(glyph.id);
+    if (!ligaturesMetas) {
+      throw new Error(`Font does not contain a ligature for "${raw}"`);
+    }
+    return ligaturesMetas.map((meta) => {
+      const ligatureBody = meta.ligature.components
+        .map((code) => font.stringsForGlyph(code)[0])
+        .join("");
+      return meta.leading + ligatureBody;
+    });
+  });
 }

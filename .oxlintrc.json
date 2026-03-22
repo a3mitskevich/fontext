@@ -1,0 +1,135 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicolo-ribaudo/oxlint-config-vscode-schema/main/schema/oxlintrc.json",
+  "plugins": ["typescript", "unicorn", "oxc", "vitest", "node", "promise"],
+  "categories": {
+    // Code that is outright wrong or useless — always on
+    "correctness": "error",
+    // Code that is most likely wrong or useless
+    "suspicious": "error",
+    // Performance anti-patterns
+    "perf": "warn",
+    // Stylistic rules — warn, not block
+    "style": "warn"
+  },
+  "rules": {
+    // ──────────────────────────────────────────────
+    // Disabled: rules that don't fit this project
+    // ──────────────────────────────────────────────
+
+    // Alphabetically sorting keys adds noise, not value in a small codebase
+    "sort-keys": "off",
+    // Ternaries are used extensively and readably throughout the project
+    "no-ternary": "off",
+    // Function declarations are the project convention, not expressions
+    "func-style": "off",
+    // Magic numbers like 0, 1, 100, 1024 are self-evident in context
+    "no-magic-numbers": "off",
+    // Short identifiers (g, f, cp) are conventional in iteration/mapping
+    "id-length": "off",
+    // max-statements is too restrictive for parsing/extraction functions
+    "max-statements": "off",
+    // Import sorting is handled by convention, not enforced by linter
+    "sort-imports": "off",
+    // null is valid and idiomatic for JSON.stringify, DOM, and fontkit APIs
+    "unicorn/no-null": "off",
+    // Array.from<T> is needed for type assertions with generics
+    "unicorn/prefer-spread": "off",
+    // Hex escapes are fine for ANSI codes
+    "unicorn/no-hex-escape": "off",
+    // ANSI escape sequences use lowercase by convention
+    "unicorn/escape-case": "off",
+    // Top-level await doesn't work in CJS entry points
+    "unicorn/prefer-top-level-await": "off",
+    // err is a common and clear name for catch parameters
+    "unicorn/catch-error-name": "off",
+    // Array destructuring on index access reduces readability
+    "prefer-destructuring": "off",
+    // require-await: some async functions are async for interface consistency
+    "require-await": "off",
+    // curly: single-line if/return is readable and used consistently
+    "curly": "off",
+    // init-declarations: uninitialized let is valid for caching patterns
+    "init-declarations": "off",
+    // new Promise is needed for stream-to-promise wrapping
+    "promise/avoid-new": "off",
+    // .then()/.catch() is valid for top-level error handling
+    "promise/prefer-await-to-then": "off",
+    "promise/prefer-await-to-callbacks": "off",
+    // Jest rules that leak through vitest plugin — disable irrelevant ones
+    "jest/max-expects": "off",
+    "jest/prefer-strict-equal": "off",
+    "jest/prefer-to-be": "off",
+    "jest/prefer-to-have-length": "off",
+    "jest/require-top-level-describe": "off",
+    "jest/no-hooks": "off",
+    "jest/prefer-expect-assertions": "off",
+    "jest/prefer-importing-jest-globals": "off",
+    "jest/prefer-lowercase-title": "off",
+    "jest/require-hook": "off",
+    // vitest rules that are too opinionated
+    "vitest/consistent-test-filename": "off",
+    "vitest/no-importing-vitest-globals": "off",
+    "vitest/prefer-to-be-truthy": "off",
+    "vitest/prefer-to-be-falsy": "off",
+    // no-nested-ternary is already covered by unicorn/no-nested-ternary
+    "no-nested-ternary": "off",
+    // max-params: extraction functions naturally have 3-4 params
+    "max-params": "off",
+    // no-await-in-loop: sequential processing is intentional for font entries
+    "no-await-in-loop": "off",
+
+    // ──────────────────────────────────────────────
+    // Promoted to error: rules worth enforcing strictly
+    // ──────────────────────────────────────────────
+
+    // Catch real performance issues
+    "oxc/no-accumulating-spread": "error",
+
+    // Prefer modern APIs
+    "unicorn/prefer-code-point": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/new-for-builtins": "error",
+    "unicorn/explicit-length-check": "warn",
+    "unicorn/no-nested-ternary": "warn",
+    "unicorn/no-await-expression-member": "warn",
+    "unicorn/numeric-separators-style": "warn",
+
+    // TypeScript consistency
+    "typescript/array-type": "warn",
+    "typescript/consistent-indexed-object-style": "warn",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-non-null-assertion": "warn",
+
+    // ──────────────────────────────────────────────
+    // Vitest-specific rules for test files
+    // ──────────────────────────────────────────────
+    "vitest/no-identical-title": "error",
+    "vitest/no-focused-tests": "error",
+    "vitest/no-disabled-tests": "warn",
+    "vitest/expect-expect": "warn",
+    "vitest/no-conditional-expect": "warn",
+
+    // ──────────────────────────────────────────────
+    // Node.js rules
+    // ──────────────────────────────────────────────
+    "node/no-exports-assign": "error",
+
+    // ──────────────────────────────────────────────
+    // Promise rules
+    // ──────────────────────────────────────────────
+    "promise/no-new-statics": "error",
+    "promise/valid-params": "error",
+    "promise/no-return-in-finally": "error",
+
+    // ──────────────────────────────────────────────
+    // Core: additional useful rules
+    // ──────────────────────────────────────────────
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-template": "warn",
+    "prefer-spread": "warn",
+    "no-console": "off",
+    "no-empty": "error",
+    "eqeqeq": "error"
+  }
+}
