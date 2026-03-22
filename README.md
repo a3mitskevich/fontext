@@ -38,6 +38,7 @@ npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf
 | `-n, --font-name`       | Name for the output font (required)                     |
 | `-l, --ligatures`       | Comma-separated ligature names                          |
 | `-r, --raws`            | Comma-separated raw unicode characters                  |
+| `-u, --unicode-ranges`  | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)   |
 | `-f, --formats`         | Output formats: `svg,ttf,woff,woff2,eot` (default: all) |
 | `-o, --output`          | Output directory (default: `.`)                         |
 | `-w, --with-whitespace` | Include whitespace glyph                                |
@@ -79,10 +80,11 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | `fontName`       | `string`    | —           | **Required.** Name for the output font                                      |
 | `ligatures`      | `string[]`  | `[]`        | Ligature strings to extract (e.g. `['home', 'search']`)                     |
 | `raws`           | `string[]`  | `[]`        | Raw unicode characters — Fontext will resolve their ligatures automatically |
+| `unicodeRanges`  | `string[]`  | `[]`        | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)              |
 | `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`              |
 | `withWhitespace` | `boolean`   | `false`     | Include whitespace glyph in the output                                      |
 
-> At least one of `ligatures` or `raws` must be provided.
+> At least one of `ligatures`, `raws`, or `unicodeRanges` must be provided.
 
 ### Error Handling
 
