@@ -45,11 +45,7 @@
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts",
-    "format:check": "oxfmt --check src/ test/ *.ts",
-    "versioning": "npm version $PART -m \"Updating the application version to %s\"",
-    "versioning:patch": "npm run versioning --PART patch",
-    "versioning:minor": "npm run versioning --PART minor",
-    "versioning:major": "npm run versioning --PART major"
+    "format:check": "oxfmt --check src/ test/ *.ts"
   },
   "devDependencies": {
     "@types/fontkit": "^2.0.9",
