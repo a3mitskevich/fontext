@@ -36,6 +36,7 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(e.g. U+E000-U+E100,U+F000)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
+      ${c.cyan}--watch${c.reset}               Watch input file and re-extract on changes
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
 
@@ -142,6 +143,7 @@ async function main(): Promise<void> {
       formats: { type: "string", short: "f" },
       "with-whitespace": { type: "boolean", short: "w", default: false },
       json: { type: "boolean", short: "j", default: false },
+      watch: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
@@ -204,70 +206,86 @@ async function main(): Promise<void> {
       : undefined;
   const withWhitespace = values["with-whitespace"] || (config?.withWhitespace ?? false);
 
-  const content = fs.readFileSync(inputPath);
-  const spinner = !values.json ? createSpinner("Extracting glyphs...") : { stop: () => {} };
-  const result = await extract(content, {
-    fontName,
-    ligatures,
-    raws,
-    unicodeRanges,
-    formats,
-    withWhitespace,
-  });
-  spinner.stop();
+  const extractOpts = { fontName, ligatures, raws, unicodeRanges, formats, withWhitespace };
+  const isJson = values.json;
 
-  fs.mkdirSync(outputDir, { recursive: true });
+  async function runExtraction(): Promise<void> {
+    const content = fs.readFileSync(inputPath);
+    const spinner = !isJson ? createSpinner("Extracting glyphs...") : { stop: () => {} };
+    const result = await extract(content, extractOpts);
+    spinner.stop();
 
-  const files: Array<{ path: string; format: string; size: number; saving: number }> = [];
+    fs.mkdirSync(outputDir, { recursive: true });
 
-  for (const format of VALID_FORMATS) {
-    const buffer = result[format];
-    if (buffer) {
-      const filePath = path.join(outputDir, `${fontName}.${format}`);
-      fs.writeFileSync(filePath, buffer);
-      const formatReport = result.report.formats[format];
-      files.push({
-        path: filePath,
-        format,
-        size: buffer.length,
-        saving: formatReport?.saving ?? 0,
-      });
+    const files: Array<{ path: string; format: string; size: number; saving: number }> = [];
+
+    for (const format of VALID_FORMATS) {
+      const buffer = result[format];
+      if (buffer) {
+        const filePath = path.join(outputDir, `${fontName}.${format}`);
+        fs.writeFileSync(filePath, buffer);
+        const formatReport = result.report.formats[format];
+        files.push({
+          path: filePath,
+          format,
+          size: buffer.length,
+          saving: formatReport?.saving ?? 0,
+        });
+      }
+    }
+
+    if (isJson) {
+      const jsonOutput = {
+        fontName,
+        glyphs: result.meta.length,
+        originalSize: result.report.originalSize,
+        files: files.map(({ path: filePath, format, size, saving }) => ({
+          path: filePath,
+          format,
+          size,
+          saving,
+        })),
+        meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
+      };
+      console.log(JSON.stringify(jsonOutput, null, 2));
+    } else {
+      console.log();
+      console.log(
+        `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
+      );
+      console.log();
+
+      const maxPathLen = Math.max(...files.map((f) => f.path.length));
+      const maxSizeLen = Math.max(...files.map((f) => formatBytes(f.size).length));
+
+      for (const { path: filePath, size, saving } of files) {
+        const paddedPath = filePath.padEnd(maxPathLen);
+        const paddedSize = formatBytes(size).padStart(maxSizeLen);
+        console.log(
+          `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
+        );
+      }
+
+      console.log();
     }
   }
 
-  if (values.json) {
-    const jsonOutput = {
-      fontName,
-      glyphs: result.meta.length,
-      originalSize: result.report.originalSize,
-      files: files.map(({ path: filePath, format, size, saving }) => ({
-        path: filePath,
-        format,
-        size,
-        saving,
-      })),
-      meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
-    };
-    console.log(JSON.stringify(jsonOutput, null, 2));
-  } else {
-    console.log();
-    console.log(
-      `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
-    );
-    console.log();
+  await runExtraction();
 
-    const maxPathLen = Math.max(...files.map((f) => f.path.length));
-    const maxSizeLen = Math.max(...files.map((f) => formatBytes(f.size).length));
-
-    for (const { path: filePath, size, saving } of files) {
-      const paddedPath = filePath.padEnd(maxPathLen);
-      const paddedSize = formatBytes(size).padStart(maxSizeLen);
-      console.log(
-        `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
-      );
-    }
-
-    console.log();
+  if (values.watch) {
+    console.log(`  ${c.dim}Watching ${inputPath} for changes...${c.reset}`);
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    fs.watch(inputPath, () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(async () => {
+        try {
+          await runExtraction();
+          console.log(`  ${c.dim}Watching ${inputPath} for changes...${c.reset}`);
+        } catch (err: any) {
+          printError(err.message);
+        }
+      }, 200);
+    });
   }
 }
 
