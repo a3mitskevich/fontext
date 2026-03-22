@@ -90,7 +90,7 @@ function createGlyphStream(content: string): GlyphStream {
 
 async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    let svgFontBuffer = Buffer.alloc(0);
+    const chunks: Buffer[] = [];
     const config: Partial<SVGIcons2SVGFontStreamOptions> = {
       fontName,
       normalize: true,
@@ -98,11 +98,10 @@ async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Prom
     };
     const stream = new SVGIcons2SVGFontStream(config)
       .on("data", (data: Buffer | string) => {
-        const chunk = typeof data === "string" ? Buffer.from(data) : data;
-        svgFontBuffer = Buffer.concat([svgFontBuffer, chunk]);
+        chunks.push(typeof data === "string" ? Buffer.from(data) : data);
       })
       .on("end", () => {
-        resolve(svgFontBuffer);
+        resolve(Buffer.concat(chunks));
       })
       .on("error", (err) => {
         reject(err);
