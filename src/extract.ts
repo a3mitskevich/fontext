@@ -59,21 +59,26 @@ function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffe
   return null;
 }
 
-function convertByFormats(svgFont: Buffer, formats: Formats[]): ExtractedResult {
+async function convertByFormats(svgFont: Buffer, formats: Formats[]): Promise<ExtractedResult> {
+  const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
+
   if (formats.some((format) => format !== "svg")) {
     const ttf = svg2ttf(svgFont.toString());
-    return formats.reduce<ExtractedResult>(
-      (acc, format) => {
-        const byFormat = getByFormat(format, svgFont, Buffer.from(ttf.buffer));
+    const ttfBuffer = Buffer.from(ttf.buffer);
+
+    await Promise.all(
+      formats.map(async (format) => {
+        const byFormat = getByFormat(format, svgFont, ttfBuffer);
         if (byFormat !== null) {
-          acc[format] = byFormat;
+          result[format] = byFormat;
         }
-        return acc;
-      },
-      { meta: [], report: { originalSize: 0, formats: {} } },
+      }),
     );
+  } else {
+    result.svg = svgFont;
   }
-  return { svg: svgFont, meta: [], report: { originalSize: 0, formats: {} } };
+
+  return result;
 }
 
 function createGlyphStream(content: string): GlyphStream {
@@ -308,7 +313,7 @@ export default async function extract(
     }
   }
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
-  const result = convertByFormats(svgFont, formats);
+  const result = await convertByFormats(svgFont, formats);
   result.meta = glyphsMeta;
 
   const originalSize = content.length;
