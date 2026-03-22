@@ -1,23 +1,36 @@
-## 1.1.2
+# Changelog
 
-# Patch
+All notable changes to this project will be documented in this file.
 
-- Fixed exports
+The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## 1.1.1
+## [Unreleased]
 
-# Patch
+### Changed
+- Restructured README with clear value proposition, API docs, and badges
+- Added ROADMAP.md with phased improvement plan
 
-- Added `extract` named export
+## [1.1.2] - 2024-01-09
 
-## 1.1.0
+### Fixed
+- Fixed package exports configuration
 
-# Improve & Features
+## [1.1.1] - 2024-01-09
 
-- Refactored eslint, tsconfig, jest test
-- Added `meta` info about Glyphs to `ExtractedResult`
+### Fixed
+- Added `extract` as a named export
 
+## [1.1.0] - 2024-01-08
 
-## 1.0.10
+### Added
+- Glyph metadata (`meta`) in `ExtractedResult` — includes name, unicode mappings, and SVG for each glyph
 
-First version
+### Changed
+- Refactored ESLint, tsconfig, and Jest configuration
+
+## [1.0.10] - 2023-07-29
+
+### Added
+- Initial release — extract glyphs by ligatures from font files
+- Output formats: SVG, TTF, WOFF, WOFF2, EOT
+- Handlebars-based SVG templating
