@@ -44,7 +44,7 @@
     "test:watch": "vitest",
     "test:local": "TEST_TARGET=local npm run test",
     "test:dist": "TEST_TARGET=dist npm run test",
-    "build": "tsup && cp src/svg.hbs dist/svg.hbs",
+    "build": "tsup",
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts",
@@ -66,7 +66,6 @@
   "dependencies": {
     "@tsconfig/node20": "^20.1.9",
     "fontkit": "^2.0.4",
-    "handlebars": "^4.7.8",
     "svg2ttf": "6.0.3",
     "svgicons2svgfont": "^15.0.1",
     "ttf2eot": "3.1.0",
