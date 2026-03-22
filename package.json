@@ -22,6 +22,9 @@
   "homepage": "https://github.com/a3mitskevich/font-extractor",
   "author": "Aleksandr Mitskevich johndeathsmell@gmail.com",
   "license": "MIT",
+  "bin": {
+    "fontext": "dist/cli.js"
+  },
   "files": [
     "dist/*"
   ],
