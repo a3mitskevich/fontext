@@ -77,6 +77,25 @@ function printError(msg: string): void {
   console.error(`${c.red}${c.bold}error${c.reset}${c.red}: ${msg}${c.reset}`);
 }
 
+function createSpinner(text: string): { stop: () => void } {
+  if (!useColor || !process.stderr.isTTY) {
+    return { stop: () => {} };
+  }
+  const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+  let i = 0;
+  const interval = setInterval(() => {
+    process.stderr.write(
+      `\r${c.cyan}${frames[i++ % frames.length]}${c.reset} ${c.dim}${text}${c.reset}`,
+    );
+  }, 80);
+  return {
+    stop: () => {
+      clearInterval(interval);
+      process.stderr.write("\r\x1b[K");
+    },
+  };
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
@@ -138,6 +157,7 @@ async function main(): Promise<void> {
   const withWhitespace = values["with-whitespace"];
 
   const content = fs.readFileSync(inputPath);
+  const spinner = !values.json ? createSpinner("Extracting glyphs...") : { stop: () => {} };
   const result = await extract(content, {
     fontName,
     ligatures,
@@ -146,6 +166,7 @@ async function main(): Promise<void> {
     formats,
     withWhitespace,
   });
+  spinner.stop();
 
   fs.mkdirSync(outputDir, { recursive: true });
 

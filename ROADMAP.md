@@ -48,7 +48,7 @@
 ## Phase 8 — CLI Enhancements
 
 - [x] **8.1** `--json` flag — output result as JSON for CI pipelines and build script integration
-- [ ] **8.2** Progress indicator — show extraction progress for large fonts with many glyphs
+- [x] **8.2** Progress indicator — animated spinner during extraction
 - [ ] **8.3** Config file support — `.fontextrc.json` or `fontext` field in `package.json` for default options
 - [ ] **8.4** Watch mode — `fontext --watch` to re-extract on source font changes
 - [ ] **8.5** Batch mode — process multiple fonts in a single invocation
