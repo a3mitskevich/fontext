@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.6.0...fontext-v1.7.0) (2026-03-22)
+
+
+### Features
+
+* add --json flag for machine-readable CLI output ([decbf47](https://github.com/a3mitskevich/fontext/commit/decbf478408b792e505729af4c4e8cfe314dad9f))
+* add --watch mode for auto re-extraction ([ce86dde](https://github.com/a3mitskevich/fontext/commit/ce86ddedd2d2b51a54fb3be87d2a06033658665d))
+* add .fontextrc.json config file support ([85b821f](https://github.com/a3mitskevich/fontext/commit/85b821f8a2e0f0fc26891ae0c1effd9388861e6f))
+* add animated spinner during extraction ([c2e3408](https://github.com/a3mitskevich/fontext/commit/c2e340827d950ba441bb351fd22eb6900b83a3df))
+* add batch mode for processing multiple fonts ([96747f3](https://github.com/a3mitskevich/fontext/commit/96747f30c8cb501a73dd2db1d9f1fdf5731bf9a4))
+* add unicode range extraction ([13592da](https://github.com/a3mitskevich/fontext/commit/13592da43f482665751318abd37dd65911406416))
+
+
+### Bug Fixes
+
+* move @tsconfig/node20 to devDependencies and fix supported formats docs ([681af35](https://github.com/a3mitskevich/fontext/commit/681af357180116b9399eb828581e05aa86f4745b))
+
+
+### Performance Improvements
+
+* optimize stream buffering in convertToSvgFont ([d1964af](https://github.com/a3mitskevich/fontext/commit/d1964af2dc10c9c6b63bb31ac4dec2a4de4bb862))
+* parallelize format conversion with Promise.all ([43bcea5](https://github.com/a3mitskevich/fontext/commit/43bcea5401f9ae02d930487af817e41f5bf6bfa9))
+
 ## [1.6.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.5.0...fontext-v1.6.0) (2026-03-22)
 
 
