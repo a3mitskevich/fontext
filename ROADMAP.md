@@ -37,8 +37,8 @@
 ## Phase 6 — Packaging & Correctness
 
 - [ ] **6.1** Add npm publish step to CI — auto-publish to npm after release-please creates a GitHub Release
-- [ ] **6.2** Move `@tsconfig/node20` from `dependencies` to `devDependencies` — it's only used at build time
-- [ ] **6.3** Fix "Supported Input Formats" in README — remove TTC/DFONT (not supported) or add font collection support
+- [x] **6.2** Move `@tsconfig/node20` from `dependencies` to `devDependencies` — it's only used at build time
+- [x] **6.3** Fix "Supported Input Formats" in README — remove TTC/DFONT (not supported)
 
 ## Phase 7 — Performance
 
