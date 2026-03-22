@@ -7,11 +7,12 @@ import os from "os";
 const CLI = path.resolve(__dirname, "../dist/cli.js");
 const FONT = path.resolve(__dirname, "../assets/font.ttf");
 
-function run(args: string[]): { stdout: string; exitCode: number } {
+function run(args: string[], cwd?: string): { stdout: string; exitCode: number } {
   try {
     const stdout = execFileSync("node", [CLI, ...args], {
       encoding: "utf8",
       timeout: 10000,
+      cwd,
     });
     return { stdout, exitCode: 0 };
   } catch (err: any) {
@@ -103,5 +104,24 @@ describe("CLI", () => {
     expect(parsed.files[0].format).toBe("ttf");
     expect(parsed.files[0].saving).toBeGreaterThan(0);
     expect(parsed.meta).toHaveLength(1);
+  });
+
+  it("should read options from .fontextrc.json config file", () => {
+    const cfgDir = path.join(tmpDir, "cfg-project");
+    const outDir = path.join(tmpDir, "cfg-out");
+    fs.mkdirSync(cfgDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(cfgDir, ".fontextrc.json"),
+      JSON.stringify({
+        input: FONT,
+        fontName: "cfg-icons",
+        ligatures: ["abc"],
+        formats: ["ttf"],
+        output: outDir,
+      }),
+    );
+    const { exitCode } = run([], cfgDir);
+    expect(exitCode).toBe(0);
+    expect(fs.existsSync(path.join(outDir, "cfg-icons.ttf"))).toBe(true);
   });
 });
