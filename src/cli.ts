@@ -35,6 +35,7 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(e.g. U+E000-U+E100,U+F000)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+  ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
 
@@ -87,6 +88,7 @@ async function main(): Promise<void> {
       "unicode-ranges": { type: "string", short: "u" },
       formats: { type: "string", short: "f" },
       "with-whitespace": { type: "boolean", short: "w", default: false },
+      json: { type: "boolean", short: "j", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
@@ -147,13 +149,7 @@ async function main(): Promise<void> {
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  console.log();
-  console.log(
-    `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
-  );
-  console.log();
-
-  const outputs: Array<{ filePath: string; size: string; saving: number }> = [];
+  const files: Array<{ path: string; format: string; size: number; saving: number }> = [];
 
   for (const format of VALID_FORMATS) {
     const buffer = result[format];
@@ -161,26 +157,49 @@ async function main(): Promise<void> {
       const filePath = path.join(outputDir, `${fontName}.${format}`);
       fs.writeFileSync(filePath, buffer);
       const formatReport = result.report.formats[format];
-      outputs.push({
-        filePath,
-        size: formatBytes(buffer.length),
+      files.push({
+        path: filePath,
+        format,
+        size: buffer.length,
         saving: formatReport?.saving ?? 0,
       });
     }
   }
 
-  const maxPathLen = Math.max(...outputs.map((o) => o.filePath.length));
-  const maxSizeLen = Math.max(...outputs.map((o) => o.size.length));
-
-  for (const { filePath, size, saving } of outputs) {
-    const paddedPath = filePath.padEnd(maxPathLen);
-    const paddedSize = size.padStart(maxSizeLen);
+  if (values.json) {
+    const jsonOutput = {
+      fontName,
+      glyphs: result.meta.length,
+      originalSize: result.report.originalSize,
+      files: files.map(({ path: filePath, format, size, saving }) => ({
+        path: filePath,
+        format,
+        size,
+        saving,
+      })),
+      meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
+    };
+    console.log(JSON.stringify(jsonOutput, null, 2));
+  } else {
+    console.log();
     console.log(
-      `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
+      `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
     );
-  }
+    console.log();
 
-  console.log();
+    const maxPathLen = Math.max(...files.map((f) => f.path.length));
+    const maxSizeLen = Math.max(...files.map((f) => formatBytes(f.size).length));
+
+    for (const { path: filePath, size, saving } of files) {
+      const paddedPath = filePath.padEnd(maxPathLen);
+      const paddedSize = formatBytes(size).padStart(maxSizeLen);
+      console.log(
+        `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
+      );
+    }
+
+    console.log();
+  }
 }
 
 main().catch((err: Error) => {
