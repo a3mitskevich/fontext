@@ -3,7 +3,7 @@ import type { JestConfigWithTsJest } from "ts-jest";
 const jestConfig: JestConfigWithTsJest = {
   cache: true,
   collectCoverage: true,
-  coverageReporters: ["lcovonly"],
+  coverageReporters: ["lcovonly", "text"],
   transform: {
     "^.+\\.ts$": [
       "ts-jest",
