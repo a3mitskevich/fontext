@@ -29,7 +29,7 @@
 
 ## Phase 5 — Features
 
-- [ ] **5.1** CLI interface — `fontext --input font.ttf --ligatures home,search --formats woff2`
+- [x] **5.1** CLI interface — `fontext --input font.ttf --ligatures home,search --formats woff2`
 - [ ] **5.2** Unicode range extraction — extract by code point ranges (`U+E000-U+E100`)
 - [ ] **5.3** ESM-native template loading — inline template or use `import.meta.url`
 - [ ] **5.4** Optimization report — show size diff (before/after/saved)
