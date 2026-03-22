@@ -1,6 +1,6 @@
 import fs from "fs";
 import { Readable } from "stream";
-import { create, type Font, type Glyph, type Lookup } from "fontkit";
+import { create, type Font, type Glyph, type Ligature, type Lookup } from "fontkit";
 import svg2ttf from "svg2ttf";
 import ttf2woff from "ttf2woff";
 import ttf2woff2 from "ttf2woff2";
@@ -171,7 +171,7 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
   const map = new Map<
     number,
     Array<{
-      ligature: any;
+      ligature: Ligature;
       leading: string;
     }>
   >();
@@ -202,8 +202,8 @@ const findLigaturesByRaws = (content: Buffer, raws: string[]): string[] => {
       }
       return ligaturesMetas.map((meta) => {
         const ligatureBody = meta.ligature.components
-          .map((code: number) => font.stringsForGlyph(code)[0])
-          .join("") as string;
+          .map((code) => font.stringsForGlyph(code)[0])
+          .join("");
         return meta.leading + ligatureBody;
       });
     })

@@ -11,9 +11,15 @@ declare module "fontkit" {
     start: number;
     end: number;
   }
+  export interface Ligature {
+    glyph: number;
+    compCount: number;
+    components: number[];
+  }
+
   export interface SubTable {
     coverage: { glyphs: number[]; rangeRecords: RangeRecord[] };
-    ligatureSets: Arrayable<Array<{ glyph: number }>>;
+    ligatureSets: Arrayable<Ligature[]>;
   }
 
   export interface Lookup {
