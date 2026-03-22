@@ -124,4 +124,25 @@ describe("CLI", () => {
     expect(exitCode).toBe(0);
     expect(fs.existsSync(path.join(outDir, "cfg-icons.ttf"))).toBe(true);
   });
+
+  it("should process multiple fonts in batch mode", () => {
+    const batchDir = path.join(tmpDir, "batch-project");
+    const outDir = path.join(tmpDir, "batch-out");
+    fs.mkdirSync(batchDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(batchDir, ".fontextrc.json"),
+      JSON.stringify({
+        output: outDir,
+        formats: ["ttf"],
+        batch: [
+          { input: FONT, fontName: "font-a", ligatures: ["abc"] },
+          { input: FONT, fontName: "font-b", ligatures: ["abc"] },
+        ],
+      }),
+    );
+    const { exitCode } = run([], batchDir);
+    expect(exitCode).toBe(0);
+    expect(fs.existsSync(path.join(outDir, "font-a.ttf"))).toBe(true);
+    expect(fs.existsSync(path.join(outDir, "font-b.ttf"))).toBe(true);
+  });
 });
