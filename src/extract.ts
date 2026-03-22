@@ -124,7 +124,7 @@ function codePointsToName(symbols: number[]): string {
 function toSvg(glyph: Glyph): string {
   const path = glyph.path.scale(-1, 1).rotate(Math.PI).toSVG();
   const width = glyph.advanceWidth ?? DEFAULT_FONT_SIZE;
-  const height = (glyph as any).advanceHeight ?? DEFAULT_FONT_SIZE;
+  const height = glyph.advanceHeight ?? DEFAULT_FONT_SIZE;
 
   const template = getSvgTemplate();
 

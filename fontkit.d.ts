@@ -1,12 +1,10 @@
-import { type GlyphRun } from "fontkit";
-
 interface Arrayable<T> {
   toArray: () => T[];
 }
 
 declare module "fontkit" {
   export interface Glyph {
-    _metrics: GlyphRun;
+    advanceHeight: number;
   }
 
   export interface RangeRecord {
