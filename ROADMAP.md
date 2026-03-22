@@ -55,5 +55,5 @@
 
 ## Phase 9 — Architecture
 
-- [ ] **9.1** Extract GSUB parser into separate module — move `findLigaturesByRaws` and related code out of `extract.ts`
+- [x] **9.1** Extract GSUB parser into separate module — `src/glyphs.ts` with all glyph discovery logic
 - [ ] **9.2** Browser-compatible build — separate entry point without `fs`/`stream` for browser usage
