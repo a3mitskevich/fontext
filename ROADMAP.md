@@ -42,7 +42,7 @@
 
 ## Phase 7 — Performance
 
-- [ ] **7.1** Parallel format conversion — convert WOFF/WOFF2/EOT in parallel via `Promise.all` instead of sequential `reduce`
+- [x] **7.1** Parallel format conversion — convert WOFF/WOFF2/EOT in parallel via `Promise.all` instead of sequential `reduce`
 - [ ] **7.2** Optimize stream buffering — collect chunks in array and `Buffer.concat` once in `end`, not per-chunk
 
 ## Phase 8 — CLI Enhancements
