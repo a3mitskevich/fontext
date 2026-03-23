@@ -61,14 +61,14 @@ async function convertByFormats(svgFont: Buffer, formats: Formats[]): Promise<Ex
   return result;
 }
 
-function createGlyphStream(content: string): GlyphStream {
+export function createGlyphStream(content: string): GlyphStream {
   const stream = new Readable();
   stream.push(content);
   stream.push(null);
   return stream as GlyphStream;
 }
 
-async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
+export async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     const config: Partial<SVGIcons2SVGFontStreamOptions> = {

@@ -33,7 +33,7 @@ export interface GlyphStream extends Readable {
   };
 }
 
-export type Engine = "icon" | "subset";
+export type Engine = "icon" | "subset" | "convert";
 
 export interface MinifyOption {
   fontName: string;

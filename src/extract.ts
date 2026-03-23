@@ -1,6 +1,7 @@
 import { type ExtractedResult, Format, type MinifyOption } from "./types";
 import { extractIcon } from "./engines/icon";
 import { extractSubset } from "./engines/subset";
+import { extractConvert } from "./engines/convert";
 
 export default async function extract(
   content: Buffer,
@@ -20,16 +21,18 @@ export default async function extract(
     throw new Error("fontName is required");
   }
 
-  const hasGlyphSelection =
-    ligatures.length > 0 ||
-    raws.length > 0 ||
-    unicodeRanges.length > 0 ||
-    (characters !== undefined && characters.length > 0);
+  if (engine !== "convert") {
+    const hasGlyphSelection =
+      ligatures.length > 0 ||
+      raws.length > 0 ||
+      unicodeRanges.length > 0 ||
+      (characters !== undefined && characters.length > 0);
 
-  if (!hasGlyphSelection) {
-    throw new Error(
-      "At least one of ligatures, raws, unicodeRanges, or characters must be provided",
-    );
+    if (!hasGlyphSelection) {
+      throw new Error(
+        "At least one of ligatures, raws, unicodeRanges, or characters must be provided",
+      );
+    }
   }
 
   if (formats.length === 0) {
@@ -42,6 +45,10 @@ export default async function extract(
     throw new Error(
       `Invalid format(s): ${invalidFormats.join(", ")}. Valid formats: ${[...validFormats].join(", ")}`,
     );
+  }
+
+  if (engine === "convert") {
+    return extractConvert(content, option);
   }
 
   if (engine === "subset") {
