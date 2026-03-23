@@ -206,4 +206,46 @@ describe("CLI", () => {
     expect(exitCode).toBe(0);
     expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(true);
   });
+
+  it("should show output but not write files with --dry-run", () => {
+    const outDir = path.join(tmpDir, "dry-run-out");
+    const { stdout, exitCode } = run([
+      "--input",
+      FONT,
+      "--font-name",
+      "test-icons",
+      "--ligatures",
+      "abc",
+      "--formats",
+      "ttf",
+      "--output",
+      outDir,
+      "--dry-run",
+    ]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("1 glyph(s) extracted");
+    expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(false);
+  });
+
+  it("should produce JSON but not write files with --dry-run --json", () => {
+    const outDir = path.join(tmpDir, "dry-run-json-out");
+    const { stdout, exitCode } = run([
+      "--input",
+      FONT,
+      "--font-name",
+      "test-icons",
+      "--ligatures",
+      "abc",
+      "--formats",
+      "ttf",
+      "--output",
+      outDir,
+      "--dry-run",
+      "--json",
+    ]);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.fontName).toBe("test-icons");
+    expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(false);
+  });
 });

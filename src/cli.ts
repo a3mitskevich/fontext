@@ -38,6 +38,7 @@ ${c.bold}Options:${c.reset}
       ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion only)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph ${c.dim}(icon, subset)${c.reset}
       ${c.cyan}--safari-fix${c.reset}            Fix OS/2 and hhea tables for Safari compatibility
+      ${c.cyan}--dry-run${c.reset}              Run without writing files ${c.dim}(preview output only)${c.reset}
   ${c.cyan}-s${c.reset}, ${c.cyan}--silent${c.reset}              Suppress all output ${c.dim}(files still written)${c.reset}
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
       ${c.cyan}--watch${c.reset}               Watch input file and re-extract on changes
@@ -136,6 +137,7 @@ interface ConfigEntry {
   formats?: string[];
   withWhitespace?: boolean;
   safariFix?: boolean;
+  dryRun?: boolean;
   silent?: boolean;
 }
 
@@ -171,6 +173,7 @@ async function main(): Promise<void> {
       formats: { type: "string", short: "f" },
       "with-whitespace": { type: "boolean", short: "w", default: false },
       "safari-fix": { type: "boolean", default: false },
+      "dry-run": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
       json: { type: "boolean", short: "j", default: false },
       watch: { type: "boolean", default: false },
@@ -194,9 +197,15 @@ async function main(): Promise<void> {
   const isJson = values.json;
   let isSilent = values.silent || (config?.silent ?? false);
 
+  const isDryRun = values["dry-run"] || (config?.dryRun ?? false);
+
   if (isSilent && isJson) {
     printWarning("--silent ignored, --json takes priority");
     isSilent = false;
+  }
+
+  if (isDryRun && values.watch) {
+    printWarning("--watch ignored, --dry-run takes priority");
   }
 
   function resolveEntry(
@@ -290,7 +299,9 @@ async function main(): Promise<void> {
     const result = await extract(content, extractOpts);
     spinner.stop();
 
-    fs.mkdirSync(outputDir, { recursive: true });
+    if (!isDryRun) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
 
     const files: { path: string; format: string; size: number; saving: number }[] = [];
 
@@ -298,7 +309,9 @@ async function main(): Promise<void> {
       const buffer = result[format];
       if (buffer) {
         const filePath = path.join(outputDir, `${fontName}.${format}`);
-        fs.writeFileSync(filePath, buffer);
+        if (!isDryRun) {
+          fs.writeFileSync(filePath, buffer);
+        }
         const formatReport = result.report.formats[format];
         files.push({
           path: filePath,
@@ -360,7 +373,7 @@ async function main(): Promise<void> {
     const entry = resolveEntry(config ?? {}, true);
     await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
 
-    if (values.watch) {
+    if (values.watch && !isDryRun) {
       if (!isSilent) {
         console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
       }
