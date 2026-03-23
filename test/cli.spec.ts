@@ -146,4 +146,45 @@ describe("CLI", () => {
     expect(fs.existsSync(path.join(outDir, "font-a.ttf"))).toBe(true);
     expect(fs.existsSync(path.join(outDir, "font-b.ttf"))).toBe(true);
   });
+
+  it("should suppress output with --silent but still write files", () => {
+    const outDir = path.join(tmpDir, "silent-out");
+    const { stdout, exitCode } = run([
+      "--input",
+      FONT,
+      "--font-name",
+      "test-icons",
+      "--ligatures",
+      "abc",
+      "--formats",
+      "ttf",
+      "--output",
+      outDir,
+      "--silent",
+    ]);
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toBe("");
+    expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(true);
+  });
+
+  it("should output JSON when --silent and --json are combined", () => {
+    const outDir = path.join(tmpDir, "silent-json-out");
+    const { stdout, exitCode } = run([
+      "--input",
+      FONT,
+      "--font-name",
+      "test-icons",
+      "--ligatures",
+      "abc",
+      "--formats",
+      "ttf",
+      "--output",
+      outDir,
+      "--silent",
+      "--json",
+    ]);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed.fontName).toBe("test-icons");
+  });
 });

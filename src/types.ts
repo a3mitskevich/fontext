@@ -43,5 +43,6 @@ export interface MinifyOption {
   characters?: string;
   formats?: Formats[];
   withWhitespace?: boolean;
+  silent?: boolean;
   engine?: Engine;
 }
