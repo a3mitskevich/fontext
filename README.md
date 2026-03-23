@@ -6,6 +6,7 @@
   <a href="https://www.npmjs.com/package/fontext"><img src="https://img.shields.io/npm/v/fontext" alt="npm version" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/npm/l/fontext" alt="license" /></a>
   <a href="./package.json"><img src="https://img.shields.io/node/v/fontext" alt="node" /></a>
+  <a href="https://codecov.io/gh/a3mitskevich/fontext"><img src="https://codecov.io/gh/a3mitskevich/fontext/graph/badge.svg" alt="coverage" /></a>
 </p>
 
 Extract glyphs from fonts and generate optimized, minimal font files.
