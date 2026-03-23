@@ -2,13 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/nicolo-ribaudo/oxlint-config-vscode-schema/main/schema/oxlintrc.json",
   "plugins": ["typescript", "unicorn", "oxc", "vitest", "node", "promise"],
   "categories": {
-    // Code that is outright wrong or useless — always on
     "correctness": "error",
-    // Code that is most likely wrong or useless
     "suspicious": "error",
-    // Performance anti-patterns
+    "pedantic": "warn",
     "perf": "warn",
-    // Stylistic rules — warn, not block
     "style": "warn"
   },
   "rules": {
@@ -66,6 +63,10 @@
     "jest/prefer-importing-jest-globals": "off",
     "jest/prefer-lowercase-title": "off",
     "jest/require-hook": "off",
+    // Formatter (oxfmt) controls hex case — linter should not contradict it
+    "unicorn/number-literal-case": "off",
+    // Naming describe blocks after the function under test is a valid pattern
+    "vitest/prefer-describe-function-title": "off",
     // vitest rules that are too opinionated
     "vitest/consistent-test-filename": "off",
     "vitest/no-importing-vitest-globals": "off",
@@ -75,6 +76,8 @@
     "no-nested-ternary": "off",
     // max-params: extraction functions naturally have 3-4 params
     "max-params": "off",
+    // max-lines-per-function: extraction/CLI functions are naturally long
+    "max-lines-per-function": "off",
     // no-await-in-loop: sequential processing is intentional for font entries
     "no-await-in-loop": "off",
 

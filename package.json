@@ -49,7 +49,7 @@
     "test:local": "TEST_TARGET=local npm run test",
     "test:dist": "TEST_TARGET=dist npm run test",
     "build": "tsup",
-    "lint": "oxlint src/ test/ --tsconfig tsconfig.json",
+    "lint": "oxlint src/ test/ --tsconfig tsconfig.json --deny-warnings",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts",
     "format:check": "oxfmt --check src/ test/ *.ts",

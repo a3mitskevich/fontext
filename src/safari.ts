@@ -36,6 +36,7 @@ function calcTableChecksum(buf: Buffer, offset: number, length: number): number 
   let sum = 0;
   const end = offset + ((length + 3) & ~3);
   for (let i = offset; i < end; i += 4) {
+    // oxlint-disable-next-line unicorn/prefer-math-trunc -- uint32 wrapping, not truncation
     sum = (sum + buf.readUInt32BE(i)) >>> 0;
   }
   return sum;
