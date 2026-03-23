@@ -35,7 +35,7 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(e.g. U+E000-U+E100,U+F000)${c.reset}
   ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9") — subset engine only${c.reset}
-      ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset} or ${c.dim}subset${c.reset} ${c.dim}(for text fonts, preserves kerning)${c.reset}
+      ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts, preserves kerning)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion without minification)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
       ${c.cyan}--watch${c.reset}               Watch input file and re-extract on changes
@@ -63,6 +63,7 @@ ${c.bold}Examples:${c.reset}
   ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -u U+E000-U+E010 -f woff2
   ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto-latin --engine subset -c "ABCabc" -f woff2
   ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto-cyrillic --engine subset -u U+0400-U+04FF -f woff2
+  ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto --engine convert -f woff2,ttf
   ${c.dim}$${c.reset} fontext ${c.dim}# uses .fontextrc.json${c.reset}
 `);
 }
@@ -208,16 +209,21 @@ async function main(): Promise<void> {
     const engine = (cliOverrides ? (values.engine ?? entry.engine) : entry.engine) as
       | "icon"
       | "subset"
+      | "convert"
       | undefined;
 
-    const hasSelection =
-      ligatures.length > 0 ||
-      raws.length > 0 ||
-      unicodeRanges.length > 0 ||
-      (characters !== undefined && characters.length > 0);
+    if (engine !== "convert") {
+      const hasSelection =
+        ligatures.length > 0 ||
+        raws.length > 0 ||
+        unicodeRanges.length > 0 ||
+        (characters !== undefined && characters.length > 0);
 
-    if (!hasSelection) {
-      throw new Error("at least one of ligatures, raws, unicodeRanges, or characters is required");
+      if (!hasSelection) {
+        throw new Error(
+          "at least one of ligatures, raws, unicodeRanges, or characters is required",
+        );
+      }
     }
 
     const inputPath = path.resolve(input);
