@@ -56,7 +56,7 @@ export function findLigaturesByRaws(content: Buffer, raws: string[]): string[] {
   const leadingChars: string[] = rangeRecords
     ? rangeRecords.flatMap(({ start, end }) =>
         Array.from({ length: end - start + 1 }, (_, position) => position + start).map(
-          (item) => font.stringsForGlyph(item)[0],
+          (item) => font.stringsForGlyph(item)?.[0] ?? "",
         ),
       )
     : glyphs.map((id) => {
@@ -84,14 +84,18 @@ export function findLigaturesByRaws(content: Buffer, raws: string[]): string[] {
   }
 
   return raws.flatMap((raw) => {
-    const glyph = font.glyphsForString(raw)[0];
+    const glyphResult = font.glyphsForString(raw);
+    if (glyphResult.length === 0) {
+      throw new Error(`Font does not contain a glyph for "${raw}"`);
+    }
+    const glyph = glyphResult[0];
     const ligaturesMetas = map.get(glyph.id);
     if (!ligaturesMetas) {
       throw new Error(`Font does not contain a ligature for "${raw}"`);
     }
     return ligaturesMetas.map((meta) => {
       const ligatureBody = meta.ligature.components
-        .map((code) => font.stringsForGlyph(code)[0])
+        .map((code) => font.stringsForGlyph(code)?.[0] ?? "")
         .join("");
       return meta.leading + ligatureBody;
     });
@@ -109,6 +113,9 @@ export function parseUnicodeRanges(ranges: string[]): number[] {
     }
     const start = parseInt(match[1], 16);
     const end = match[2] ? parseInt(match[2], 16) : start;
+    if (start > 0x10_ff_ff || end > 0x10_ff_ff) {
+      throw new Error(`Invalid unicode range: "${range}". Codepoint exceeds U+10FFFF`);
+    }
     if (end < start) {
       throw new Error(`Invalid unicode range: "${range}". End must be >= start`);
     }
