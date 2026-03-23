@@ -33,3 +33,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:dist
+      - name: Coverage
+        if: matrix.node-version == '22.x'
+        run: npx vitest run --coverage

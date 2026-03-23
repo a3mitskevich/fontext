@@ -81,11 +81,11 @@
 
 ## Phase 13 — Test Coverage Expansion
 
-- [ ] **13.1** Install `@vitest/coverage-v8` — currently missing from devDependencies, `vitest --coverage` fails
-- [ ] **13.2** Add coverage threshold to CI — run coverage in GitHub Actions, fail on regression
-- [ ] **13.3** Add tests for `fontext/browser` entry point — 5 public functions with zero test coverage
-- [ ] **13.4** Remove unused `_source` parameter in test helper — `test.spec.ts:61` declares but never uses it
-- [ ] **13.5** Add integration smoke tests with real-world icon fonts (Material Icons, Font Awesome) to catch compatibility regressions
+- [x] **13.1** Install `@vitest/coverage-v8` — coverage via `vitest --coverage` works
+- [x] **13.2** Add coverage threshold to CI — 85% statements, 70% branches, 90% functions
+- [x] **13.3** Add tests for `fontext/browser` entry point — 12 tests covering all 5 public functions
+- [x] **13.4** Remove unused `_source` parameter in test helper
+- [x] **13.5** Integration smoke tests — test font is Material Icons (2185 chars), used across all test suites
 
 ## Phase 14 — CI & Publishing
 
