@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines */
 import fs from "fs";
 import path from "path";
 import readline from "readline";
