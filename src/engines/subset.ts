@@ -6,6 +6,7 @@ import {
   type OptimizationReport,
 } from "../types";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
+import { applySafariFix } from "../safari";
 
 const DEFAULT_FORMATS: Formats[] = ["ttf", "woff", "woff2"];
 
@@ -65,24 +66,44 @@ export async function extractSubset(
   // SVG not supported by subset-font — skip silently
   const subsetFormats = formats.filter((f) => f !== "svg" && f !== "eot");
 
-  await Promise.all(
-    subsetFormats.map(async (format) => {
-      const targetFormat = FORMAT_TO_TARGET[format] as "truetype" | "woff" | "woff2";
-      const subsetted = await subsetFont(content, text, { targetFormat });
-      result[format] = Buffer.from(subsetted);
-    }),
-  );
+  if (option.safariFix) {
+    // When safariFix: generate TTF, patch it, derive other formats from patched TTF
+    const ttfSubset = Buffer.from(await subsetFont(content, text, { targetFormat: "truetype" }));
+    const patchedTtf = applySafariFix(ttfSubset);
 
-  // EOT: subset as truetype, then the consumer can convert if needed
-  if (formats.includes("eot")) {
-    const ttfSubset =
-      result.ttf ?? Buffer.from(await subsetFont(content, text, { targetFormat: "truetype" }));
-    // Dynamic import to avoid loading ttf2eot unless needed
-    const ttf2eotModule = await import("ttf2eot");
-    const ttf2eot = ttf2eotModule.default;
-    result.eot = Buffer.from(ttf2eot(new Uint8Array(ttfSubset)) as unknown as ArrayBuffer);
-    if (!formats.includes("ttf") && !result.ttf) {
-      // TTF was only needed for EOT conversion, don't include in output
+    if (formats.includes("ttf")) result.ttf = patchedTtf;
+    if (formats.includes("woff")) {
+      const ttf2woffModule = await import("ttf2woff");
+      result.woff = Buffer.from(
+        ttf2woffModule.default(new Uint8Array(patchedTtf)) as unknown as ArrayBuffer,
+      );
+    }
+    if (formats.includes("woff2")) {
+      const ttf2woff2Module = await import("ttf2woff2");
+      result.woff2 = Buffer.from(ttf2woff2Module.default(patchedTtf) as unknown as ArrayBuffer);
+    }
+    if (formats.includes("eot")) {
+      const ttf2eotModule = await import("ttf2eot");
+      result.eot = Buffer.from(
+        ttf2eotModule.default(new Uint8Array(patchedTtf)) as unknown as ArrayBuffer,
+      );
+    }
+  } else {
+    await Promise.all(
+      subsetFormats.map(async (format) => {
+        const targetFormat = FORMAT_TO_TARGET[format] as "truetype" | "woff" | "woff2";
+        const subsetted = await subsetFont(content, text, { targetFormat });
+        result[format] = Buffer.from(subsetted);
+      }),
+    );
+
+    // EOT: subset as truetype, then convert
+    if (formats.includes("eot")) {
+      const ttfSubset =
+        result.ttf ?? Buffer.from(await subsetFont(content, text, { targetFormat: "truetype" }));
+      const ttf2eotModule = await import("ttf2eot");
+      const ttf2eot = ttf2eotModule.default;
+      result.eot = Buffer.from(ttf2eot(new Uint8Array(ttfSubset)) as unknown as ArrayBuffer);
     }
   }
 

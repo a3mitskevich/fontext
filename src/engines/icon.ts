@@ -20,6 +20,7 @@ import {
   findMetaByLigatures,
   parseUnicodeRanges,
 } from "../glyphs";
+import { applySafariFix } from "../safari";
 
 const DEFAULT_FORMATS = Object.values(Format);
 const DEFAULT_FONT_SIZE = 1000;
@@ -39,12 +40,16 @@ function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffe
   return null;
 }
 
-async function convertByFormats(svgFont: Buffer, formats: Formats[]): Promise<ExtractedResult> {
+async function convertByFormats(
+  svgFont: Buffer,
+  formats: Formats[],
+  safariFix?: boolean,
+): Promise<ExtractedResult> {
   const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
 
   if (formats.some((format) => format !== "svg")) {
     const ttf = svg2ttf(svgFont.toString());
-    const ttfBuffer = Buffer.from(ttf.buffer);
+    const ttfBuffer = safariFix ? applySafariFix(Buffer.from(ttf.buffer)) : Buffer.from(ttf.buffer);
 
     await Promise.all(
       formats.map(async (format) => {
@@ -129,7 +134,7 @@ export async function extractIcon(content: Buffer, option: MinifyOption): Promis
   }
 
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
-  const result = await convertByFormats(svgFont, formats);
+  const result = await convertByFormats(svgFont, formats, option.safariFix);
   result.meta = glyphsMeta;
 
   const originalSize = content.length;

@@ -187,4 +187,23 @@ describe("CLI", () => {
     const parsed = JSON.parse(stdout);
     expect(parsed.fontName).toBe("test-icons");
   });
+
+  it("should apply safari fix with --safari-fix flag", () => {
+    const outDir = path.join(tmpDir, "safari-out");
+    const { exitCode } = run([
+      "--input",
+      FONT,
+      "--font-name",
+      "test-icons",
+      "--ligatures",
+      "abc",
+      "--formats",
+      "ttf",
+      "--output",
+      outDir,
+      "--safari-fix",
+    ]);
+    expect(exitCode).toBe(0);
+    expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(true);
+  });
 });
