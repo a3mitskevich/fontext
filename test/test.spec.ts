@@ -15,7 +15,7 @@ const woff2OriginalFont = fs.readFileSync(resolve("woff2"));
 const ABC_SVG_PATH =
   'd="M448 -277L416 -277L416 -288L373 -288L373 -224L416 -224L416 -235L448 -235L448 -213Q448 -205 441.5 -198.5Q435 -192 427 -192L363 -192Q354 -192 347.5 -198.5Q341 -205 341 -213L341 -299Q341 -307 347.5 -313.5Q354 -320 363 -320L427 -320Q435 -320 441.5 -313.5Q448 -307 448 -299ZM171 -299L171 -192L139 -192L139 -224L96 -224L96 -192L64 -192L64 -299Q64 -307 70.5 -313.5Q77 -320 85 -320L149 -320Q158 -320 164.5 -313.5Q171 -307 171 -299ZM139 -288L96 -288L96 -256L139 -256ZM288 -256Q297 -256 303 -249.5Q309 -243 309 -235L309 -213Q309 -205 303 -198.5Q297 -192 288 -192L203 -192L203 -320L288 -320Q297 -320 303 -313.5Q309 -307 309 -299L309 -277Q309 -269 303 -262.5Q297 -256 288 -256ZM235 -288L235 -272L277 -272L277 -288ZM277 -240L235 -240L235 -224L277 -224Z"';
 
-const extract: Extract = async (...args: Parameters<Extract>): Promise<ReturnType<Extract>> => {
+const extract: Extract = async (...args: Parameters<Extract>): ReturnType<Extract> => {
   const testTarget = process.env.TEST_TARGET as keyof typeof importTargets;
   const { default: index } = await importTargets[testTarget ?? "local"]();
   return index(...args);
@@ -391,11 +391,11 @@ describe("extract", () => {
   describe("safariFix", () => {
     const textFont = fs.readFileSync(path.resolve(__dirname, "../assets/font-without-gsub.ttf"));
 
-    const engineCases = [
-      ["icon engine", { ligatures: ["abc"], engine: "icon" as const }],
-      ["subset engine", { characters: "abc", engine: "subset" as const }],
-      ["convert engine", { engine: "convert" as const }],
-    ] as const;
+    const engineCases: [string, Record<string, unknown>][] = [
+      ["icon engine", { ligatures: ["abc"], engine: "icon" }],
+      ["subset engine", { characters: "abc", engine: "subset" }],
+      ["convert engine", { engine: "convert" }],
+    ];
 
     describe.each(engineCases)("%s", (_label, engineOpts) => {
       it("should set fsType to 0", async () => {

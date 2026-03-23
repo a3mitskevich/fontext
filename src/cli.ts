@@ -30,13 +30,13 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-i${c.reset}, ${c.cyan}--input${c.reset} <path>        Path to the font file ${c.dim}(required)${c.reset}
   ${c.cyan}-o${c.reset}, ${c.cyan}--output${c.reset} <dir>        Output directory ${c.dim}(default: .)${c.reset}
   ${c.cyan}-n${c.reset}, ${c.cyan}--font-name${c.reset} <name>    Name for the output font ${c.dim}(required)${c.reset}
-  ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
-  ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters
+  ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names ${c.dim}(icon, subset)${c.reset}
+  ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters ${c.dim}(icon only)${c.reset}
   ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
-  ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(e.g. U+E000-U+E100,U+F000)${c.reset}
-  ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9") — subset engine only${c.reset}
-      ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts, preserves kerning)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion without minification)${c.reset}
-  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+  ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(icon, subset)${c.reset}
+  ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(subset only)${c.reset}
+      ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion only)${c.reset}
+  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph ${c.dim}(icon, subset)${c.reset}
       ${c.cyan}--safari-fix${c.reset}            Fix OS/2 and hhea tables for Safari compatibility
   ${c.cyan}-s${c.reset}, ${c.cyan}--silent${c.reset}              Suppress all output ${c.dim}(files still written)${c.reset}
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}

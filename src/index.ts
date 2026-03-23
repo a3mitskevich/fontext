@@ -3,6 +3,9 @@ import extract from "./extract";
 export {
   type Formats,
   type MinifyOption,
+  type IconOption,
+  type SubsetOption,
+  type ConvertOption,
   type ExtractedResult,
   type OptimizationReport,
   type Engine,

@@ -1,5 +1,10 @@
 import subsetFont from "subset-font";
-import { type ExtractedResult, Format, type MinifyOption, type OptimizationReport } from "../types";
+import {
+  type ConvertOption,
+  type ExtractedResult,
+  Format,
+  type OptimizationReport,
+} from "../types";
 import { createFont, findMetaByCodePoints } from "../glyphs";
 import { convertToSvgFont } from "./icon";
 import { applySafariFix } from "../safari";
@@ -14,7 +19,7 @@ const FORMAT_TO_TARGET: Record<string, string> = {
 
 export async function extractConvert(
   content: Buffer,
-  option: MinifyOption,
+  option: ConvertOption,
 ): Promise<ExtractedResult> {
   const { fontName = "", formats = DEFAULT_FORMATS } = option;
 
