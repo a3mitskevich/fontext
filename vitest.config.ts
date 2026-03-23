@@ -5,6 +5,9 @@ export default defineConfig({
     coverage: {
       reporter: ["lcov", "text"],
       include: ["src/**"],
+      // TODO: cli.ts tested via execFileSync (child process), v8 can't instrument it
+      // Consider refactoring CLI to export functions for direct unit testing
+      exclude: ["src/cli.ts"],
       thresholds: {
         statements: 85,
         branches: 70,
