@@ -35,7 +35,9 @@ export async function extractConvert(
     const ttfConverted = Buffer.from(await subsetFont(content, text, { targetFormat: "truetype" }));
     const patchedTtf = applySafariFix(ttfConverted);
 
-    if (formats.includes("ttf")) result.ttf = patchedTtf;
+    if (formats.includes("ttf")) {
+      result.ttf = patchedTtf;
+    }
     if (formats.includes("woff")) {
       const ttf2woffModule = await import("ttf2woff");
       result.woff = Buffer.from(

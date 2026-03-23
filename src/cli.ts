@@ -90,16 +90,24 @@ function printVersion(): void {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
   const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  if (kb < 1024) {
+    return `${kb.toFixed(1)} KB`;
+  }
   const mb = kb / 1024;
   return `${mb.toFixed(1)} MB`;
 }
 
 function savingColor(saving: number): string {
-  if (saving >= 90) return c.green;
-  if (saving >= 50) return c.yellow;
+  if (saving >= 90) {
+    return c.green;
+  }
+  if (saving >= 50) {
+    return c.yellow;
+  }
   return c.red;
 }
 
@@ -166,7 +174,9 @@ function findConfig(): ConfigFile | null {
       return JSON.parse(fs.readFileSync(configPath, "utf8"));
     }
     const parent = path.dirname(dir);
-    if (parent === dir) break;
+    if (parent === dir) {
+      break;
+    }
     dir = parent;
   }
   return null;
@@ -195,7 +205,9 @@ class Prompter {
 
   private nextLine(): Promise<string> {
     const buffered = this.lines.shift();
-    if (buffered !== undefined) return Promise.resolve(buffered);
+    if (buffered !== undefined) {
+      return Promise.resolve(buffered);
+    }
     return new Promise((resolve) => {
       this.lineResolvers.push(resolve);
     });
@@ -340,8 +352,12 @@ async function main(): Promise<void> {
     const input = cliOverrides ? (values.input ?? entry.input) : entry.input;
     const fontName = cliOverrides ? (values["font-name"] ?? entry.fontName) : entry.fontName;
 
-    if (!input) throw new Error("input is required");
-    if (!fontName) throw new Error("fontName is required");
+    if (!input) {
+      throw new Error("input is required");
+    }
+    if (!fontName) {
+      throw new Error("fontName is required");
+    }
 
     const ligatures =
       cliOverrides && values.ligatures ? values.ligatures.split(",") : (entry.ligatures ?? []);
@@ -372,7 +388,9 @@ async function main(): Promise<void> {
     }
 
     const inputPath = path.resolve(input);
-    if (!fs.existsSync(inputPath)) throw new Error(`file not found: ${inputPath}`);
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`file not found: ${inputPath}`);
+    }
 
     const outputDir = path.resolve(
       cliOverrides && values.output !== "." ? (values.output ?? ".") : (entry.output ?? "."),
@@ -457,7 +475,9 @@ async function main(): Promise<void> {
       });
     }
 
-    if (isSilent) return;
+    if (isSilent) {
+      return;
+    }
 
     console.log();
     console.log(
@@ -499,7 +519,9 @@ async function main(): Promise<void> {
       }
       let debounce: ReturnType<typeof setTimeout> | null = null;
       const watcher = fs.watch(entry.inputPath, () => {
-        if (debounce) clearTimeout(debounce);
+        if (debounce) {
+          clearTimeout(debounce);
+        }
         debounce = setTimeout(async () => {
           try {
             await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);

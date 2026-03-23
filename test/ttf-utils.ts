@@ -15,7 +15,9 @@ export function findTable(ttf: Buffer, tag: string): { offset: number; length: n
 
 export function readOS2(ttf: Buffer) {
   const table = findTable(ttf, "OS/2");
-  if (!table) throw new Error("OS/2 table not found");
+  if (!table) {
+    throw new Error("OS/2 table not found");
+  }
   const t = table.offset;
   return {
     version: ttf.readUInt16BE(t),
@@ -29,7 +31,9 @@ export function readOS2(ttf: Buffer) {
 
 export function readHhea(ttf: Buffer) {
   const table = findTable(ttf, "hhea");
-  if (!table) throw new Error("hhea table not found");
+  if (!table) {
+    throw new Error("hhea table not found");
+  }
   const t = table.offset;
   return {
     ascent: ttf.readInt16BE(t + 4),

@@ -23,7 +23,9 @@ function collectCodePoints(option: SubsetOption): number[] {
   if (option.characters) {
     for (const char of option.characters) {
       const cp = char.codePointAt(0);
-      if (cp !== undefined) codePoints.add(cp);
+      if (cp !== undefined) {
+        codePoints.add(cp);
+      }
     }
   }
 
@@ -37,7 +39,9 @@ function collectCodePoints(option: SubsetOption): number[] {
     for (const lig of option.ligatures) {
       for (const char of lig) {
         const cp = char.codePointAt(0);
-        if (cp !== undefined) codePoints.add(cp);
+        if (cp !== undefined) {
+          codePoints.add(cp);
+        }
       }
     }
   }
@@ -75,7 +79,9 @@ export async function extractSubset(
     const ttfSubset = Buffer.from(await subsetFont(content, text, { targetFormat: "truetype" }));
     const patchedTtf = applySafariFix(ttfSubset);
 
-    if (formats.includes("ttf")) result.ttf = patchedTtf;
+    if (formats.includes("ttf")) {
+      result.ttf = patchedTtf;
+    }
     if (formats.includes("woff")) {
       const ttf2woffModule = await import("ttf2woff");
       result.woff = Buffer.from(
