@@ -1,6 +1,7 @@
 import extract from "./extract";
 
 export {
+  Format,
   type Formats,
   type MinifyOption,
   type IconOption,
@@ -9,7 +10,6 @@ export {
   type ExtractedResult,
   type OptimizationReport,
   type Engine,
-  type Formats as Format,
 } from "./types";
 export type Extract = typeof extract;
 

@@ -67,9 +67,9 @@
 
 ## Phase 11 — Code Deduplication
 
-- [ ] **11.1** Extract shared pure functions into `src/core.ts` — `renderSvg`, `codePointsToName`, `toSvg`, `glyphToMeta`, `parseUnicodeRanges`, `findMetaByCodePoints`, `findMetaByLigatures`, `findLigaturesByRaws` are duplicated between `src/glyphs.ts` and `src/browser.ts` (~120 lines of copy-paste)
-- [ ] **11.2** Thin wrappers in `glyphs.ts` and `browser.ts` — re-export from core, each adding only its `createFont` variant (`Buffer` vs `Uint8Array`)
-- [ ] **11.3** Fix `Format` re-export in `src/index.ts` — `type Formats as Format` exports a type where the user may expect a value; align naming or separate type/value exports
+- [x] **11.1** Extract shared pure functions into `src/core.ts` — `renderSvg`, `codePointsToName`, `toSvg`, `glyphToMeta`, `parseUnicodeRanges`, `findMetaByCodePoints`, `findMetaByLigatures`, `resolveLigatures`
+- [x] **11.2** Thin wrappers in `glyphs.ts` and `browser.ts` — re-export from core, each adding only its `createFont` variant (`Buffer` vs `Uint8Array`)
+- [x] **11.3** Fix `Format` re-export in `src/index.ts` — export `Format` as value, not type alias
 
 ## Phase 12 — Robustness & Edge Cases
 
