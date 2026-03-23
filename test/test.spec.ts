@@ -146,6 +146,24 @@ describe("extract", () => {
       expect(meta.length).toBe(1);
     });
 
+    it("should extract non-BMP glyph by unicode range", async () => {
+      const { meta } = await extract(ttfOriginalFont, {
+        fontName: "test-icons",
+        unicodeRanges: ["U+10FFFD"],
+        formats: ["ttf"],
+      });
+      expect(meta.length).toBe(1);
+    });
+
+    it("should extract non-BMP range spanning multiple codepoints", async () => {
+      const { meta } = await extract(ttfOriginalFont, {
+        fontName: "test-icons",
+        unicodeRanges: ["U+10FFFC-U+10FFFD"],
+        formats: ["ttf"],
+      });
+      expect(meta.length).toBeGreaterThanOrEqual(1);
+    });
+
     it("should throw on invalid unicode range format", async () => {
       await expect(
         extract(ttfOriginalFont, {
@@ -197,6 +215,17 @@ describe("extract", () => {
         engine: "subset",
       });
       expect(result.woff2).toBeInstanceOf(Buffer);
+      expect(result.meta.length).toBeGreaterThan(0);
+    });
+
+    it("should subset non-BMP codepoints", async () => {
+      const result = await extract(ttfOriginalFont, {
+        fontName: "subset-test",
+        unicodeRanges: ["U+10FFFD"],
+        formats: ["ttf"],
+        engine: "subset",
+      });
+      expect(result.ttf).toBeInstanceOf(Buffer);
       expect(result.meta.length).toBeGreaterThan(0);
     });
 
@@ -353,6 +382,18 @@ describe("extract", () => {
           }),
         ).resolves.toBeDefined();
       });
+    });
+
+    it("should include non-BMP glyphs in convert output", async () => {
+      const result = await extract(ttfOriginalFont, {
+        fontName: "converted",
+        engine: "convert",
+        formats: ["ttf"],
+      });
+      const nonBmpGlyphs = result.meta.filter((m) =>
+        m.unicode.some((u) => [...u].some((ch) => (ch.codePointAt(0) ?? 0) > 0xff_ff)),
+      );
+      expect(nonBmpGlyphs.length).toBeGreaterThan(0);
     });
 
     it("should convert from WOFF2 input", async () => {
