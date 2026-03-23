@@ -2,7 +2,7 @@ import subsetFont from "subset-font";
 import {
   type ExtractedResult,
   type Formats,
-  type MinifyOption,
+  type SubsetOption,
   type OptimizationReport,
 } from "../types";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
@@ -17,7 +17,7 @@ const FORMAT_TO_TARGET: Record<string, string> = {
   eot: "truetype",
 };
 
-function collectCodePoints(option: MinifyOption): number[] {
+function collectCodePoints(option: SubsetOption): number[] {
   const codePoints = new Set<number>();
 
   if (option.characters) {
@@ -51,7 +51,7 @@ function collectCodePoints(option: MinifyOption): number[] {
 
 export async function extractSubset(
   content: Buffer,
-  option: MinifyOption,
+  option: SubsetOption,
 ): Promise<ExtractedResult> {
   const { formats = DEFAULT_FORMATS } = option;
 

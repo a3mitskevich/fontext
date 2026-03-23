@@ -53,6 +53,7 @@
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts",
     "format:check": "oxfmt --check src/ test/ *.ts",
+    "cli:help": "node dist/cli.js --help",
     "prepare": "git config core.hooksPath .githooks && git config commit.template .gitmessage"
   },
   "devDependencies": {

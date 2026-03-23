@@ -44,6 +44,10 @@ Vitest with real font files from `assets/` (TTF and WOFF2). Supports running aga
 - **Releases:** Automated via release-please (manifest mode). Conventional commits (`feat:`, `fix:`, `perf:`) trigger release PRs. Config in `release-please-config.json` + `.release-please-manifest.json`
 - **CI:** GitHub Actions — lint + format check on Node 22, tests on Node 20/22/24
 
+## Rules
+
+- Never write placeholder or dummy code (e.g., `expect(true).toBe(true)`, empty functions with comments, no-op stubs). If an approach doesn't work, ask the user for guidance instead of substituting real logic with meaningless constructs.
+
 ## Conventions
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `ci:`, `test:`, `perf:`

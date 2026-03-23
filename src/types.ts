@@ -35,15 +35,31 @@ export interface GlyphStream extends Readable {
 
 export type Engine = "icon" | "subset" | "convert";
 
-export interface MinifyOption {
+interface BaseOption {
   fontName: string;
+  formats?: Formats[];
+  safariFix?: boolean;
+  silent?: boolean;
+}
+
+export interface IconOption extends BaseOption {
+  engine?: "icon";
   ligatures?: string[];
   raws?: string[];
   unicodeRanges?: string[];
-  characters?: string;
-  formats?: Formats[];
   withWhitespace?: boolean;
-  silent?: boolean;
-  safariFix?: boolean;
-  engine?: Engine;
 }
+
+export interface SubsetOption extends BaseOption {
+  engine: "subset";
+  characters?: string;
+  ligatures?: string[];
+  unicodeRanges?: string[];
+  withWhitespace?: boolean;
+}
+
+export interface ConvertOption extends BaseOption {
+  engine: "convert";
+}
+
+export type MinifyOption = IconOption | SubsetOption | ConvertOption;

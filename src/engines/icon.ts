@@ -10,7 +10,7 @@ import {
   type Formats,
   type GlyphMeta,
   type GlyphStream,
-  type MinifyOption,
+  type IconOption,
   type OptimizationReport,
 } from "../types";
 import {
@@ -104,7 +104,7 @@ export async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]
   });
 }
 
-export async function extractIcon(content: Buffer, option: MinifyOption): Promise<ExtractedResult> {
+export async function extractIcon(content: Buffer, option: IconOption): Promise<ExtractedResult> {
   const {
     fontName = "",
     formats = DEFAULT_FORMATS,
