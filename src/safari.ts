@@ -48,10 +48,14 @@ export function applySafariFix(ttfBuffer: Buffer): Buffer {
   const os2 = findTable(buf, "OS/2");
   const hhea = findTable(buf, "hhea");
 
-  if (!os2 || !hhea) return buf;
+  if (!os2 || !hhea) {
+    return buf;
+  }
 
   const os2Version = buf.readUInt16BE(os2.offset);
-  if (os2Version < 1) return buf;
+  if (os2Version < 1) {
+    return buf;
+  }
 
   // Patch OS/2.fsType = 0
   buf.writeInt16BE(0, os2.offset + OS2_FSTYPE);

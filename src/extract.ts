@@ -3,10 +3,7 @@ import { extractIcon } from "./engines/icon";
 import { extractSubset } from "./engines/subset";
 import { extractConvert } from "./engines/convert";
 
-export default async function extract(
-  content: Buffer,
-  option: MinifyOption,
-): Promise<ExtractedResult> {
+export default function extract(content: Buffer, option: MinifyOption): Promise<ExtractedResult> {
   const { fontName = "" } = option;
   const engine = option.engine ?? "icon";
   const formats = option.formats ?? Object.values(Format);

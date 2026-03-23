@@ -26,8 +26,12 @@ const DEFAULT_FORMATS = Object.values(Format);
 const DEFAULT_FONT_SIZE = 1000;
 
 function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffer | null {
-  if (format === "svg") return svgFont;
-  if (format === "ttf") return ttfBuffer;
+  if (format === "svg") {
+    return svgFont;
+  }
+  if (format === "ttf") {
+    return ttfBuffer;
+  }
   if (format === "woff") {
     return Buffer.from(ttf2woff(new Uint8Array(ttfBuffer)) as unknown as ArrayBuffer);
   }
@@ -40,25 +44,23 @@ function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffe
   return null;
 }
 
-async function convertByFormats(
+function convertByFormats(
   svgFont: Buffer,
   formats: Formats[],
   safariFix?: boolean,
-): Promise<ExtractedResult> {
+): ExtractedResult {
   const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
 
   if (formats.some((format) => format !== "svg")) {
     const ttf = svg2ttf(svgFont.toString());
     const ttfBuffer = safariFix ? applySafariFix(Buffer.from(ttf.buffer)) : Buffer.from(ttf.buffer);
 
-    await Promise.all(
-      formats.map(async (format) => {
-        const byFormat = getByFormat(format, svgFont, ttfBuffer);
-        if (byFormat !== null) {
-          result[format] = byFormat;
-        }
-      }),
-    );
+    formats.forEach((format) => {
+      const byFormat = getByFormat(format, svgFont, ttfBuffer);
+      if (byFormat !== null) {
+        result[format] = byFormat;
+      }
+    });
   } else {
     result.svg = svgFont;
   }
@@ -73,7 +75,7 @@ export function createGlyphStream(content: string): GlyphStream {
   return stream as GlyphStream;
 }
 
-export async function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
+export function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     const config: Partial<SVGIcons2SVGFontStreamOptions> = {
@@ -134,7 +136,7 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   }
 
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
-  const result = await convertByFormats(svgFont, formats, option.safariFix);
+  const result = convertByFormats(svgFont, formats, option.safariFix);
   result.meta = glyphsMeta;
 
   const originalSize = content.length;
