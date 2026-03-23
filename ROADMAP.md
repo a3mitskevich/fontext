@@ -64,3 +64,46 @@
 - [x] **10.2** Engine router — `extract.ts` routes to icon or subset engine based on `option.engine`
 - [x] **10.3** `characters` option — subset by character string (e.g. `"ABCabc0123"`)
 - [x] **10.4** CLI `--engine` and `--characters` flags
+
+## Phase 11 — Code Deduplication
+
+- [ ] **11.1** Extract shared pure functions into `src/core.ts` — `renderSvg`, `codePointsToName`, `toSvg`, `glyphToMeta`, `parseUnicodeRanges`, `findMetaByCodePoints`, `findMetaByLigatures`, `findLigaturesByRaws` are duplicated between `src/glyphs.ts` and `src/browser.ts` (~120 lines of copy-paste)
+- [ ] **11.2** Thin wrappers in `glyphs.ts` and `browser.ts` — re-export from core, each adding only its `createFont` variant (`Buffer` vs `Uint8Array`)
+- [ ] **11.3** Fix `Format` re-export in `src/index.ts` — `type Formats as Format` exports a type where the user may expect a value; align naming or separate type/value exports
+
+## Phase 12 — Robustness & Edge Cases
+
+- [x] **12.1** Guard empty `glyphsForString` result — check array length, throw descriptive error
+- [x] **12.2** Validate unicode code points in `parseUnicodeRanges` — reject values > `U+10FFFF`
+- [x] **12.3** Error on unsupported formats in subset engine — throw on `formats: ["svg"]` with subset
+- [x] **12.4** Remove dead code in subset engine — empty `if` block removed during safariFix refactor
+- [x] **12.5** Handle `fs.watch` errors in watch mode — added error event handler
+
+## Phase 13 — Test Coverage Expansion
+
+- [ ] **13.1** Install `@vitest/coverage-v8` — currently missing from devDependencies, `vitest --coverage` fails
+- [ ] **13.2** Add coverage threshold to CI — run coverage in GitHub Actions, fail on regression
+- [ ] **13.3** Add tests for `fontext/browser` entry point — 5 public functions with zero test coverage
+- [ ] **13.4** Remove unused `_source` parameter in test helper — `test.spec.ts:61` declares but never uses it
+- [ ] **13.5** Add integration smoke tests with real-world icon fonts (Material Icons, Font Awesome) to catch compatibility regressions
+
+## Phase 14 — CI & Publishing
+
+- [ ] **14.1** Automated npm publish — wire release-please GitHub Release event to `npm publish` (carries over from 6.1)
+- [ ] **14.2** Add coverage reporting to CI — upload lcov to Codecov or Coveralls, add badge to README
+- [ ] **14.3** Add `engines.npm` field or `.npmrc` with `engine-strict=true` to enforce Node >=20 at install time
+
+## Phase 15 — Convert & Processing
+
+- [x] **15.1** Convert engine — `engine: "convert"` for format conversion without glyph extraction
+- [x] **15.2** Silent mode — `--silent` CLI flag, `silent` option in API
+- [x] **15.3** Safari compatibility fix — `--safari-fix` patches OS/2 and hhea tables (fsType, fsSelection, metric normalization)
+- [x] **15.4** Discriminated union types — `MinifyOption` = `IconOption | SubsetOption | ConvertOption`, compile-time enforcement
+- [x] **15.5** Non-BMP Unicode test coverage — verified support for codepoints > U+FFFF across all engines
+
+## Phase 16 — CLI UX
+
+- [x] **16.1** `--dry-run` flag — full extraction without writing files to disk
+- [x] **16.2** `--init` interactive wizard — creates `.fontextrc.json` with engine-specific templates
+- [x] **16.3** Help grouped by engine compatibility — Common, Icon, Subset, Convert sections
+- [x] **16.4** CLI npm scripts — `cli:help`, `cli:init`

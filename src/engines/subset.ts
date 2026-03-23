@@ -63,7 +63,11 @@ export async function extractSubset(
   const text = String.fromCodePoint(...codePoints);
   const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
 
-  // SVG not supported by subset-font — skip silently
+  const unsupported = formats.filter((f) => f === "svg");
+  if (unsupported.length > 0 && formats.every((f) => f === "svg")) {
+    throw new Error("Subset engine does not support SVG format. Use icon engine for SVG output.");
+  }
+
   const subsetFormats = formats.filter((f) => f !== "svg" && f !== "eot");
 
   if (option.safariFix) {

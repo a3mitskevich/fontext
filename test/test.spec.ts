@@ -164,6 +164,16 @@ describe("extract", () => {
       expect(meta.length).toBeGreaterThanOrEqual(1);
     });
 
+    it("should throw on codepoint exceeding U+10FFFF", async () => {
+      await expect(
+        extract(ttfOriginalFont, {
+          fontName: "test-icons",
+          unicodeRanges: ["U+110000"],
+          formats: ["ttf"],
+        }),
+      ).rejects.toThrow("Codepoint exceeds U+10FFFF");
+    });
+
     it("should throw on invalid unicode range format", async () => {
       await expect(
         extract(ttfOriginalFont, {
@@ -283,6 +293,17 @@ describe("extract", () => {
           formats: ["invalid"],
         }),
       ).rejects.toThrow("Invalid format(s): invalid");
+    });
+
+    it("should throw on SVG-only with subset engine", async () => {
+      await expect(
+        extract(ttfOriginalFont, {
+          fontName: "test",
+          characters: "abc",
+          formats: ["svg"],
+          engine: "subset",
+        }),
+      ).rejects.toThrow("Subset engine does not support SVG format");
     });
 
     it("should throw on non-existent ligature in raws", async () => {

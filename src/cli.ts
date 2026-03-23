@@ -497,7 +497,7 @@ async function main(): Promise<void> {
         console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
       }
       let debounce: ReturnType<typeof setTimeout> | null = null;
-      fs.watch(entry.inputPath, () => {
+      const watcher = fs.watch(entry.inputPath, () => {
         if (debounce) clearTimeout(debounce);
         debounce = setTimeout(async () => {
           try {
@@ -509,6 +509,10 @@ async function main(): Promise<void> {
             printError((err as Error).message);
           }
         }, 200);
+      });
+      watcher.on("error", (err) => {
+        printError(`Watch failed: ${err.message}`);
+        process.exit(1);
       });
     }
   }
