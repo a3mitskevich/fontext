@@ -7,12 +7,13 @@ import os from "os";
 const CLI = path.resolve(__dirname, "../dist/cli.js");
 const FONT = path.resolve(__dirname, "../assets/font.ttf");
 
-function run(args: string[], cwd?: string): { stdout: string; exitCode: number } {
+function run(args: string[], cwd?: string, stdin?: string): { stdout: string; exitCode: number } {
   try {
     const stdout = execFileSync("node", [CLI, ...args], {
       encoding: "utf8",
       timeout: 10_000,
       cwd,
+      input: stdin,
     });
     return { stdout, exitCode: 0 };
   } catch (err: unknown) {
@@ -247,5 +248,22 @@ describe("CLI", () => {
     const parsed = JSON.parse(stdout);
     expect(parsed.fontName).toBe("test-icons");
     expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(false);
+  });
+
+  it("should create .fontextrc.json with --init", () => {
+    const initDir = path.join(tmpDir, "init-project");
+    fs.mkdirSync(initDir, { recursive: true });
+    // Pipe answers: input=font.woff2, fontName=my-icons, engine=1 (icon), formats=1 (woff2,ttf)
+    const { exitCode, stdout } = run(["--init"], initDir, "font.woff2\nmy-icons\n1\n1\n");
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(".fontextrc.json");
+    const configPath = path.join(initDir, ".fontextrc.json");
+    expect(fs.existsSync(configPath)).toBe(true);
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    expect(config.input).toBe("font.woff2");
+    expect(config.fontName).toBe("my-icons");
+    expect(config.engine).toBe("icon");
+    expect(config.formats).toEqual(["woff2", "ttf"]);
+    expect(config.ligatures).toBeDefined();
   });
 });
