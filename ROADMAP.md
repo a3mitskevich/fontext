@@ -36,7 +36,7 @@
 
 ## Phase 6 — Packaging & Correctness
 
-- [ ] **6.1** Add npm publish step to CI — auto-publish to npm after release-please creates a GitHub Release
+- [x] **6.1** Add npm publish step to CI — auto-publish to npm after release-please creates a GitHub Release
 - [x] **6.2** Move `@tsconfig/node20` from `dependencies` to `devDependencies` — it's only used at build time
 - [x] **6.3** Fix "Supported Input Formats" in README — remove TTC/DFONT (not supported)
 
@@ -89,9 +89,9 @@
 
 ## Phase 14 — CI & Publishing
 
-- [ ] **14.1** Automated npm publish — wire release-please GitHub Release event to `npm publish` (carries over from 6.1)
-- [ ] **14.2** Add coverage reporting to CI — upload lcov to Codecov or Coveralls, add badge to README
-- [ ] **14.3** Add `engines.npm` field or `.npmrc` with `engine-strict=true` to enforce Node >=20 at install time
+- [x] **14.1** Automated npm publish — release-please + npm publish with provenance (already existed)
+- [x] **14.2** Add coverage reporting to CI — Codecov upload on Node 22, badge in README
+- [x] **14.3** Add `.npmrc` with `engine-strict=true` to enforce Node >=20 at install time
 
 ## Phase 15 — Convert & Processing
 
