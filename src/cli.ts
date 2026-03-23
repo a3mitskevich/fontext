@@ -37,6 +37,7 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9") — subset engine only${c.reset}
       ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts, preserves kerning)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion without minification)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+  ${c.cyan}-s${c.reset}, ${c.cyan}--silent${c.reset}              Suppress all output ${c.dim}(files still written)${c.reset}
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
       ${c.cyan}--watch${c.reset}               Watch input file and re-extract on changes
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
@@ -99,6 +100,10 @@ function printError(msg: string): void {
   console.error(`${c.red}${c.bold}error${c.reset}${c.red}: ${msg}${c.reset}`);
 }
 
+function printWarning(msg: string): void {
+  console.warn(`${c.yellow}${c.bold}warning${c.reset}${c.yellow}: ${msg}${c.reset}`);
+}
+
 function createSpinner(text: string): { stop: () => void } {
   if (!useColor || !process.stderr.isTTY) {
     return { stop: () => {} };
@@ -129,6 +134,7 @@ interface ConfigEntry {
   engine?: string;
   formats?: string[];
   withWhitespace?: boolean;
+  silent?: boolean;
 }
 
 interface ConfigFile extends ConfigEntry {
@@ -162,6 +168,7 @@ async function main(): Promise<void> {
       engine: { type: "string" },
       formats: { type: "string", short: "f" },
       "with-whitespace": { type: "boolean", short: "w", default: false },
+      silent: { type: "boolean", short: "s", default: false },
       json: { type: "boolean", short: "j", default: false },
       watch: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
@@ -182,6 +189,12 @@ async function main(): Promise<void> {
 
   const config = findConfig();
   const isJson = values.json;
+  let isSilent = values.silent || (config?.silent ?? false);
+
+  if (isSilent && isJson) {
+    printWarning("--silent ignored, --json takes priority");
+    isSilent = false;
+  }
 
   function resolveEntry(
     entry: ConfigEntry,
@@ -240,6 +253,7 @@ async function main(): Promise<void> {
     }
     const withWhitespace =
       (cliOverrides && values["with-whitespace"]) || (entry.withWhitespace ?? false);
+    const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
 
     return {
       inputPath,
@@ -254,6 +268,7 @@ async function main(): Promise<void> {
         engine,
         formats,
         withWhitespace,
+        silent,
       },
     };
   }
@@ -265,7 +280,8 @@ async function main(): Promise<void> {
     extractOpts: Parameters<typeof extract>[1],
   ): Promise<void> {
     const content = fs.readFileSync(inputPath);
-    const spinner = !isJson ? createSpinner(`Extracting ${fontName}...`) : { stop: () => {} };
+    const spinner =
+      !isJson && !isSilent ? createSpinner(`Extracting ${fontName}...`) : { stop: () => {} };
     const result = await extract(content, extractOpts);
     spinner.stop();
 
@@ -303,6 +319,8 @@ async function main(): Promise<void> {
       });
     }
 
+    if (isSilent) return;
+
     console.log();
     console.log(
       `  ${c.bold}${fontName}${c.reset}  ${c.dim}${result.meta.length} glyph(s) extracted from ${formatBytes(result.report.originalSize)}${c.reset}`,
@@ -338,14 +356,18 @@ async function main(): Promise<void> {
     await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
 
     if (values.watch) {
-      console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+      if (!isSilent) {
+        console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+      }
       let debounce: ReturnType<typeof setTimeout> | null = null;
       fs.watch(entry.inputPath, () => {
         if (debounce) clearTimeout(debounce);
         debounce = setTimeout(async () => {
           try {
             await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
-            console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+            if (!isSilent) {
+              console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+            }
           } catch (err: unknown) {
             printError((err as Error).message);
           }
