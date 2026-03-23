@@ -59,7 +59,7 @@ describe("extract", () => {
     expect(glyphMeta.svg.includes(ABC_SVG_PATH)).toBeTruthy();
   });
 
-  const createTestForRawFunctionality = (type: string, _source: Buffer): void => {
+  const createTestForRawFunctionality = (type: string): void => {
     it(`should extract by raw unicode by ${type}`, async () => {
       const { meta } = await extract(woff2OriginalFont, {
         fontName: "test-icons",
@@ -79,8 +79,8 @@ describe("extract", () => {
       ["ttf", ttfOriginalFont],
       ["woff2", woff2OriginalFont],
     ] as const
-  ).forEach(([type, source]) => {
-    createTestForRawFunctionality(type, Buffer.from(source));
+  ).forEach(([type]) => {
+    createTestForRawFunctionality(type);
   });
 
   describe("output formats", () => {
