@@ -37,6 +37,7 @@ ${c.bold}Options:${c.reset}
   ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9") — subset engine only${c.reset}
       ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts, preserves kerning)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion without minification)${c.reset}
   ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+      ${c.cyan}--safari-fix${c.reset}            Fix OS/2 and hhea tables for Safari compatibility
   ${c.cyan}-s${c.reset}, ${c.cyan}--silent${c.reset}              Suppress all output ${c.dim}(files still written)${c.reset}
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
       ${c.cyan}--watch${c.reset}               Watch input file and re-extract on changes
@@ -134,6 +135,7 @@ interface ConfigEntry {
   engine?: string;
   formats?: string[];
   withWhitespace?: boolean;
+  safariFix?: boolean;
   silent?: boolean;
 }
 
@@ -168,6 +170,7 @@ async function main(): Promise<void> {
       engine: { type: "string" },
       formats: { type: "string", short: "f" },
       "with-whitespace": { type: "boolean", short: "w", default: false },
+      "safari-fix": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
       json: { type: "boolean", short: "j", default: false },
       watch: { type: "boolean", default: false },
@@ -253,6 +256,7 @@ async function main(): Promise<void> {
     }
     const withWhitespace =
       (cliOverrides && values["with-whitespace"]) || (entry.withWhitespace ?? false);
+    const safariFix = (cliOverrides && values["safari-fix"]) || (entry.safariFix ?? false);
     const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
 
     return {
@@ -268,6 +272,7 @@ async function main(): Promise<void> {
         engine,
         formats,
         withWhitespace,
+        safariFix,
         silent,
       },
     };

@@ -44,5 +44,6 @@ export interface MinifyOption {
   formats?: Formats[];
   withWhitespace?: boolean;
   silent?: boolean;
+  safariFix?: boolean;
   engine?: Engine;
 }
