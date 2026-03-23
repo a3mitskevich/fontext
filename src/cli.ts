@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import readline from "readline";
 import { parseArgs } from "node:util";
 import extract from "./extract";
 import { Format, type Formats } from "./types";
@@ -26,24 +27,35 @@ ${c.bold}fontext${c.reset} — extract and subset fonts
 ${c.bold}Usage:${c.reset}
   fontext ${c.dim}[options]${c.reset}
 
-${c.bold}Options:${c.reset}
+${c.bold}Common Options:${c.reset}
   ${c.cyan}-i${c.reset}, ${c.cyan}--input${c.reset} <path>        Path to the font file ${c.dim}(required)${c.reset}
   ${c.cyan}-o${c.reset}, ${c.cyan}--output${c.reset} <dir>        Output directory ${c.dim}(default: .)${c.reset}
   ${c.cyan}-n${c.reset}, ${c.cyan}--font-name${c.reset} <name>    Name for the output font ${c.dim}(required)${c.reset}
-  ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names ${c.dim}(icon, subset)${c.reset}
-  ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters ${c.dim}(icon only)${c.reset}
   ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
-  ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges ${c.dim}(icon, subset)${c.reset}
-  ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(subset only)${c.reset}
-      ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default, for icon fonts)${c.reset}, ${c.dim}subset${c.reset} ${c.dim}(for text fonts)${c.reset}, or ${c.dim}convert${c.reset} ${c.dim}(format conversion only)${c.reset}
-  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph ${c.dim}(icon, subset)${c.reset}
+      ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default)${c.reset} | ${c.dim}subset${c.reset} | ${c.dim}convert${c.reset}
       ${c.cyan}--safari-fix${c.reset}            Fix OS/2 and hhea tables for Safari compatibility
       ${c.cyan}--dry-run${c.reset}              Run without writing files ${c.dim}(preview output only)${c.reset}
   ${c.cyan}-s${c.reset}, ${c.cyan}--silent${c.reset}              Suppress all output ${c.dim}(files still written)${c.reset}
   ${c.cyan}-j${c.reset}, ${c.cyan}--json${c.reset}                Output result as JSON ${c.dim}(for CI/scripts)${c.reset}
       ${c.cyan}--watch${c.reset}               Watch input file and re-extract on changes
+      ${c.cyan}--init${c.reset}                Create .fontextrc.json via interactive wizard
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
+
+${c.bold}Icon Engine:${c.reset} ${c.dim}--engine icon (default, for icon fonts)${c.reset}
+  ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
+  ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters
+  ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges
+  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+
+${c.bold}Subset Engine:${c.reset} ${c.dim}--engine subset (for text fonts, preserves kerning)${c.reset}
+  ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9")${c.reset}
+  ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Ligature component characters
+  ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges
+  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
+
+${c.bold}Convert Engine:${c.reset} ${c.dim}--engine convert (format conversion without minification)${c.reset}
+  ${c.dim}No glyph selection needed — converts the full font.${c.reset}
 
 ${c.bold}Config file:${c.reset}
   Create ${c.cyan}.fontextrc.json${c.reset} in your project root with default options.
@@ -159,6 +171,107 @@ function findConfig(): ConfigFile | null {
   return null;
 }
 
+class Prompter {
+  private lines: string[] = [];
+  private lineResolvers: ((line: string) => void)[] = [];
+  private rl: readline.Interface;
+
+  constructor() {
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: false,
+    });
+    this.rl.on("line", (line) => {
+      const resolver = this.lineResolvers.shift();
+      if (resolver) {
+        resolver(line);
+      } else {
+        this.lines.push(line);
+      }
+    });
+  }
+
+  private nextLine(): Promise<string> {
+    const buffered = this.lines.shift();
+    if (buffered !== undefined) return Promise.resolve(buffered);
+    return new Promise((resolve) => {
+      this.lineResolvers.push(resolve);
+    });
+  }
+
+  async ask(question: string, defaultValue?: string): Promise<string> {
+    const suffix = defaultValue ? ` ${c.dim}(${defaultValue})${c.reset}` : "";
+    process.stdout.write(`  ${c.cyan}?${c.reset} ${question}${suffix}: `);
+    const answer = await this.nextLine();
+    return answer.trim() || defaultValue || "";
+  }
+
+  close(): void {
+    this.rl.close();
+  }
+}
+
+async function runInit(): Promise<void> {
+  const configPath = path.resolve(".fontextrc.json");
+  const prompter = new Prompter();
+
+  try {
+    if (fs.existsSync(configPath)) {
+      const overwrite = await prompter.ask(".fontextrc.json already exists. Overwrite? (y/N)", "N");
+      if (overwrite.toLowerCase() !== "y") {
+        console.log(`  ${c.dim}Aborted.${c.reset}`);
+        return;
+      }
+    }
+
+    console.log();
+    console.log(`  ${c.bold}fontext init${c.reset}`);
+    console.log();
+
+    const input = await prompter.ask("Path to font file", "font.woff2");
+    const defaultName = path.basename(input, path.extname(input));
+    const fontName = await prompter.ask("Output font name", defaultName);
+
+    const engineChoice = await prompter.ask(
+      `Engine — 1) icon ${c.dim}(default)${c.reset}  2) subset  3) convert`,
+      "1",
+    );
+    const engineMap: Record<string, string> = { "1": "icon", "2": "subset", "3": "convert" };
+    const engine = engineMap[engineChoice] ?? "icon";
+
+    const formatsChoice = await prompter.ask(
+      `Formats — 1) woff2,ttf ${c.dim}(default)${c.reset}  2) all  3) custom`,
+      "1",
+    );
+    let formats: string[];
+    if (formatsChoice === "2") {
+      formats = [...VALID_FORMATS];
+    } else if (formatsChoice === "3") {
+      const custom = await prompter.ask(`Formats (${VALID_FORMATS.join(", ")})`, "woff2,ttf");
+      formats = custom.split(",").map((f) => f.trim());
+    } else {
+      formats = ["woff2", "ttf"];
+    }
+
+    const config: Record<string, unknown> = { input, fontName, engine, formats };
+
+    if (engine === "icon") {
+      config.ligatures = ["home", "search"];
+    } else if (engine === "subset") {
+      config.characters = "ABCabc0123";
+    }
+
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+    console.log();
+    console.log(`  ${c.green}✓${c.reset} Created ${c.cyan}.fontextrc.json${c.reset}`);
+    console.log();
+  } finally {
+    prompter.close();
+  }
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
@@ -177,6 +290,7 @@ async function main(): Promise<void> {
       silent: { type: "boolean", short: "s", default: false },
       json: { type: "boolean", short: "j", default: false },
       watch: { type: "boolean", default: false },
+      init: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
@@ -190,6 +304,11 @@ async function main(): Promise<void> {
 
   if (values.version) {
     printVersion();
+    process.exit(0);
+  }
+
+  if (values.init) {
+    await runInit();
     process.exit(0);
   }
 

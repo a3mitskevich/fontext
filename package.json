@@ -54,6 +54,7 @@
     "format": "oxfmt --write src/ test/ *.ts",
     "format:check": "oxfmt --check src/ test/ *.ts",
     "cli:help": "node dist/cli.js --help",
+    "cli:init": "node dist/cli.js --init",
     "prepare": "git config core.hooksPath .githooks && git config commit.template .gitmessage"
   },
   "devDependencies": {
