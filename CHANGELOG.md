@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.11.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.10.0...fontext-v1.11.0) (2026-03-23)
+
+
+### Features
+
+* add convert engine for format conversion without minification ([45c3684](https://github.com/a3mitskevich/fontext/commit/45c3684d82e156960b7970c734724cbbc8a3aae9))
+* add safariFix option for cross-platform font compatibility ([f654690](https://github.com/a3mitskevich/fontext/commit/f654690b82b8add8ea0d3be1873d67ba0bca8faf))
+* add silent mode for CLI and API ([cbccfe1](https://github.com/a3mitskevich/fontext/commit/cbccfe165bf6a374e281e55e947f6aa8ceb7f12e))
+* **cli:** add --dry-run flag to preview output without writing files ([cb08706](https://github.com/a3mitskevich/fontext/commit/cb08706446d6e5f049769bad3fe76644f2a496ad))
+* **cli:** add --init wizard and regroup help by engine compatibility ([e9a3489](https://github.com/a3mitskevich/fontext/commit/e9a3489c89e18d58c61015f10dc0a7ebbfbf0daf))
+
+
+### Bug Fixes
+
+* improve robustness and update ROADMAP (Phase 12) ([78151c8](https://github.com/a3mitskevich/fontext/commit/78151c8bd7604118a3e7663325028b8a9cf61d71))
+
 ## [1.10.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.9.1...fontext-v1.10.0) (2026-03-22)
 
 
