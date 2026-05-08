@@ -77,7 +77,7 @@
     "fontkit": "^2.0.4",
     "subset-font": "^2.4.0",
     "svg2ttf": "6.0.3",
-    "svgicons2svgfont": "^15.0.1",
+    "svgicons2svgfont": "^16.0.0",
     "ttf2eot": "3.1.0",
     "ttf2woff": "3.0.0",
     "ttf2woff2": "^8.0.1"
