@@ -44,7 +44,7 @@ describe("CLI", () => {
   it("should print version with --version", () => {
     const { stdout, exitCode } = run(["--version"]);
     expect(exitCode).toBe(0);
-    expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/u);
   });
 
   it("should fail without --input", () => {

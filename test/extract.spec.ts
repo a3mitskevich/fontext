@@ -13,8 +13,8 @@ describe("extract", () => {
     });
     expect(ttf).toBeInstanceOf(Buffer);
     expect(woff2).toBeInstanceOf(Buffer);
-    expect(ttf.length < ttfOriginalFont.length).toBeTruthy();
-    expect(woff2.length < woff2OriginalFont.length).toBeTruthy();
+    expect(ttf.length).toBeLessThan(ttfOriginalFont.length);
+    expect(woff2.length).toBeLessThan(woff2OriginalFont.length);
   });
 
   it("should transform woff2", async () => {
@@ -25,8 +25,8 @@ describe("extract", () => {
     });
     expect(ttf).toBeInstanceOf(Buffer);
     expect(woff2).toBeInstanceOf(Buffer);
-    expect(ttf.length < ttfOriginalFont.length).toBeTruthy();
-    expect(woff2.length < woff2OriginalFont.length).toBeTruthy();
+    expect(ttf.length).toBeLessThan(ttfOriginalFont.length);
+    expect(woff2.length).toBeLessThan(woff2OriginalFont.length);
   });
 
   it("should return meta info", async () => {
@@ -39,7 +39,7 @@ describe("extract", () => {
     const [glyphMeta] = meta;
     expect(glyphMeta.name).toEqual("abc");
     expect(glyphMeta.unicode).toEqual(["\uEB94"]);
-    expect(glyphMeta.svg.includes(ABC_SVG_PATH)).toBeTruthy();
+    expect(glyphMeta.svg).toContain(ABC_SVG_PATH);
   });
 
   (
@@ -58,7 +58,7 @@ describe("extract", () => {
       const [glyphMeta] = meta;
       expect(glyphMeta.name).toEqual("abc");
       expect(glyphMeta.unicode).toEqual(["\uEB94"]);
-      expect(glyphMeta.svg.includes(ABC_SVG_PATH)).toBeTruthy();
+      expect(glyphMeta.svg).toContain(ABC_SVG_PATH);
     });
   });
 });
