@@ -3,7 +3,7 @@ import { findLigaturesByRaws } from "../src/browser";
 import { extract, multiLookupFont } from "./setup";
 
 // Lookup 1 holds abc and def in separate subtables, lookup 2 holds ghi, lookup 3 wraps jkl
-// In an extension lookup (type 7)
+// In an extension lookup (type 7), see scripts/make-ligature-fixture.mjs
 const cases = [
   ["first subtable of the first lookup", "\uE001", "abc"],
   ["second subtable of the first lookup", "\uE002", "def"],
@@ -19,6 +19,11 @@ describe("ligatures split across GSUB subtables and lookups", () => {
       formats: ["svg"],
     });
     expect(meta.map((glyph) => glyph.name)).toStrictEqual([ligature]);
+  });
+
+  it("should skip ligatures of features that are off by default", () => {
+    // A dlig-only lookup maps "kja" to the same glyph as "abc"
+    expect(findLigaturesByRaws(new Uint8Array(multiLookupFont), [""])).toStrictEqual(["abc"]);
   });
 
   it("should resolve raws from every lookup in the browser entry", () => {
