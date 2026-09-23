@@ -34,6 +34,10 @@ declare module "fontkit" {
     GSUB: {
       lookupList: Arrayable<Lookup>;
     };
+    /** LONGDATETIME values are exposed as [high, low] signed 32-bit words */
+    head: {
+      modified: [number, number];
+    };
   }
 }
 
