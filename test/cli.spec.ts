@@ -4,8 +4,8 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const CLI = path.resolve(__dirname, "../dist/cli.js");
-const FONT = path.resolve(__dirname, "../assets/font.ttf");
+const CLI = path.resolve(import.meta.dirname, "../dist/cli.js");
+const FONT = path.resolve(import.meta.dirname, "../assets/font.ttf");
 
 function run(args: string[], cwd?: string, stdin?: string): { stdout: string; exitCode: number } {
   try {

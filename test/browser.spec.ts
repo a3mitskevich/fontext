@@ -9,7 +9,7 @@ import {
   findMetaByLigatures,
 } from "../src/browser";
 
-const fontPath = path.resolve(__dirname, "../assets/font.ttf");
+const fontPath = path.resolve(import.meta.dirname, "../assets/font.ttf");
 const fontBuffer = fs.readFileSync(fontPath);
 const fontUint8 = new Uint8Array(fontBuffer);
 
