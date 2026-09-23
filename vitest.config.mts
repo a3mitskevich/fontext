@@ -15,10 +15,5 @@ export default defineConfig({
         lines: 85,
       },
     },
-    server: {
-      deps: {
-        inline: ["ttf2woff2"],
-      },
-    },
   },
 });
