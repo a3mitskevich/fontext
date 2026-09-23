@@ -13,8 +13,8 @@ describe("extract", () => {
     });
     expect(ttf).toBeInstanceOf(Buffer);
     expect(woff2).toBeInstanceOf(Buffer);
-    expect(ttf.length).toBeLessThan(ttfOriginalFont.length);
-    expect(woff2.length).toBeLessThan(woff2OriginalFont.length);
+    expect(ttf?.length).toBeLessThan(ttfOriginalFont.length);
+    expect(woff2?.length).toBeLessThan(woff2OriginalFont.length);
   });
 
   it("should transform woff2", async () => {
@@ -25,8 +25,8 @@ describe("extract", () => {
     });
     expect(ttf).toBeInstanceOf(Buffer);
     expect(woff2).toBeInstanceOf(Buffer);
-    expect(ttf.length).toBeLessThan(ttfOriginalFont.length);
-    expect(woff2.length).toBeLessThan(woff2OriginalFont.length);
+    expect(ttf?.length).toBeLessThan(ttfOriginalFont.length);
+    expect(woff2?.length).toBeLessThan(woff2OriginalFont.length);
   });
 
   it("should return meta info", async () => {
