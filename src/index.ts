@@ -1,5 +1,6 @@
-import extract from "./extract";
+import type extract from "./extract";
 
+export { default, default as extract } from "./extract";
 export {
   Format,
   type Formats,
@@ -12,5 +13,3 @@ export {
   type Engine,
 } from "./types";
 export type Extract = typeof extract;
-
-export { extract as default, extract };

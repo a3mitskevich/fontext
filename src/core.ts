@@ -30,14 +30,14 @@ function glyphToMeta(font: Font, glyph: Glyph): GlyphMeta {
 export function parseUnicodeRanges(ranges: string[]): number[] {
   const codePoints: number[] = [];
   for (const range of ranges) {
-    const match = range.match(/^U\+([0-9A-Fa-f]+)(?:-U?\+?([0-9A-Fa-f]+))?$/);
-    if (!match) {
+    const match = range.match(/^U\+(?<start>[0-9A-Fa-f]+)(?:-U?\+?(?<end>[0-9A-Fa-f]+))?$/u);
+    if (!match?.groups) {
       throw new Error(
         `Invalid unicode range: "${range}". Expected format: U+XXXX or U+XXXX-U+XXXX`,
       );
     }
-    const start = parseInt(match[1], 16);
-    const end = match[2] ? parseInt(match[2], 16) : start;
+    const start = parseInt(match.groups.start, 16);
+    const end = match.groups.end ? parseInt(match.groups.end, 16) : start;
     if (start > 0x10_ff_ff || end > 0x10_ff_ff) {
       throw new Error(`Invalid unicode range: "${range}". Codepoint exceeds U+10FFFF`);
     }
