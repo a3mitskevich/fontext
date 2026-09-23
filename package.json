@@ -22,7 +22,7 @@
   "homepage": "https://github.com/a3mitskevich/fontext",
   "author": "Aleksandr Mitskevich johndeathsmell@gmail.com",
   "license": "MIT",
-  "type": "commonjs",
+  "type": "module",
   "sideEffects": false,
   "bin": {
     "fontext": "dist/cli.js"
@@ -30,23 +30,14 @@
   "files": [
     "dist/*"
   ],
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./browser": {
-      "types": "./dist/browser.d.mts",
-      "default": "./dist/browser.mjs"
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
     },
     "./package.json": "./package.json"
   },
@@ -60,8 +51,8 @@
     "lint": "oxlint src/ test/ scripts/ --tsconfig tsconfig.json --deny-warnings",
     "lint:fix": "oxlint src/ test/ scripts/ --tsconfig tsconfig.json --fix",
     "typecheck": "tsc -p tsconfig.lib.json --noEmit && tsc -p tsconfig.test.json --noEmit && tsc -p tsconfig.config.json --noEmit",
-    "format": "oxfmt --write src/ test/ scripts/ *.ts *.mts",
-    "format:check": "oxfmt --check src/ test/ scripts/ *.ts *.mts",
+    "format": "oxfmt --write src/ test/ scripts/ *.ts",
+    "format:check": "oxfmt --check src/ test/ scripts/ *.ts",
     "cli:help": "node dist/cli.js --help",
     "cli:init": "node dist/cli.js --init",
     "prepare": "git config core.hooksPath .githooks && git config commit.template .gitmessage"
@@ -94,6 +85,6 @@
     "wawoff2": "^2.0.1"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   }
 }

@@ -85,7 +85,7 @@ ${c.bold}Examples:${c.reset}
 }
 
 function printVersion(): void {
-  const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../package.json"), "utf8"));
+  const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   console.log(pkg.version);
 }
 
