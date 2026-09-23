@@ -51,8 +51,8 @@
     "build": "tsup",
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json --deny-warnings",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
-    "format": "oxfmt --write src/ test/ *.ts",
-    "format:check": "oxfmt --check src/ test/ *.ts",
+    "format": "oxfmt --write src/ test/ *.ts *.mts",
+    "format:check": "oxfmt --check src/ test/ *.ts *.mts",
     "cli:help": "node dist/cli.js --help",
     "cli:init": "node dist/cli.js --init",
     "prepare": "git config core.hooksPath .githooks && git config commit.template .gitmessage"
