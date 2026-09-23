@@ -32,6 +32,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run build
+      - run: npm run lint:pkg
       - run: npm run test:dist
       - name: Coverage
         if: matrix.node-version == '22.x'
