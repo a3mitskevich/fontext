@@ -22,6 +22,8 @@
   "homepage": "https://github.com/a3mitskevich/fontext",
   "author": "Aleksandr Mitskevich johndeathsmell@gmail.com",
   "license": "MIT",
+  "type": "commonjs",
+  "sideEffects": false,
   "bin": {
     "fontext": "dist/cli.js"
   },
@@ -33,12 +35,17 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "default": "./dist/index.mjs"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     },
     "./browser": {
-      "types": "./dist/browser.d.ts",
+      "types": "./dist/browser.d.mts",
       "default": "./dist/browser.mjs"
     },
     "./package.json": "./package.json"
@@ -49,6 +56,7 @@
     "test:local": "TEST_TARGET=local npm run test",
     "test:dist": "TEST_TARGET=dist npm run test",
     "build": "tsdown",
+    "lint:pkg": "publint --strict && attw --pack . --profile node16 --ignore-rules cjs-resolves-to-esm",
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json --deny-warnings",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts *.mts",
