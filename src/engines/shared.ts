@@ -1,6 +1,7 @@
-import { convert } from "fontverter";
 import subsetFont from "subset-font";
 import ttf2eot from "ttf2eot";
+import ttf2woff from "ttf2woff";
+import { compress as ttf2woff2 } from "wawoff2";
 import type { Formats, OptimizationReport } from "../types";
 import { applySafariFix } from "../safari";
 
@@ -8,22 +9,18 @@ type BinaryFormat = Exclude<Formats, "svg">;
 
 export type FontBuffers = Partial<Record<Formats, Buffer>>;
 
-function encode(ttf: Buffer, format: BinaryFormat): Promise<Buffer> {
-  if (format === "ttf") {
-    return Promise.resolve(ttf);
-  }
-  if (format === "eot") {
-    const eot = ttf2eot(new Uint8Array(ttf)) as unknown as ArrayBuffer;
-    return Promise.resolve(Buffer.from(eot));
-  }
-  return convert(ttf, format, "truetype");
-}
+const ENCODERS: Record<BinaryFormat, (ttf: Buffer) => Buffer | Promise<Buffer>> = {
+  ttf: (ttf) => ttf,
+  woff: (ttf) => Buffer.from(ttf2woff(new Uint8Array(ttf))),
+  woff2: async (ttf) => Buffer.from(await ttf2woff2(ttf)),
+  eot: (ttf) => Buffer.from(ttf2eot(new Uint8Array(ttf))),
+};
 
 /** Encodes a TrueType font into every requested binary format; `svg` is skipped. */
 export async function encodeFromTtf(ttf: Buffer, formats: Formats[]): Promise<FontBuffers> {
   const binaryFormats = formats.filter((format): format is BinaryFormat => format !== "svg");
   const encoded = await Promise.all(
-    binaryFormats.map(async (format) => [format, await encode(ttf, format)] as const),
+    binaryFormats.map(async (format) => [format, await ENCODERS[format](ttf)] as const),
   );
   return Object.fromEntries(encoded);
 }
