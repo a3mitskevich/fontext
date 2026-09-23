@@ -11,5 +11,6 @@ export {
   type ExtractedResult,
   type OptimizationReport,
   type Engine,
+  type FontInput,
 } from "./types";
 export type Extract = typeof extract;
