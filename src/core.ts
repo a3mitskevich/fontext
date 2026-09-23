@@ -147,15 +147,25 @@ export function resolveLigatures(font: Font, raws: string[]): string[] {
       throw new Error(`Font does not contain a glyph for "${raw}"`);
     }
     const glyph = glyphResult[0];
-    const ligaturesMetas = map.get(glyph.id);
-    if (!ligaturesMetas) {
+    const texts = (map.get(glyph.id) ?? []).map(({ ligature, leading }) =>
+      [leading, ...ligature.components.map((code) => font.stringsForGlyph(code)?.[0] ?? "")].join(
+        "",
+      ),
+    );
+    const forming = [...new Set(texts)].filter((text) => formsGlyph(font, text, glyph.id));
+    if (forming.length === 0) {
       throw new Error(`Font does not contain a ligature for "${raw}"`);
     }
-    return ligaturesMetas.map((meta) => {
-      const ligatureBody = meta.ligature.components
-        .map((code) => font.stringsForGlyph(code)?.[0] ?? "")
-        .join("");
-      return meta.leading + ligatureBody;
-    });
+    return forming;
   });
+}
+
+/**
+ * Whether the default layout turns `text` into `glyphId`. Lookups of features that are off by
+ * default (`dlig`, `hlig`) or reached only from contextual lookups don't form the ligature, and
+ * the icon engine would ship their component glyphs instead.
+ */
+function formsGlyph(font: Font, text: string, glyphId: number): boolean {
+  const { glyphs } = font.layout(text);
+  return glyphs.length === 1 && glyphs[0].id === glyphId;
 }
