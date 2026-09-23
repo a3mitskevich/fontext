@@ -1,8 +1,11 @@
-import { type Font, type Glyph, type Ligature, type Lookup } from "fontkit";
+import { type Font, type Glyph, type Ligature, type Lookup, type SubTable } from "fontkit";
 import type { GlyphMeta } from "./types";
 
 const DEFAULT_FONT_SIZE = 1000;
 const WHITESPACE = " ";
+// GSUB lookup types: https://learn.microsoft.com/typography/opentype/spec/gsub
+const LIGATURE_LOOKUP = 4;
+const EXTENSION_LOOKUP = 7;
 
 function renderSvg(svgPath: string, width: number, height: number): string {
   return `<svg viewBox="0 -${height} ${width} ${height}" xmlns="http://www.w3.org/2000/svg">\n  <path d="${svgPath}" />\n</svg>`;
@@ -80,46 +83,62 @@ export function findMetaByLigatures(
   return glyphs.map((glyph) => glyphToMeta(font, glyph));
 }
 
-export function resolveLigatures(font: Font, raws: string[]): string[] {
-  if (raws.length === 0) {
+interface LigatureMeta {
+  ligature: Ligature;
+  leading: string;
+}
+
+/** Ligature subtables of every GSUB lookup, including ones wrapped in extension lookups. */
+function ligatureSubTables(font: Font): SubTable[] {
+  const lookups = font.GSUB?.lookupList.toArray() ?? [];
+  return lookups.flatMap((lookup: Lookup) => {
+    if (lookup.lookupType === LIGATURE_LOOKUP) {
+      return lookup.subTables;
+    }
+    if (lookup.lookupType === EXTENSION_LOOKUP) {
+      return lookup.subTables.flatMap((subTable) =>
+        subTable.lookupType === LIGATURE_LOOKUP && subTable.extension ? [subTable.extension] : [],
+      );
+    }
     return [];
-  }
+  });
+}
 
-  const lookupList = font.GSUB?.lookupList.toArray().find((list: Lookup) => list.lookupType === 4);
-  if (!lookupList) {
-    throw new Error("Font does not contain a GSUB ligature lookup table");
-  }
-
-  const {
-    coverage: { glyphs, rangeRecords },
-    ligatureSets,
-  } = lookupList.subTables[0];
-
-  const leadingChars: string[] = rangeRecords
+function leadingCharsOf(font: Font, { coverage: { glyphs, rangeRecords } }: SubTable): string[] {
+  return rangeRecords
     ? rangeRecords.flatMap(({ start, end }) =>
         Array.from({ length: end - start + 1 }, (_, position) => position + start).map(
           (item) => font.stringsForGlyph(item)?.[0] ?? "",
         ),
       )
-    : glyphs.map((id) => {
-        const result = font.stringsForGlyph(id);
-        return result.join("");
-      });
+    : glyphs.map((id) => font.stringsForGlyph(id).join(""));
+}
 
-  const map = new Map<number, { ligature: Ligature; leading: string }[]>();
+function ligatureEntries(font: Font, subTable: SubTable): [number, LigatureMeta][] {
+  const leadingChars = leadingCharsOf(font, subTable);
+  return subTable.ligatureSets
+    .toArray()
+    .flatMap((ligatures, index) =>
+      ligatures.map((ligature): [number, LigatureMeta] => [
+        ligature.glyph,
+        { ligature, leading: leadingChars[index] },
+      ]),
+    );
+}
 
-  const ligaturesLists = ligatureSets.toArray();
+export function resolveLigatures(font: Font, raws: string[]): string[] {
+  if (raws.length === 0) {
+    return [];
+  }
 
-  for (let index = 0; index < ligaturesLists.length; index++) {
-    const currentList = ligaturesLists[index];
-    const leading = leadingChars[index];
-    for (const ligature of currentList) {
-      const id = ligature.glyph;
-      if (!map.has(id)) {
-        map.set(id, []);
-      }
-      map.get(id)?.push({ ligature, leading });
-    }
+  const subTables = ligatureSubTables(font);
+  if (subTables.length === 0) {
+    throw new Error("Font does not contain a GSUB ligature lookup table");
+  }
+
+  const map = new Map<number, LigatureMeta[]>();
+  for (const [id, meta] of subTables.flatMap((subTable) => ligatureEntries(font, subTable))) {
+    map.set(id, [...(map.get(id) ?? []), meta]);
   }
 
   return raws.flatMap((raw) => {
