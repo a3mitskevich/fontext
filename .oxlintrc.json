@@ -30,19 +30,19 @@
     "unicorn/escape-case": "off",
     "unicorn/prefer-top-level-await": "off",
     "unicorn/catch-error-name": "off",
+    "one-var": "off",
     "promise/avoid-new": "off",
     "promise/prefer-await-to-then": "off",
     "promise/prefer-await-to-callbacks": "off",
-    "jest/max-expects": "off",
-    "jest/prefer-strict-equal": "off",
-    "jest/prefer-to-be": "off",
-    "jest/prefer-to-have-length": "off",
-    "jest/require-top-level-describe": "off",
-    "jest/no-hooks": "off",
-    "jest/prefer-expect-assertions": "off",
-    "jest/prefer-importing-jest-globals": "off",
-    "jest/prefer-lowercase-title": "off",
-    "jest/require-hook": "off",
+    "vitest/max-expects": "off",
+    "vitest/prefer-strict-equal": "off",
+    "vitest/prefer-to-be": "off",
+    "vitest/prefer-to-have-length": "off",
+    "vitest/require-top-level-describe": "off",
+    "vitest/no-hooks": "off",
+    "vitest/prefer-expect-assertions": "off",
+    "vitest/prefer-lowercase-title": "off",
+    "vitest/require-hook": "off",
     "vitest/consistent-test-filename": "off",
     "vitest/no-importing-vitest-globals": "off",
     "vitest/prefer-to-be-truthy": "off",
@@ -77,5 +77,13 @@
     "prefer-spread": "warn",
     "no-empty": "error",
     "eqeqeq": "error"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/cli.ts", "test/**"],
+      "rules": {
+        "node/no-sync": "off"
+      }
+    }
+  ]
 }
