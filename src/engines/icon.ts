@@ -1,3 +1,4 @@
+import type { Font } from "fontkit";
 import { Readable } from "stream";
 import svg2ttf from "svg2ttf";
 import { SVGIcons2SVGFontStream, type SVGIcons2SVGFontStreamOptions } from "svgicons2svgfont";
@@ -21,18 +22,31 @@ import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
 
 const DEFAULT_FORMATS = Object.values(Format);
 const DEFAULT_FONT_SIZE = 1000;
+// Seconds between the OpenType epoch (1904-01-01) and the Unix epoch
+const OPENTYPE_EPOCH_OFFSET = 2_082_844_800;
+const UINT32_RANGE = 2 ** 32;
+
+/**
+ * Unix time of the source font's head.modified. Passing it to svg2ttf instead of the
+ * current time keeps the output byte-identical for identical input, so content-hashed
+ * asset names stay stable between builds.
+ */
+function sourceTimestamp(font: Font): number {
+  const [high, low] = font.head.modified;
+  return Math.max(high * UINT32_RANGE + (low >>> 0) - OPENTYPE_EPOCH_OFFSET, 0);
+}
 
 async function convertByFormats(
   svgFont: Buffer,
   formats: Formats[],
-  safariFix?: boolean,
+  { safariFix = false, timestamp }: { safariFix?: boolean; timestamp: number },
 ): Promise<FontBuffers> {
   const svg = formats.includes("svg") ? { svg: svgFont } : {};
   if (formats.every((format) => format === "svg")) {
     return svg;
   }
 
-  const ttf = Buffer.from(svg2ttf(svgFont.toString()).buffer);
+  const ttf = Buffer.from(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer);
   const binaryFonts = await encodeFromTtf(safariFix ? applySafariFix(ttf) : ttf, formats);
   return { ...svg, ...binaryFonts };
 }
@@ -107,7 +121,10 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   }
 
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
-  const fonts = await convertByFormats(svgFont, formats, option.safariFix);
+  const fonts = await convertByFormats(svgFont, formats, {
+    safariFix: option.safariFix,
+    timestamp: sourceTimestamp(font),
+  });
 
   return {
     ...fonts,
