@@ -1,7 +1,12 @@
 import { create, type Font } from "fontkit";
 import { resolveLigatures } from "./core";
 
-export { parseUnicodeRanges, findMetaByCodePoints, findMetaByLigatures } from "./core";
+export {
+  codePointsToString,
+  parseUnicodeRanges,
+  findMetaByCodePoints,
+  findMetaByLigatures,
+} from "./core";
 
 export function createFont(content: Buffer): Font {
   const font = create(content);

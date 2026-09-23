@@ -38,6 +38,17 @@ describe("subset engine", () => {
     expect(result.meta.length).toBeGreaterThan(0);
   });
 
+  it("should subset ranges larger than the call stack argument limit", async () => {
+    const result = await extract(ttfOriginalFont, {
+      fontName: "subset-test",
+      unicodeRanges: ["U+0000-U+2FFFF"],
+      formats: ["ttf"],
+      engine: "subset",
+    });
+    expect(result.ttf).toBeInstanceOf(Buffer);
+    expect(result.meta.length).toBeGreaterThan(0);
+  });
+
   it("should preserve more glyphs than icon engine for same input", async () => {
     const subsetResult = await extract(ttfOriginalFont, {
       fontName: "test",

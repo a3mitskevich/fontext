@@ -5,7 +5,7 @@ import {
   Format,
   type OptimizationReport,
 } from "../types";
-import { createFont, findMetaByCodePoints } from "../glyphs";
+import { codePointsToString, createFont, findMetaByCodePoints } from "../glyphs";
 import { convertToSvgFont } from "./icon";
 import { applySafariFix } from "../safari";
 
@@ -25,7 +25,7 @@ export async function extractConvert(
 
   const font = createFont(content);
   const allCodePoints = font.characterSet;
-  const text = String.fromCodePoint(...allCodePoints);
+  const text = codePointsToString(allCodePoints);
 
   const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
 
