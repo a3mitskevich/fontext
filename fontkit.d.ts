@@ -20,6 +20,9 @@ declare module "fontkit" {
   export interface SubTable {
     coverage: { glyphs: number[]; rangeRecords: RangeRecord[] };
     ligatureSets: Arrayable<Ligature[]>;
+    /** Set on extension (lookupType 7) subtables: the wrapped lookup type and subtable */
+    lookupType?: number;
+    extension?: SubTable;
   }
 
   export interface Lookup {
