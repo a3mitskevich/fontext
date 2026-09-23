@@ -1,9 +1,20 @@
-import { type ExtractedResult, Format, type MinifyOption } from "./types";
+import { type ExtractedResult, type FontInput, Format, type MinifyOption } from "./types";
 import { extractIcon } from "./engines/icon";
 import { extractSubset } from "./engines/subset";
 import { extractConvert } from "./engines/convert";
 
-export default function extract(content: Buffer, option: MinifyOption): Promise<ExtractedResult> {
+function toBuffer(input: FontInput): Buffer {
+  if (Buffer.isBuffer(input)) {
+    return input;
+  }
+  if (input instanceof Uint8Array) {
+    return Buffer.from(input.buffer, input.byteOffset, input.byteLength);
+  }
+  return Buffer.from(input);
+}
+
+export default function extract(input: FontInput, option: MinifyOption): Promise<ExtractedResult> {
+  const content = toBuffer(input);
   const { fontName = "" } = option;
   const engine = option.engine ?? "icon";
   const formats = option.formats ?? Object.values(Format);

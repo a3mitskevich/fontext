@@ -10,6 +10,9 @@ export const Format = {
 
 export type Formats = (typeof Format)[keyof typeof Format];
 
+/** Raw bytes of a TTF, OTF, WOFF or WOFF2 font. */
+export type FontInput = Buffer | Uint8Array | ArrayBuffer;
+
 export interface OptimizationReport {
   originalSize: number;
   formats: Partial<Record<Formats, { size: number; saving: number }>>;
