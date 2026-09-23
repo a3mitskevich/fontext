@@ -26,6 +26,10 @@ export const textFont = fs.readFileSync(
 export const multiLookupFont = fs.readFileSync(
   path.resolve(import.meta.dirname, "../assets/font-multi-ligature-lookups.ttf"),
 );
+// CFF outlines, vmtx and ligatures from liga and calt, see scripts/make-cff-fixture.mjs
+export const cffFont = fs.readFileSync(
+  path.resolve(import.meta.dirname, "../assets/font-cff-features.otf"),
+);
 
 export const extract: Extract = async (...args: Parameters<Extract>): ReturnType<Extract> => {
   const testTarget = process.env.TEST_TARGET as keyof typeof importTargets;

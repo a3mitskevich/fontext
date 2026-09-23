@@ -1,32 +1,26 @@
-import { type Font, type Glyph, type Ligature, type Lookup, type SubTable } from "fontkit";
+import type { Font } from "./font/font";
 import type { GlyphMeta } from "./types";
 
-const DEFAULT_FONT_SIZE = 1000;
 const WHITESPACE = " ";
-// GSUB lookup types: https://learn.microsoft.com/typography/opentype/spec/gsub
-const LIGATURE_LOOKUP = 4;
-const EXTENSION_LOOKUP = 7;
+const NOTDEF = 0;
 
 function renderSvg(svgPath: string, width: number, height: number): string {
   return `<svg viewBox="0 -${height} ${width} ${height}" xmlns="http://www.w3.org/2000/svg">\n  <path d="${svgPath}" />\n</svg>`;
 }
 
-export function codePointsToString(symbols: number[]): string {
+export function codePointsToString(symbols: readonly number[]): string {
   return symbols.map((symbol) => String.fromCodePoint(symbol)).join("");
 }
 
-function toSvg(glyph: Glyph): string {
-  const svgPath = glyph.path.scale(-1, 1).rotate(Math.PI).toSVG();
-  const width = glyph.advanceWidth ?? DEFAULT_FONT_SIZE;
-  const height = glyph.advanceHeight ?? DEFAULT_FONT_SIZE;
-  return renderSvg(svgPath, width, height);
+function toSvg(font: Font, glyph: number): string {
+  return renderSvg(font.svgPath(glyph), font.advanceWidth(glyph), font.advanceHeight(glyph));
 }
 
-function glyphToMeta(font: Font, glyph: Glyph): GlyphMeta {
+function glyphToMeta(font: Font, glyph: number, name: string): GlyphMeta {
   return {
-    name: codePointsToString(glyph.codePoints),
-    unicode: font.stringsForGlyph(glyph.id),
-    svg: toSvg(glyph),
+    name,
+    unicode: [...font.stringsForGlyph(glyph)],
+    svg: toSvg(font, glyph),
   };
 }
 
@@ -54,105 +48,65 @@ export function parseUnicodeRanges(ranges: string[]): number[] {
   return codePoints;
 }
 
-export function findMetaByCodePoints(font: Font, codePoints: number[]): GlyphMeta[] {
-  const glyphs: Glyph[] = [];
-  for (const cp of codePoints) {
-    const glyph = font.glyphForCodePoint(cp);
-    if (glyph && glyph.id !== 0) {
-      glyphs.push(glyph);
+/** Glyphs the cmap maps the code points to, each named after the first code point that reaches it. */
+export function findMetaByCodePoints(font: Font, codePoints: readonly number[]): GlyphMeta[] {
+  const names = new Map<number, string>();
+  for (const codePoint of codePoints) {
+    const glyph = font.glyphForCodePoint(codePoint);
+    if (glyph !== undefined && glyph !== NOTDEF && !names.has(glyph)) {
+      names.set(glyph, String.fromCodePoint(codePoint));
     }
   }
-  const unique = Array.from(new Map(glyphs.map((g) => [g.id, g])).values());
-  return unique.map((glyph) => glyphToMeta(font, glyph));
+  return [...names].map(([glyph, name]) => glyphToMeta(font, glyph, name));
 }
 
+/** Glyphs the default layout gives the ligatures, each named after the text it was shaped from. */
 export function findMetaByLigatures(
   font: Font,
-  ligatures: string[],
+  ligatures: readonly string[],
   withWhitespace = false,
 ): GlyphMeta[] {
   if (ligatures.length === 0) {
     return [];
   }
 
-  const [whitespaceGlyph] = font.glyphsForString(WHITESPACE);
-  const layout = font.layout(ligatures.join(WHITESPACE));
-  const glyphs = Array.from<Glyph>(new Set(layout.glyphs)).filter(
-    (glyph) => withWhitespace || glyph.id !== whitespaceGlyph?.id,
-  );
-  return glyphs.map((glyph) => glyphToMeta(font, glyph));
-}
-
-interface LigatureMeta {
-  ligature: Ligature;
-  leading: string;
-}
-
-/** Ligature subtables of every GSUB lookup, including ones wrapped in extension lookups. */
-function ligatureSubTables(font: Font): SubTable[] {
-  const lookups = font.GSUB?.lookupList.toArray() ?? [];
-  return lookups.flatMap((lookup: Lookup) => {
-    if (lookup.lookupType === LIGATURE_LOOKUP) {
-      return lookup.subTables;
+  // A font without a space glyph shapes the separator to .notdef, which must not be extracted either
+  const whitespaceGlyph = font.glyphForCodePoint(WHITESPACE.codePointAt(0) as number) ?? NOTDEF;
+  const names = new Map<number, string>();
+  for (const { id, text } of font.shape(ligatures.join(WHITESPACE))) {
+    if ((withWhitespace || id !== whitespaceGlyph) && !names.has(id)) {
+      names.set(id, text);
     }
-    if (lookup.lookupType === EXTENSION_LOOKUP) {
-      return lookup.subTables.flatMap((subTable) =>
-        subTable.lookupType === LIGATURE_LOOKUP && subTable.extension ? [subTable.extension] : [],
-      );
-    }
-    return [];
-  });
+  }
+  return [...names].map(([glyph, name]) => glyphToMeta(font, glyph, name));
 }
 
-function leadingCharsOf(font: Font, { coverage: { glyphs, rangeRecords } }: SubTable): string[] {
-  return rangeRecords
-    ? rangeRecords.flatMap(({ start, end }) =>
-        Array.from({ length: end - start + 1 }, (_, position) => position + start).map(
-          (item) => font.stringsForGlyph(item)?.[0] ?? "",
-        ),
-      )
-    : glyphs.map((id) => font.stringsForGlyph(id).join(""));
-}
+/** Text of the first character mapped to each glyph; "" for glyphs outside the cmap. */
+const firstString = (font: Font, glyph: number): string => font.stringsForGlyph(glyph)[0] ?? "";
 
-function ligatureEntries(font: Font, subTable: SubTable): [number, LigatureMeta][] {
-  const leadingChars = leadingCharsOf(font, subTable);
-  return subTable.ligatureSets
-    .toArray()
-    .flatMap((ligatures, index) =>
-      ligatures.map((ligature): [number, LigatureMeta] => [
-        ligature.glyph,
-        { ligature, leading: leadingChars[index] },
-      ]),
-    );
-}
-
-export function resolveLigatures(font: Font, raws: string[]): string[] {
+export function resolveLigatures(font: Font, raws: readonly string[]): string[] {
   if (raws.length === 0) {
     return [];
   }
 
-  const subTables = ligatureSubTables(font);
-  if (subTables.length === 0) {
+  const ligatures = font.ligatures();
+  if (ligatures.length === 0) {
     throw new Error("Font does not contain a GSUB ligature lookup table");
   }
 
-  const map = new Map<number, LigatureMeta[]>();
-  for (const [id, meta] of subTables.flatMap((subTable) => ligatureEntries(font, subTable))) {
-    map.set(id, [...(map.get(id) ?? []), meta]);
+  const texts = new Map<number, string[]>();
+  for (const { glyph, components } of ligatures) {
+    const text = components.map((component) => firstString(font, component)).join("");
+    texts.set(glyph, [...(texts.get(glyph) ?? []), text]);
   }
 
   return raws.flatMap((raw) => {
-    const glyphResult = font.glyphsForString(raw);
-    if (glyphResult.length === 0) {
+    const codePoint = raw.codePointAt(0);
+    if (codePoint === undefined) {
       throw new Error(`Font does not contain a glyph for "${raw}"`);
     }
-    const glyph = glyphResult[0];
-    const texts = (map.get(glyph.id) ?? []).map(({ ligature, leading }) =>
-      [leading, ...ligature.components.map((code) => font.stringsForGlyph(code)?.[0] ?? "")].join(
-        "",
-      ),
-    );
-    const forming = [...new Set(texts)].filter((text) => formsGlyph(font, text, glyph.id));
+    const glyph = font.glyphForCodePoint(codePoint) ?? NOTDEF;
+    const forming = [...new Set(texts.get(glyph))].filter((text) => formsGlyph(font, text, glyph));
     if (forming.length === 0) {
       throw new Error(`Font does not contain a ligature for "${raw}"`);
     }
@@ -161,11 +115,11 @@ export function resolveLigatures(font: Font, raws: string[]): string[] {
 }
 
 /**
- * Whether the default layout turns `text` into `glyphId`. Lookups of features that are off by
+ * Whether the default layout turns `text` into `glyph`. Lookups of features that are off by
  * default (`dlig`, `hlig`) or reached only from contextual lookups don't form the ligature, and
  * the icon engine would ship their component glyphs instead.
  */
-function formsGlyph(font: Font, text: string, glyphId: number): boolean {
-  const { glyphs } = font.layout(text);
-  return glyphs.length === 1 && glyphs[0].id === glyphId;
+function formsGlyph(font: Font, text: string, glyph: number): boolean {
+  const glyphs = font.shape(text);
+  return glyphs.length === 1 && glyphs[0].id === glyph;
 }
