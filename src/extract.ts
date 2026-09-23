@@ -1,3 +1,4 @@
+import { types } from "util";
 import { type ExtractedResult, type FontInput, Format, type MinifyOption } from "./types";
 import { extractIcon } from "./engines/icon";
 import { extractSubset } from "./engines/subset";
@@ -7,10 +8,13 @@ function toBuffer(input: FontInput): Buffer {
   if (Buffer.isBuffer(input)) {
     return input;
   }
-  if (input instanceof Uint8Array) {
+  if (ArrayBuffer.isView(input)) {
     return Buffer.from(input.buffer, input.byteOffset, input.byteLength);
   }
-  return Buffer.from(input);
+  if (types.isAnyArrayBuffer(input)) {
+    return Buffer.from(input);
+  }
+  throw new TypeError("Font input must be a Buffer, Uint8Array or ArrayBuffer");
 }
 
 export default function extract(input: FontInput, option: MinifyOption): Promise<ExtractedResult> {

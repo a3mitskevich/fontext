@@ -41,4 +41,11 @@ describe("font input types", () => {
     expect(result.woff).toBeInstanceOf(Buffer);
     expect(result.report.originalSize).toBe(ttfOriginalFont.length);
   });
+
+  it("should reject input that is not font bytes", async () => {
+    const filePath = "assets/font.ttf" as unknown as Buffer;
+    await expect(
+      extract(filePath, { fontName: "input-types", ligatures: ["abc"] }),
+    ).rejects.toThrow(new TypeError("Font input must be a Buffer, Uint8Array or ArrayBuffer"));
+  });
 });
