@@ -5,7 +5,12 @@ import {
   type SubsetOption,
   type OptimizationReport,
 } from "../types";
-import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
+import {
+  codePointsToString,
+  createFont,
+  findMetaByCodePoints,
+  parseUnicodeRanges,
+} from "../glyphs";
 import { applySafariFix } from "../safari";
 
 const DEFAULT_FORMATS: Formats[] = ["ttf", "woff", "woff2"];
@@ -64,7 +69,7 @@ export async function extractSubset(
     throw new Error("No characters to subset. Provide characters, unicodeRanges, or ligatures.");
   }
 
-  const text = String.fromCodePoint(...codePoints);
+  const text = codePointsToString(codePoints);
   const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
 
   const unsupported = formats.filter((f) => f === "svg");

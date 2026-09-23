@@ -8,7 +8,7 @@ function renderSvg(svgPath: string, width: number, height: number): string {
   return `<svg viewBox="0 -${height} ${width} ${height}" xmlns="http://www.w3.org/2000/svg">\n  <path d="${svgPath}" />\n</svg>`;
 }
 
-function codePointsToName(symbols: number[]): string {
+export function codePointsToString(symbols: number[]): string {
   return symbols.map((symbol) => String.fromCodePoint(symbol)).join("");
 }
 
@@ -21,7 +21,7 @@ function toSvg(glyph: Glyph): string {
 
 function glyphToMeta(font: Font, glyph: Glyph): GlyphMeta {
   return {
-    name: codePointsToName(glyph.codePoints),
+    name: codePointsToString(glyph.codePoints),
     unicode: font.stringsForGlyph(glyph.id),
     svg: toSvg(glyph),
   };
