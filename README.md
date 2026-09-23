@@ -85,7 +85,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 | Parameter | Type           | Description                                                         |
 |-----------|----------------|---------------------------------------------------------------------|
-| `content` | `Buffer \| Uint8Array \| ArrayBuffer` | Font file contents (TTF, WOFF2, or any format supported by fontkit) |
+| `content` | `Buffer \| Uint8Array \| ArrayBuffer` | Font file contents: TTF, OTF, WOFF or WOFF2                        |
 | `options` | `MinifyOption` | Extraction configuration (see below)                                |
 
 ### `MinifyOption`
@@ -108,6 +108,9 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 `extract()` throws in the following cases:
 
 - Font input is not a `Buffer`, `Uint8Array` or `ArrayBuffer` — `TypeError: "Font input must be a Buffer, Uint8Array or ArrayBuffer"`
+- Font data is not TTF, OTF, WOFF or WOFF2 — `"Unsupported font format: ..."`
+- Font is a collection (TTC, DFONT) — `"Font collections (TTC/DFONT) are not supported. Provide a single font file."`
+- Font tables are damaged — `"Malformed GSUB table: ..."`, `"Malformed WOFF file: ..."` and similar, naming the table and offset
 - Missing `fontName` — `"fontName is required"`
 - No glyph selection for the icon or subset engine —
   `"At least one of ligatures, raws, unicodeRanges, or characters must be provided"`
@@ -140,23 +143,35 @@ interface OptimizationReport {
 
 ## Supported Input Formats
 
-Single font files supported by [fontkit](https://github.com/foliojs/fontkit): TTF, OTF, WOFF, WOFF2. Font collections (
-TTC, DFONT) are not supported.
+Single TrueType and OpenType fonts (TTF, OTF with CFF outlines), WOFF and WOFF2. Fonts are read with
+[HarfBuzz](https://github.com/harfbuzz/harfbuzzjs), which also lays out the ligatures. Font collections (TTC, DFONT)
+are not supported.
 
-## Browser Usage
+## Browser Usage (experimental)
 
-A browser-compatible entry point is available for glyph discovery and SVG extraction (without format conversion):
+A browser entry point finds glyphs and their SVG outlines without Node.js APIs or format conversion. It reads TTF, OTF
+and WOFF; WOFF2 is rejected with an error, so decode it first or use the Node entry, which reads WOFF2.
 
 ```javascript
-import {createFont, findMetaByLigatures, findMetaByCodePoints, parseUnicodeRanges} from 'fontext/browser';
+import {createFont, findMetaByLigatures, findLigaturesByRaws} from 'fontext/browser';
 
-const response = await fetch('/fonts/icons.woff2');
+const response = await fetch('/fonts/icons.woff');
 const data = new Uint8Array(await response.arrayBuffer());
 
-const font = createFont(data);
+const font = await createFont(data);
 const meta = findMetaByLigatures(font, ['home', 'search']);
 // meta[0].svg — SVG markup for the glyph
+const ligatures = await findLigaturesByRaws(data, ['\uE88A']);
 ```
+
+HarfBuzz runs as WebAssembly (`harfbuzz.wasm`, about 430 KB, 180 KB gzipped). It is loaded on the first
+`createFont()` call from a URL relative to the module (`new URL(..., import.meta.url)`), and the module uses top-level
+await, so the bundler has to keep both:
+
+- **Vite** works with the default config. In a Web Worker set `worker: { format: 'es' }`.
+- **webpack 5** needs `resolve: { fallback: { module: false } }`.
+- A Content Security Policy must allow `'wasm-unsafe-eval'` in `script-src`, and `.wasm` files must be served as
+  `application/wasm`.
 
 ## License
 

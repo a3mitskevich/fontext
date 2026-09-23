@@ -126,13 +126,21 @@
 - [x] **18.5** Accept `Uint8Array` and `ArrayBuffer` input in `extract()`
 - [x] **18.6** Deterministic icon engine output — TTF timestamp from the source font
 
-## Phase 19 — Backlog
+## Phase 19 — HarfBuzz instead of fontkit
 
-- [ ] **19.1** Split `src/cli.ts` into modules (args, config, watch, output) and unit-test them; drop the coverage exclusion
-- [ ] **19.2** npm trusted publishing (OIDC) instead of `NPM_TOKEN` — needs the trusted publisher configured on npmjs.com
-- [ ] **19.3** TypeScript 7 once tsdown's declaration output supports it as stable
-- [ ] **19.4** `fontext/vite` plugin — build-time icon font generation with a virtual CSS module and HMR
-- [ ] **19.5** Detect used icons by scanning sources for ligature names and code points
-- [ ] **19.6** CSS/SCSS output — `@font-face` with `unicode-range`, icon classes, TS union of icon names
-- [ ] **19.7** Variable fonts — pin or limit axes via subset-font `variationAxes`
-- [ ] **19.8** SVG sprite and per-glyph SVG export from `meta`
+- [x] **19.1** Read fonts with harfbuzzjs plus an own layer (`src/font/`): shaping, outlines, metrics, cmap, GSUB ligatures; drop fontkit and `@types/fontkit`
+- [x] **19.2** Own WOFF decoding and TTC/DFONT rejection; bounds-checked GSUB parsing with clear errors on malformed tables
+- [x] **19.3** Fix outlines of contours that start at an off-curve point, zero vertical advances of fonts with vmtx, U+FFFF in the code point set
+- [x] **19.4** Async `createFont()` in `fontext/browser`; WOFF2 rejected there (wawoff2 does not run in browsers), browser entry marked experimental
+- [x] **19.5** CFF + `liga`/`calt` + vmtx fixture generated in Node, reference outlines checked against fontTools, Vite bundle test
+
+## Phase 20 — Backlog
+
+- [ ] **20.1** Split `src/cli.ts` into modules (args, config, watch, output) and unit-test them; drop the coverage exclusion
+- [ ] **20.2** npm trusted publishing (OIDC) instead of `NPM_TOKEN` — needs the trusted publisher configured on npmjs.com
+- [ ] **20.3** TypeScript 7 once tsdown's declaration output supports it as stable
+- [ ] **20.4** `fontext/vite` plugin — build-time icon font generation with a virtual CSS module and HMR
+- [ ] **20.5** Detect used icons by scanning sources for ligature names and code points
+- [ ] **20.6** CSS/SCSS output — `@font-face` with `unicode-range`, icon classes, TS union of icon names
+- [ ] **20.7** Variable fonts — pin or limit axes via subset-font `variationAxes`
+- [ ] **20.8** SVG sprite and per-glyph SVG export from `meta`
