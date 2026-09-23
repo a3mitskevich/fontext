@@ -29,12 +29,16 @@ both:
 - **Multiple output formats** — SVG, TTF, WOFF, WOFF2, EOT
 - **Preserves font features** — subset engine keeps kerning, hinting, GSUB/GPOS via HarfBuzz
 - **Glyph metadata** — get name, unicode mappings, and SVG path data for each extracted glyph
+- **Reproducible output** — identical input produces byte-identical fonts, so content-hashed asset names stay stable
+  between builds
 
 ## Installation
 
 ```bash
 npm install fontext
 ```
+
+Requires Node.js 22.12 or later.
 
 ## CLI
 
@@ -80,7 +84,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 | Parameter | Type           | Description                                                         |
 |-----------|----------------|---------------------------------------------------------------------|
-| `content` | `Buffer`       | Font file contents (TTF, WOFF2, or any format supported by fontkit) |
+| `content` | `Buffer \| Uint8Array \| ArrayBuffer` | Font file contents (TTF, WOFF2, or any format supported by fontkit) |
 | `options` | `MinifyOption` | Extraction configuration (see below)                                |
 
 ### `MinifyOption`
@@ -92,7 +96,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | `raws`           | `string[]`  | `[]`        | Raw unicode characters — Fontext will resolve their ligatures automatically |
 | `unicodeRanges`  | `string[]`  | `[]`        | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)              |
 | `characters`     | `string`    | —           | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only               |
-| `engine`         | `Engine`    | `'icon'`    | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning)  |
+| `engine`         | `Engine`    | `'icon'`    | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning), `'convert'` to change format only |
 | `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`              |
 | `withWhitespace` | `boolean`   | `false`     | Include whitespace glyph in the output                                      |
 
@@ -102,7 +106,10 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 `extract()` throws in the following cases:
 
-- Missing or empty `fontName`, `ligatures`/`raws`, or `formats` — `"Illegal option"`
+- Missing `fontName` — `"fontName is required"`
+- No glyph selection for the icon or subset engine —
+  `"At least one of ligatures, raws, unicodeRanges, or characters must be provided"`
+- Empty or unknown `formats` — `"At least one output format must be specified"` / `"Invalid format(s): ..."`
 - Font lacks a GSUB ligature lookup table (required for `raws`) — `"Font does not contain a GSUB ligature lookup table"`
 - A raw unicode character has no matching ligature — `"Font does not contain a ligature for \"...\""`
 
