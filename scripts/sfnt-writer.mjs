@@ -6,7 +6,9 @@
  * after the fields, and the offset is relative to the start of the struct, as in OpenType.
  */
 
-const TRUETYPE_VERSION = 0x1_00_00;
+export const TRUETYPE_VERSION = 0x1_00_00;
+/** The "OTTO" sfnt version of fonts with CFF outlines. */
+export const CFF_VERSION = 0x4f_54_54_4f;
 const SFNT_HEADER_SIZE = 12;
 const TABLE_RECORD_SIZE = 16;
 const HEAD_CHECKSUM_ADJUSTMENT = 8;
@@ -85,9 +87,13 @@ function checksum(data) {
   return sum;
 }
 
-/** Packs tables into a TrueType font and sets head.checkSumAdjustment. */
-export function sfnt(tables) {
+/** Packs tables into an sfnt font and sets head.checkSumAdjustment. */
+export function sfnt(tables, version = TRUETYPE_VERSION) {
   const tags = Object.keys(tables).toSorted();
+  const invalid = tags.find((tableTag) => tableTag.length !== 4);
+  if (invalid !== undefined) {
+    throw new Error(`Table tags are 4 characters long, pad "${invalid}" with spaces`);
+  }
   const padded = tags.map((tableTag) => pad4(tables[tableTag]));
   const entrySelector = Math.floor(Math.log2(tags.length));
   const searchRange = 2 ** entrySelector * TABLE_RECORD_SIZE;
@@ -100,7 +106,7 @@ export function sfnt(tables) {
     u32s([checksum(tables[tableTag]), offsets[index], tables[tableTag].length]),
   ]);
   const font = struct(
-    u32(TRUETYPE_VERSION),
+    u32(version),
     u16s([tags.length, searchRange, entrySelector, tags.length * TABLE_RECORD_SIZE - searchRange]),
     records,
     padded.map((data) => bytes(data)),
