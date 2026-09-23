@@ -1,4 +1,3 @@
-import type { Font } from "fontkit";
 import { Readable } from "stream";
 import svg2ttf from "svg2ttf";
 import { SVGIcons2SVGFontStream, type SVGIcons2SVGFontStreamOptions } from "svgicons2svgfont";
@@ -22,20 +21,6 @@ import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
 
 const DEFAULT_FORMATS = Object.values(Format);
 const DEFAULT_FONT_SIZE = 1000;
-// Seconds between the OpenType epoch (1904-01-01) and the Unix epoch
-const OPENTYPE_EPOCH_OFFSET = 2_082_844_800;
-const UINT32_RANGE = 2 ** 32;
-
-/**
- * Unix time of the source font's head.modified. Passing it to svg2ttf instead of the
- * current time keeps the output byte-identical for identical input, so content-hashed
- * asset names stay stable between builds.
- */
-function sourceTimestamp(font: Font): number {
-  const [high, low] = font.head.modified;
-  return Math.max(high * UINT32_RANGE + (low >>> 0) - OPENTYPE_EPOCH_OFFSET, 0);
-}
-
 async function convertByFormats(
   svgFont: Buffer,
   formats: Formats[],
@@ -99,10 +84,8 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
     withWhitespace = false,
   } = option;
 
-  const font = createFont(content);
-  /* Fontkit caches glyphs together with the code points of their first lookup, so resolving
-     raws on `font` would make the later layout report the raw code point instead of the ligature */
-  const foundLigatures = resolveLigatures(createFont(content), raws);
+  const font = await createFont(content);
+  const foundLigatures = resolveLigatures(font, raws);
   const ligatureMeta = findMetaByLigatures(
     font,
     [ligatures, foundLigatures].flat(),
@@ -123,7 +106,9 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
   const fonts = await convertByFormats(svgFont, formats, {
     safariFix: option.safariFix,
-    timestamp: sourceTimestamp(font),
+    /* The source font's head.modified instead of the current time keeps the output
+       byte-identical for identical input, so content-hashed asset names stay stable */
+    timestamp: font.modified,
   });
 
   return {

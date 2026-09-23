@@ -11,8 +11,8 @@ export async function extractConvert(
 ): Promise<ExtractedResult> {
   const { fontName = "", formats = DEFAULT_FORMATS } = option;
 
-  const font = createFont(content);
-  const allCodePoints = font.characterSet;
+  const font = await createFont(content);
+  const allCodePoints = font.codePoints;
 
   const ttf = formats.some((f) => f !== "svg")
     ? await subsetToTtf(content, codePointsToString(allCodePoints), option.safariFix)
@@ -23,11 +23,11 @@ export async function extractConvert(
     : {};
   const fonts: FontBuffers = { ...binaryFonts, ...svgFont };
 
-  const outputFont = ttf ? createFont(ttf) : font;
+  const outputFont = ttf ? await createFont(ttf) : font;
 
   return {
     ...fonts,
-    meta: findMetaByCodePoints(outputFont, outputFont.characterSet),
+    meta: findMetaByCodePoints(outputFont, outputFont.codePoints),
     report: buildReport(content.length, fonts, formats),
   };
 }

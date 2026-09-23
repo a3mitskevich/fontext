@@ -62,11 +62,11 @@ export async function extractSubset(
 
   const ttf = await subsetToTtf(content, codePointsToString(codePoints), option.safariFix);
   const fonts = await encodeFromTtf(ttf, formats);
-  const subsetted = createFont(ttf);
+  const subsetted = await createFont(ttf);
 
   return {
     ...fonts,
-    meta: findMetaByCodePoints(subsetted, subsetted.characterSet),
+    meta: findMetaByCodePoints(subsetted, subsetted.codePoints),
     report: buildReport(content.length, fonts, formats),
   };
 }

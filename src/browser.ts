@@ -6,22 +6,31 @@
  * to inspect fonts, extract glyph metadata, and get SVG paths.
  */
 
-import { create, type Font } from "fontkit";
+import { toSfnt } from "./font/container";
+import { openFont, type Font } from "./font/font";
 import { resolveLigatures } from "./core";
 
 export { type GlyphMeta, type Formats, Format } from "./types";
+export { type Font, type ShapedGlyph, type LigatureRecord } from "./font/font";
 export { parseUnicodeRanges, findMetaByCodePoints, findMetaByLigatures } from "./core";
 
-export function createFont(data: Uint8Array | ArrayBuffer): Font {
-  const buf = data instanceof Uint8Array ? data : new Uint8Array(data);
-  const font = create(buf as unknown as Buffer);
-  if ("fonts" in font) {
-    throw new Error("Font collections (TTC/DFONT) are not supported. Provide a single font file.");
-  }
-  return font;
+function rejectWoff2(): Promise<never> {
+  return Promise.reject(
+    new Error(
+      "WOFF2 input is not supported in fontext/browser. Provide a TTF, OTF or WOFF font, or use the Node entry, which reads WOFF2.",
+    ),
+  );
 }
 
-export function findLigaturesByRaws(data: Uint8Array | ArrayBuffer, raws: string[]): string[] {
-  const font = createFont(data);
-  return resolveLigatures(font, raws);
+/** Opens a TrueType, OpenType or WOFF font; font collections are rejected. */
+export async function createFont(data: Uint8Array | ArrayBuffer): Promise<Font> {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  return openFont(await toSfnt(bytes, rejectWoff2));
+}
+
+export async function findLigaturesByRaws(
+  data: Uint8Array | ArrayBuffer,
+  raws: string[],
+): Promise<string[]> {
+  return resolveLigatures(await createFont(data), raws);
 }

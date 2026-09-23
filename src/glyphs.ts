@@ -1,4 +1,6 @@
-import { create, type Font } from "fontkit";
+import { decompress } from "wawoff2";
+import { toSfnt } from "./font/container";
+import { openFont, type Font } from "./font/font";
 
 export {
   codePointsToString,
@@ -8,10 +10,7 @@ export {
   resolveLigatures,
 } from "./core";
 
-export function createFont(content: Buffer): Font {
-  const font = create(content);
-  if ("fonts" in font) {
-    throw new Error("Font collections (TTC/DFONT) are not supported. Provide a single font file.");
-  }
-  return font;
+/** Opens a TrueType, OpenType, WOFF or WOFF2 font; font collections are rejected. */
+export async function createFont(content: Uint8Array): Promise<Font> {
+  return openFont(await toSfnt(content, decompress));
 }

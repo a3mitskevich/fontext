@@ -13,7 +13,7 @@
     "woff",
     "eot",
     "convertor",
-    "fontkit"
+    "harfbuzz"
   ],
   "repository": {
     "type": "git",
@@ -60,7 +60,6 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@tsconfig/node22": "^22.0.6",
-    "@types/fontkit": "^2.0.9",
     "@types/node": "^25.9.8",
     "@types/subset-font": "^2.3.0",
     "@types/svg2ttf": "^5.0.3",
@@ -73,10 +72,11 @@
     "publint": "^0.3.24",
     "tsdown": "^0.23.0",
     "typescript": "^6.0.3",
+    "vite": "^8.3.0",
     "vitest": "^5.0.1"
   },
   "dependencies": {
-    "fontkit": "^2.0.4",
+    "harfbuzzjs": "^1.6.2",
     "subset-font": "^2.9.0",
     "svg2ttf": "6.1.0",
     "svgicons2svgfont": "^15.0.1",

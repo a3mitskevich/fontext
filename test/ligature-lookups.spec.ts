@@ -21,13 +21,15 @@ describe("ligatures split across GSUB subtables and lookups", () => {
     expect(meta.map((glyph) => glyph.name)).toStrictEqual([ligature]);
   });
 
-  it("should skip ligatures of features that are off by default", () => {
+  it("should skip ligatures of features that are off by default", async () => {
     // A dlig-only lookup maps "kja" to the same glyph as "abc"
-    expect(findLigaturesByRaws(new Uint8Array(multiLookupFont), [""])).toStrictEqual(["abc"]);
+    await expect(
+      findLigaturesByRaws(new Uint8Array(multiLookupFont), ["\uE001"]),
+    ).resolves.toStrictEqual(["abc"]);
   });
 
-  it("should resolve raws from every lookup in the browser entry", () => {
-    const ligatures = findLigaturesByRaws(new Uint8Array(multiLookupFont), [
+  it("should resolve raws from every lookup in the browser entry", async () => {
+    const ligatures = await findLigaturesByRaws(new Uint8Array(multiLookupFont), [
       "\uE002",
       "\uE003",
       "\uE004",
