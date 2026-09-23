@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It uses fontkit for parsing, svgicons2svgfont + svg2ttf to build icon fonts, subset-font (HarfBuzz) for subsetting, ttf2woff and wawoff2 for WOFF/WOFF2 encoding and ttf2eot for EOT.
+Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It reads fonts with harfbuzzjs (HarfBuzz as WebAssembly) plus a small own layer in `src/font/`, uses svgicons2svgfont + svg2ttf to build icon fonts, subset-font (HarfBuzz) for subsetting, ttf2woff and wawoff2 for WOFF/WOFF2 encoding and ttf2eot for EOT.
 
 ## Commands
 
@@ -21,28 +21,43 @@ Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs fr
 Public entry points:
 
 - `src/index.ts` — `extract(input, option)`; `input` is `Buffer | Uint8Array | ArrayBuffer`, normalized to a `Buffer` in `src/extract.ts`
-- `src/browser.ts` — `fontext/browser`, glyph discovery without Node APIs or converters (ESM only)
+- `src/browser.ts` — `fontext/browser` (experimental), glyph discovery without Node APIs or converters; async `createFont()`, rejects WOFF2
 - `src/cli.ts` — the `fontext` binary
 
 `src/extract.ts` validates options and routes to an engine by `option.engine`:
 
-- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, lays out ligatures with fontkit, turns glyph paths into SVGs, assembles an SVG font with SVGIcons2SVGFontStream, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` so output is deterministic
+- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, shapes ligatures with HarfBuzz, turns glyph outlines into SVGs, assembles an SVG font with SVGIcons2SVGFontStream, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` (`Font.modified`) so output is deterministic
 - **subset** (`src/engines/subset.ts`) — HarfBuzz subset by characters / unicode ranges / ligature characters, keeps OpenType features
 - **convert** (`src/engines/convert.ts`) — re-encodes the whole font into other formats
 
 `src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF via ttf2woff, WOFF2 via wawoff2, EOT via ttf2eot) and `buildReport()`.
 
-`src/core.ts` holds the environment-independent logic used by both Node and browser entries: `resolveLigatures()` parses GSUB manually (every lookup of type 4, plus type 7 extension lookups wrapping type 4) because fontkit has no public API for ligature discovery; `findMetaByLigatures()` / `findMetaByCodePoints()` build `GlyphMeta` (SVG via path scale -1,1 + rotate π). `src/glyphs.ts` adds the `Buffer`-based `createFont()` for Node. `src/safari.ts` patches OS/2 and hhea tables for `safariFix`.
+`src/font/` is the font access layer shared by both entries:
+
+- `container.ts` — `toSfnt()` detects the format by signature, inflates WOFF with `DecompressionStream`, hands WOFF2 to a decoder passed in by the entry (wawoff2 in Node, an error in the browser) and rejects TTC/DFONT
+- `font.ts` — `openFont()` returns the `Font` interface: cmap and reverse cmap, `shape()` (HarfBuzz shaping, glyphs with the source text of their cluster, UTF-16 indices), SVG paths, advances, `modified`, GSUB ligature records
+- `gsub.ts` — ligature records of every lookup of type 4 and type 7 wrapping type 4; `reader.ts` — bounds-checked big-endian reads with "Malformed <table>" errors
+- `outline.ts` — HarfBuzz draw commands to SVG path data (y flipped, closing line before `Z` dropped); `tables.ts` — head, vmtx, OS/2 and hhea fields
+
+`src/core.ts` holds the environment-independent logic: `resolveLigatures()` turns GSUB records into texts and keeps those the default layout forms (`formsGlyph`); `findMetaByLigatures()` / `findMetaByCodePoints()` build `GlyphMeta`. `src/glyphs.ts` adds the Node `createFont()` with WOFF2 via wawoff2. `src/safari.ts` patches OS/2 and hhea tables for `safariFix`.
 
 **Key types (`src/types.ts`):** `MinifyOption` (discriminated union `IconOption | SubsetOption | ConvertOption`), `FontInput`, `ExtractedResult` (format → Buffer + `meta` + `report`), `GlyphMeta`, `OptimizationReport`.
 
-**Local type declarations:** `fontkit.d.ts` augments `@types/fontkit` with GSUB structures (`Lookup`, `SubTable` incl. extension fields, `Ligature`, `RangeRecord`), `Font.GSUB`, `Font.head.modified` and `Glyph.advanceHeight`.
+**harfbuzzjs gotchas:**
 
-**Gotcha:** fontkit caches glyph objects with the code points of their first lookup. Resolving raws on the same `Font` instance used for layout changes glyph names, so the icon engine resolves raws on a separate instance.
+- It is imported with `await import("harfbuzzjs")` inside `openFont()`: the module instantiates WebAssembly with top-level await, and a static import would break `require("fontext")`
+- `Face.referenceTable()` returns a view of WebAssembly memory that detaches when memory grows; `tableOf()` copies it
+- The build has no vertical metrics (`glyphVAdvance` is always the em size), so vmtx is read in `tables.ts`
+- It cannot read WOFF or WOFF2; wawoff2 does not work in browsers (its emscripten glue exports only under Node)
 
 ## Testing
 
-Vitest with real fonts from `assets/`: Material Icons (`font.ttf`, `font.woff2`), a text font without GSUB, and `font-multi-ligature-lookups.ttf` — a generated fixture with ligatures split across subtables, lookups and an extension lookup, plus a `dlig`-only ligature that must not be resolved (regenerate with `node scripts/make-ligature-fixture.mjs`, which writes the tables by hand through `scripts/sfnt-writer.mjs`). `test/setup.ts` switches between `src` and `dist` via `TEST_TARGET`. Tests cover all engines and formats, metadata, reports, Safari fix, CLI, browser entry, input types, determinism and validation errors. Coverage thresholds live in `vitest.config.ts`.
+Vitest with real fonts from `assets/`: Material Icons (`font.ttf`, `font.woff2`), a text font without GSUB, and two generated fixtures:
+
+- `font-multi-ligature-lookups.ttf` — ligatures split across subtables, lookups and an extension lookup, plus a `dlig`-only ligature that must not be resolved (`node scripts/make-ligature-fixture.mjs`)
+- `font-cff-features.otf` — CFF outlines, vhea/vmtx, a `liga` ligature, a ligature `calt` forms without context and one it forms only before another glyph (`node scripts/make-cff-fixture.mjs`)
+
+The generators write tables by hand through `scripts/sfnt-writer.mjs`, `font-tables.mjs`, `gsub-writer.mjs` and `cff-writer.mjs`. WOFF, TTC and DFONT inputs are built in tests from the TTF fixtures (`test/font-containers.ts`). `test/setup.ts` switches between `src` and `dist` via `TEST_TARGET`. Tests cover all engines and formats, metadata, reference outlines (checked against fontTools), CFF, reports, Safari fix, CLI, browser entry and its Vite bundle, input formats and malformed fonts, determinism and validation errors. Coverage thresholds live in `vitest.config.ts`.
 
 ## Tooling
 
