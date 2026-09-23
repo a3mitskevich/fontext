@@ -111,18 +111,18 @@
 ## Phase 17 — Dependency Upgrade & Toolchain
 
 - [x] **17.1** Patch `@xmldom/xmldom` advisories via svg2ttf 6.1; subset-font 2.9, oxlint 1.85, oxfmt 0.70
-- [x] **17.2** Require Node.js >=22.12 (Node 20 EOL); `@tsconfig/node22`, Vitest 5, CI matrix 22/24/26
+- [x] **17.2** Require Node.js >=22.13 (Node 20 EOL); `@tsconfig/node22`, Vitest 5, CI matrix 22/24/26
 - [x] **17.3** Replace tsup with tsdown; TypeScript 6.0
-- [x] **17.4** Fix `exports` map — ESM consumers get `.d.mts` types, `fontext/browser` types resolve directly
+- [x] **17.4** ESM only (`"type": "module"`), a single `exports` condition per entry; CommonJS consumers load it via `require(esm)`
 - [x] **17.5** Package checks in CI — publint + arethetypeswrong (`lint:pkg`), `typecheck` script incl. strict tests
-- [x] **17.6** Config files as `.mts`, LF via `.gitattributes`, grouped Dependabot updates for npm and Actions
+- [x] **17.6** LF via `.gitattributes`, grouped Dependabot updates for npm and Actions
 
 ## Phase 18 — Correctness & Performance
 
 - [x] **18.1** Fix call stack overflow on large code point sets (`String.fromCodePoint(...spread)`)
-- [x] **18.2** Encode WOFF/WOFF2 via fontverter instead of native ttf2woff2 — ~3x faster WOFF2, no node-gyp
+- [x] **18.2** Encode WOFF2 via wawoff2 instead of native ttf2woff2 — ~3x faster WOFF2, no node-gyp
 - [x] **18.3** Shared engine module — one subset per request, single report and Safari-fix path
-- [x] **18.4** Resolve ligatures from every GSUB lookup, subtable and extension lookup
+- [x] **18.4** Resolve ligatures from every GSUB lookup, subtable and extension lookup; keep only those the default features form
 - [x] **18.5** Accept `Uint8Array` and `ArrayBuffer` input in `extract()`
 - [x] **18.6** Deterministic icon engine output — TTF timestamp from the source font
 
