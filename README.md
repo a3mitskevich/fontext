@@ -38,7 +38,8 @@ both:
 npm install fontext
 ```
 
-Requires Node.js 22.12 or later.
+Requires Node.js 22.13 or later. The package is ESM only; CommonJS code can still load it with
+`require("fontext")`, which Node supports for ES modules since 22.13 without warnings.
 
 ## CLI
 
@@ -106,6 +107,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 `extract()` throws in the following cases:
 
+- Font input is not a `Buffer`, `Uint8Array` or `ArrayBuffer` — `TypeError: "Font input must be a Buffer, Uint8Array or ArrayBuffer"`
 - Missing `fontName` — `"fontName is required"`
 - No glyph selection for the icon or subset engine —
   `"At least one of ligatures, raws, unicodeRanges, or characters must be provided"`
