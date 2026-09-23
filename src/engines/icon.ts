@@ -1,8 +1,5 @@
 import { Readable } from "stream";
 import svg2ttf from "svg2ttf";
-import ttf2woff from "ttf2woff";
-import ttf2woff2 from "ttf2woff2";
-import ttf2eot from "ttf2eot";
 import { SVGIcons2SVGFontStream, type SVGIcons2SVGFontStreamOptions } from "svgicons2svgfont";
 import {
   type ExtractedResult,
@@ -11,61 +8,33 @@ import {
   type GlyphMeta,
   type GlyphStream,
   type IconOption,
-  type OptimizationReport,
 } from "../types";
 import {
   createFont,
-  findLigaturesByRaws,
   findMetaByCodePoints,
   findMetaByLigatures,
   parseUnicodeRanges,
+  resolveLigatures,
 } from "../glyphs";
 import { applySafariFix } from "../safari";
+import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
 
 const DEFAULT_FORMATS = Object.values(Format);
 const DEFAULT_FONT_SIZE = 1000;
 
-function getByFormat(format: Formats, svgFont: Buffer, ttfBuffer: Buffer): Buffer | null {
-  if (format === "svg") {
-    return svgFont;
-  }
-  if (format === "ttf") {
-    return ttfBuffer;
-  }
-  if (format === "woff") {
-    return Buffer.from(ttf2woff(new Uint8Array(ttfBuffer)) as unknown as ArrayBuffer);
-  }
-  if (format === "woff2") {
-    return Buffer.from(ttf2woff2(ttfBuffer) as unknown as ArrayBuffer);
-  }
-  if (format === "eot") {
-    return Buffer.from(ttf2eot(new Uint8Array(ttfBuffer)) as unknown as ArrayBuffer);
-  }
-  return null;
-}
-
-function convertByFormats(
+async function convertByFormats(
   svgFont: Buffer,
   formats: Formats[],
   safariFix?: boolean,
-): ExtractedResult {
-  const result: ExtractedResult = { meta: [], report: { originalSize: 0, formats: {} } };
-
-  if (formats.some((format) => format !== "svg")) {
-    const ttf = svg2ttf(svgFont.toString());
-    const ttfBuffer = safariFix ? applySafariFix(Buffer.from(ttf.buffer)) : Buffer.from(ttf.buffer);
-
-    formats.forEach((format) => {
-      const byFormat = getByFormat(format, svgFont, ttfBuffer);
-      if (byFormat !== null) {
-        result[format] = byFormat;
-      }
-    });
-  } else {
-    result.svg = svgFont;
+): Promise<FontBuffers> {
+  const svg = formats.includes("svg") ? { svg: svgFont } : {};
+  if (formats.every((format) => format === "svg")) {
+    return svg;
   }
 
-  return result;
+  const ttf = Buffer.from(svg2ttf(svgFont.toString()).buffer);
+  const binaryFonts = await encodeFromTtf(safariFix ? applySafariFix(ttf) : ttf, formats);
+  return { ...svg, ...binaryFonts };
 }
 
 export function createGlyphStream(content: string): GlyphStream {
@@ -117,7 +86,9 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   } = option;
 
   const font = createFont(content);
-  const foundLigatures = findLigaturesByRaws(content, raws);
+  /* Fontkit caches glyphs together with the code points of their first lookup, so resolving
+     raws on `font` would make the later layout report the raw code point instead of the ligature */
+  const foundLigatures = resolveLigatures(createFont(content), raws);
   const ligatureMeta = findMetaByLigatures(
     font,
     [ligatures, foundLigatures].flat(),
@@ -136,20 +107,11 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   }
 
   const svgFont = await convertToSvgFont(fontName, glyphsMeta);
-  const result = convertByFormats(svgFont, formats, option.safariFix);
-  result.meta = glyphsMeta;
+  const fonts = await convertByFormats(svgFont, formats, option.safariFix);
 
-  const originalSize = content.length;
-  const reportFormats: OptimizationReport["formats"] = {};
-  for (const format of formats) {
-    const buffer = result[format];
-    if (buffer) {
-      const size = buffer.length;
-      const saving = originalSize > 0 ? ((originalSize - size) / originalSize) * 100 : 0;
-      reportFormats[format] = { size, saving: Math.round(saving * 10) / 10 };
-    }
-  }
-  result.report = { originalSize, formats: reportFormats };
-
-  return result;
+  return {
+    ...fonts,
+    meta: glyphsMeta,
+    report: buildReport(content.length, fonts, formats),
+  };
 }
