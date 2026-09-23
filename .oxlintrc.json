@@ -80,7 +80,7 @@
   },
   "overrides": [
     {
-      "files": ["src/cli.ts", "test/**"],
+      "files": ["src/cli.ts", "test/**", "scripts/**"],
       "rules": {
         "node/no-sync": "off"
       }
