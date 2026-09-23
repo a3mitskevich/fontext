@@ -27,7 +27,8 @@ both:
 - **Subset by characters** — pass `"ABCabc0123"` to keep only those characters (subset engine)
 - **Subset by unicode range** — pass `U+0400-U+04FF` for Cyrillic block (both engines)
 - **Multiple output formats** — SVG, TTF, WOFF, WOFF2, EOT
-- **Preserves font features** — subset engine keeps kerning, hinting, GSUB/GPOS via HarfBuzz
+- **Preserves font features** — subset engine keeps kerning, hinting, GSUB/GPOS via HarfBuzz; pairs of a legacy
+  `kern` table are kept only for the glyphs that stay in the font
 - **Glyph metadata** — get name, unicode mappings, and SVG path data for each extracted glyph
 - **Reproducible output** — identical input produces byte-identical fonts, so content-hashed asset names stay stable
   between builds
