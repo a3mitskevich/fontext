@@ -1,11 +1,17 @@
 import fs from "fs";
 import path from "path";
+import type * as fontext from "../src";
 import type { Extract, Formats } from "../src";
 import { createCachedImport } from "./utils";
 
+type FontextModule = typeof fontext;
+
+// Dist mirrors src and may not be built yet when types are checked, so it is resolved at runtime only
+const DIST_ENTRY = "../dist";
+
 const importTargets = {
-  local: createCachedImport(() => import("../src")),
-  dist: createCachedImport(() => import("../dist")),
+  local: createCachedImport<FontextModule>(() => import("../src")),
+  dist: createCachedImport<FontextModule>(() => import(DIST_ENTRY)),
 };
 
 const resolve = (format: Formats): string => path.resolve(__dirname, `../assets/font.${format}`);
