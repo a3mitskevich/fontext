@@ -48,7 +48,7 @@
     "test:watch": "vitest",
     "test:local": "TEST_TARGET=local npm run test",
     "test:dist": "TEST_TARGET=dist npm run test",
-    "build": "tsup",
+    "build": "tsdown",
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json --deny-warnings",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
     "format": "oxfmt --write src/ test/ *.ts *.mts",
@@ -58,6 +58,7 @@
     "prepare": "git config core.hooksPath .githooks && git config commit.template .gitmessage"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@tsconfig/node22": "^22.0.6",
     "@types/fontkit": "^2.0.9",
     "@types/node": "^25.9.8",
@@ -68,8 +69,9 @@
     "@vitest/coverage-v8": "^5.0.1",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
+    "publint": "^0.3.24",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   },
   "dependencies": {
