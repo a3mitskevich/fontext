@@ -59,6 +59,7 @@
     "lint:pkg": "publint --strict && attw --pack . --profile node16 --ignore-rules cjs-resolves-to-esm",
     "lint": "oxlint src/ test/ --tsconfig tsconfig.json --deny-warnings",
     "lint:fix": "oxlint src/ test/ --tsconfig tsconfig.json --fix",
+    "typecheck": "tsc -p tsconfig.lib.json --noEmit && tsc -p tsconfig.test.json --noEmit && tsc -p tsconfig.config.json --noEmit",
     "format": "oxfmt --write src/ test/ *.ts *.mts",
     "format:check": "oxfmt --check src/ test/ *.ts *.mts",
     "cli:help": "node dist/cli.js --help",

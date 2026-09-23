@@ -2,8 +2,9 @@
   "extends": "@tsconfig/node22",
   "compilerOptions": {
     "types": ["node"],
-    "strict": false,
-    "moduleResolution": "Bundler"
+    "strict": true,
+    "module": "preserve",
+    "moduleResolution": "bundler"
   },
   "include": [
     "*.d.ts",
