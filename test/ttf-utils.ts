@@ -13,6 +13,30 @@ export function findTable(ttf: Buffer, tag: string): { offset: number; length: n
   return null;
 }
 
+const KERN_HEADER_SIZE = 4;
+const KERN_SUBTABLE_HEADER_SIZE = 14;
+const KERN_PAIR_SIZE = 6;
+
+/** Pairs of every format 0 subtable of a version 0 kern table as [left, right, value]. */
+export function readKernPairs(font: Uint8Array): [number, number, number][] {
+  const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
+  const table = findTable(ttf, "kern");
+  if (!table) {
+    return [];
+  }
+  const pairs: [number, number, number][] = [];
+  let subtable = table.offset + KERN_HEADER_SIZE;
+  for (let index = 0; index < ttf.readUInt16BE(table.offset + 2); index++) {
+    const count = ttf.readUInt16BE(subtable + 6);
+    for (let pair = 0; pair < count; pair++) {
+      const at = subtable + KERN_SUBTABLE_HEADER_SIZE + pair * KERN_PAIR_SIZE;
+      pairs.push([ttf.readUInt16BE(at), ttf.readUInt16BE(at + 2), ttf.readInt16BE(at + 4)]);
+    }
+    subtable += KERN_SUBTABLE_HEADER_SIZE + count * KERN_PAIR_SIZE;
+  }
+  return pairs;
+}
+
 export function readOS2(ttf: Buffer) {
   const table = findTable(ttf, "OS/2");
   if (!table) {

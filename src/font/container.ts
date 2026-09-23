@@ -1,4 +1,5 @@
 import { createReader, type BinaryReader } from "./reader";
+import { packSfnt, type SfntTable } from "./sfnt";
 
 /** Turns WOFF2 data into an uncompressed sfnt (TrueType or OpenType) font. */
 export type Woff2Decoder = (data: Uint8Array) => Promise<Uint8Array>;
@@ -12,8 +13,6 @@ const SIGNATURES: Record<string, ContainerFormat> = {
   ttcf: "collection",
 };
 
-const SFNT_HEADER_SIZE = 12;
-const SFNT_TABLE_RECORD_SIZE = 16;
 const WOFF_HEADER_SIZE = 44;
 const WOFF_TABLE_ENTRY_SIZE = 20;
 const RESOURCE_FORK_HEADER_SIZE = 16;
@@ -64,12 +63,6 @@ async function inflate(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-interface SfntTable {
-  tag: number;
-  checksum: number;
-  data: Uint8Array;
-}
-
 async function readWoffTable(reader: BinaryReader, entry: number): Promise<SfntTable> {
   const name = reader.tag(entry);
   const offset = reader.uint32(entry + 4);
@@ -94,36 +87,6 @@ async function readWoffTable(reader: BinaryReader, entry: number): Promise<SfntT
     );
   }
   return { ...table, data };
-}
-
-const padded = (length: number): number => Math.ceil(length / 4) * 4;
-
-/** Packs tables into an sfnt with the given version; tables keep their order and checksums. */
-function packSfnt(flavor: number, tables: SfntTable[]): Uint8Array {
-  const directorySize = SFNT_HEADER_SIZE + tables.length * SFNT_TABLE_RECORD_SIZE;
-  const offsets = tables.reduce<number[]>(
-    (acc, table, index) => [...acc, acc[index] + padded(table.data.length)],
-    [directorySize],
-  );
-  const out = new Uint8Array(offsets[tables.length]);
-  const view = new DataView(out.buffer);
-  const entrySelector = Math.floor(Math.log2(Math.max(tables.length, 1)));
-  const searchRange = 2 ** entrySelector * SFNT_TABLE_RECORD_SIZE;
-
-  view.setUint32(0, flavor);
-  view.setUint16(4, tables.length);
-  view.setUint16(6, searchRange);
-  view.setUint16(8, entrySelector);
-  view.setUint16(10, tables.length * SFNT_TABLE_RECORD_SIZE - searchRange);
-  tables.forEach(({ tag, checksum, data }, index) => {
-    const record = SFNT_HEADER_SIZE + index * SFNT_TABLE_RECORD_SIZE;
-    view.setUint32(record, tag);
-    view.setUint32(record + 4, checksum);
-    view.setUint32(record + 8, offsets[index]);
-    view.setUint32(record + 12, data.length);
-    out.set(data, offsets[index]);
-  });
-  return out;
 }
 
 /** WOFF 1.0: every table is stored as is or zlib-compressed. */
