@@ -4,45 +4,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fontext is a Node.js (>=20) library for extracting font glyphs by ligatures from font files and creating new minimized fonts in multiple formats (SVG, TTF, WOFF, WOFF2, EOT). It uses fontkit for font parsing, Handlebars for SVG templating, and various converters (svg2ttf, ttf2woff, ttf2woff2, ttf2eot) for format conversion.
+Fontext is a Node.js (>=22.12) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It uses fontkit for parsing, svgicons2svgfont + svg2ttf to build icon fonts, subset-font (HarfBuzz) for subsetting, fontverter (wawoff2) for WOFF/WOFF2 encoding and ttf2eot for EOT.
 
 ## Commands
 
-- **Build:** `npm run build` (tsup, outputs CJS + ESM to `dist/`, copies `svg.hbs` template)
-- **Test:** `npm test` (Vitest)
-- **Test watch:** `npm run test:watch`
-- **Test against dist:** `npm run test:dist` (runs tests against built output)
-- **Lint:** `npm run lint` / `npm run lint:fix` (Oxlint)
+- **Build:** `npm run build` (tsdown, config in `tsdown.config.mts`; outputs `index.js`/`.mjs` + `.d.ts`/`.d.mts`, `browser.mjs`, `cli.js` to `dist/`)
+- **Test:** `npm test` (Vitest) / `npm run test:watch`
+- **Test against dist:** `npm run test:dist` (same suite against the built output, needs a build first)
+- **Typecheck:** `npm run typecheck` (lib, test and config tsconfig projects)
+- **Package checks:** `npm run lint:pkg` (publint + arethetypeswrong on the packed tarball, needs a build first)
+- **Lint:** `npm run lint` / `npm run lint:fix` (Oxlint, `--deny-warnings`)
 - **Format:** `npm run format` / `npm run format:check` (Oxfmt)
 
 ## Architecture
 
-Single public entry point: `extract()` async function from `src/index.ts`.
+Public entry points:
 
-**Pipeline (`src/extract.ts`):**
-1. `createFont()` — wraps fontkit's `create()`, rejects font collections (TTC/DFONT) with a clear error
-2. `findLigaturesByRaws()` — resolves raw unicode/symbols to ligature strings by parsing the font's GSUB table (lookupType 4). This manual parsing is necessary because fontkit has no public API for ligature discovery
-3. `findMetaByLigatures()` — uses fontkit to layout ligatures, extracts glyph SVGs via path transforms (scale -1,1 + rotate π)
-4. `convertToSvgFont()` — assembles individual glyph SVGs into an SVG font using SVGIcons2SVGFontStream. SVG template is lazy-cached
-5. `convertByFormats()` — converts the SVG font to requested output formats (TTF first via svg2ttf, then WOFF/WOFF2/EOT from TTF)
+- `src/index.ts` — `extract(input, option)`; `input` is `Buffer | Uint8Array | ArrayBuffer`, normalized to a `Buffer` in `src/extract.ts`
+- `src/browser.ts` — `fontext/browser`, glyph discovery without Node APIs or converters (ESM only)
+- `src/cli.ts` — the `fontext` binary (CJS)
 
-**Key types (`src/types.ts`):** `MinifyOption` (input config), `ExtractedResult` (output map of format→Buffer + meta), `GlyphMeta` (name, unicode, svg per glyph).
+`src/extract.ts` validates options and routes to an engine by `option.engine`:
 
-**Fontkit type augmentation (`fontkit.d.ts`):** Extends fontkit types with GSUB table structures (`Lookup`, `SubTable`, `Ligature`, `RangeRecord`), `Font.GSUB`, and `Glyph.advanceHeight` — these are real fontkit internals not covered by `@types/fontkit`.
+- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, lays out ligatures with fontkit, turns glyph paths into SVGs, assembles an SVG font with SVGIcons2SVGFontStream, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` so output is deterministic
+- **subset** (`src/engines/subset.ts`) — HarfBuzz subset by characters / unicode ranges / ligature characters, keeps OpenType features
+- **convert** (`src/engines/convert.ts`) — re-encodes the whole font into other formats
+
+`src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF/WOFF2 via fontverter, EOT via ttf2eot) and `buildReport()`.
+
+`src/core.ts` holds the environment-independent logic used by both Node and browser entries: `resolveLigatures()` parses GSUB manually (every lookup of type 4, plus type 7 extension lookups wrapping type 4) because fontkit has no public API for ligature discovery; `findMetaByLigatures()` / `findMetaByCodePoints()` build `GlyphMeta` (SVG via path scale -1,1 + rotate π). `src/glyphs.ts` adds the `Buffer`-based `createFont()` for Node. `src/safari.ts` patches OS/2 and hhea tables for `safariFix`.
+
+**Key types (`src/types.ts`):** `MinifyOption` (discriminated union `IconOption | SubsetOption | ConvertOption`), `FontInput`, `ExtractedResult` (format → Buffer + `meta` + `report`), `GlyphMeta`, `OptimizationReport`.
+
+**Local type declarations:** `fontkit.d.ts` augments `@types/fontkit` with GSUB structures (`Lookup`, `SubTable` incl. extension fields, `Ligature`, `RangeRecord`), `Font.GSUB`, `Font.head.modified` and `Glyph.advanceHeight`; `fontverter.d.ts` declares the untyped fontverter module.
+
+**Gotcha:** fontkit caches glyph objects with the code points of their first lookup. Resolving raws on the same `Font` instance used for layout changes glyph names, so the icon engine resolves raws on a separate instance.
 
 ## Testing
 
-Vitest with real font files from `assets/` (TTF and WOFF2). Supports running against source or dist via `TEST_TARGET` env var. Tests cover: extraction, all output formats (SVG, TTF, WOFF, WOFF2, EOT), metadata, and validation errors. 14 tests, ~95% coverage.
+Vitest with real fonts from `assets/`: Material Icons (`font.ttf`, `font.woff2`), a text font without GSUB, and `font-multi-ligature-lookups.ttf` — a generated fixture with ligatures split across subtables, lookups and an extension lookup (regenerate with `uv run scripts/make-ligature-fixture.py`). `test/setup.ts` switches between `src` and `dist` via `TEST_TARGET`. Tests cover all engines and formats, metadata, reports, Safari fix, CLI, browser entry, input types, determinism and validation errors. Coverage thresholds live in `vitest.config.mts`.
 
 ## Tooling
 
-- **Linter:** Oxlint (not ESLint)
-- **Formatter:** Oxfmt (not Prettier)
+- **Linter:** Oxlint (not ESLint); test rules use the `vitest/` namespace
+- **Formatter:** Oxfmt (not Prettier); `.gitattributes` enforces LF
 - **Test runner:** Vitest (not Jest)
-- **Bundler:** tsup (CJS + ESM)
-- **Node version:** `.nvmrc` set to 24 for development, built output targets Node 20+ via `@tsconfig/node20`
-- **Releases:** Automated via release-please (manifest mode). Conventional commits (`feat:`, `fix:`, `perf:`) trigger release PRs. Config in `release-please-config.json` + `.release-please-manifest.json`
-- **CI:** GitHub Actions — lint + format check on Node 22, tests on Node 20/22/24
+- **Bundler:** tsdown (not tsup)
+- **TypeScript:** 6.x; base config `@tsconfig/node22`. Tests use `module: preserve` + `moduleResolution: bundler`
+- **Node version:** `.nvmrc` set to 24 for development; `engines.node` is `>=22.12.0`
+- **Config files** are `.mts` (`vitest.config.mts`, `tsdown.config.mts`) because the package is `"type": "commonjs"`
+- **Releases:** Automated via release-please (manifest mode). Conventional commits (`feat:`, `fix:`, `perf:`) trigger release PRs; `!` / `BREAKING CHANGE` bumps the major. Config in `release-please-config.json` + `.release-please-manifest.json`
+- **CI:** GitHub Actions — lint, format check and typecheck on Node 22; build, `lint:pkg` and tests on Node 22/24/26
+- **Dependabot:** grouped weekly npm updates, monthly GitHub Actions updates
 
 ## Rules
 

@@ -107,3 +107,32 @@
 - [x] **16.2** `--init` interactive wizard — creates `.fontextrc.json` with engine-specific templates
 - [x] **16.3** Help grouped by engine compatibility — Common, Icon, Subset, Convert sections
 - [x] **16.4** CLI npm scripts — `cli:help`, `cli:init`
+
+## Phase 17 — Dependency Upgrade & Toolchain
+
+- [x] **17.1** Patch `@xmldom/xmldom` advisories via svg2ttf 6.1; subset-font 2.9, oxlint 1.85, oxfmt 0.70
+- [x] **17.2** Require Node.js >=22.12 (Node 20 EOL); `@tsconfig/node22`, Vitest 5, CI matrix 22/24/26
+- [x] **17.3** Replace tsup with tsdown; TypeScript 6.0
+- [x] **17.4** Fix `exports` map — ESM consumers get `.d.mts` types, `fontext/browser` types resolve directly
+- [x] **17.5** Package checks in CI — publint + arethetypeswrong (`lint:pkg`), `typecheck` script incl. strict tests
+- [x] **17.6** Config files as `.mts`, LF via `.gitattributes`, grouped Dependabot updates for npm and Actions
+
+## Phase 18 — Correctness & Performance
+
+- [x] **18.1** Fix call stack overflow on large code point sets (`String.fromCodePoint(...spread)`)
+- [x] **18.2** Encode WOFF/WOFF2 via fontverter instead of native ttf2woff2 — ~3x faster WOFF2, no node-gyp
+- [x] **18.3** Shared engine module — one subset per request, single report and Safari-fix path
+- [x] **18.4** Resolve ligatures from every GSUB lookup, subtable and extension lookup
+- [x] **18.5** Accept `Uint8Array` and `ArrayBuffer` input in `extract()`
+- [x] **18.6** Deterministic icon engine output — TTF timestamp from the source font
+
+## Phase 19 — Backlog
+
+- [ ] **19.1** Split `src/cli.ts` into modules (args, config, watch, output) and unit-test them; drop the coverage exclusion
+- [ ] **19.2** npm trusted publishing (OIDC) instead of `NPM_TOKEN` — needs the trusted publisher configured on npmjs.com
+- [ ] **19.3** TypeScript 7 once tsdown's declaration output supports it as stable
+- [ ] **19.4** `fontext/vite` plugin — build-time icon font generation with a virtual CSS module and HMR
+- [ ] **19.5** Detect used icons by scanning sources for ligature names and code points
+- [ ] **19.6** CSS/SCSS output — `@font-face` with `unicode-range`, icon classes, TS union of icon names
+- [ ] **19.7** Variable fonts — pin or limit axes via subset-font `variationAxes`
+- [ ] **19.8** SVG sprite and per-glyph SVG export from `meta`
