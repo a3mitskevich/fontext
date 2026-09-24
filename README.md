@@ -28,7 +28,7 @@ both:
 - **Subset by unicode range** — pass `U+0400-U+04FF` for Cyrillic block (both engines)
 - **Multiple output formats** — SVG, TTF, WOFF, WOFF2, EOT
 - **Preserves font features** — subset engine keeps kerning, hinting, GSUB/GPOS via HarfBuzz; pairs of a legacy
-  `kern` table are kept only for the glyphs that stay in the font
+  `kern` table are kept only for the glyphs that stay in the font, and `warnings` tells when some of it can't be kept
 - **Glyph metadata** — get name, unicode mappings, and SVG path data for each extracted glyph
 - **Reproducible output** — identical input produces byte-identical fonts, so content-hashed asset names stay stable
   between builds
@@ -122,7 +122,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 ### `ExtractedResult`
 
 An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `woff2`, `eot`), each containing a
-`Buffer`. Also includes `meta` and `report`:
+`Buffer`. Also includes `meta`, `report` and `warnings`:
 
 ```typescript
 interface GlyphMeta {
@@ -140,7 +140,17 @@ interface OptimizationReport {
         };
     };
 }
+
+interface FontWarning {
+    code: "legacy-kern";  // what the output could not keep
+    message: string;
+}
 ```
+
+`warnings` lists what the subset and convert engines could not keep from the source font; the CLI prints them
+(and puts them in `--json` output). `legacy-kern`: the font kerns only in the legacy `kern` table, and part of it was
+left out — an Apple or malformed table, format 2/3, cross-stream or vertical subtables, or pairs of glyphs without a
+code point that could not be matched in the subset. A version of the font with kerning in GPOS avoids it.
 
 ## Supported Input Formats
 
