@@ -30,23 +30,23 @@ Public entry points:
 - **subset** (`src/engines/subset.ts`) — HarfBuzz subset by characters / unicode ranges / ligature characters, keeps OpenType features
 - **convert** (`src/engines/convert.ts`) — re-encodes the whole font into other formats
 
-`src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType, restore legacy kerning, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF via ttf2woff, WOFF2 via wawoff2, EOT via ttf2eot) and `buildReport()`.
+`src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType, restore legacy kerning with warnings about what it can't keep, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF via ttf2woff, WOFF2 via wawoff2, EOT via ttf2eot) and `buildReport()`.
 
 `src/font/` is the font access layer shared by both entries:
 
 - `container.ts` — `toSfnt()` detects the format by signature, inflates WOFF with `DecompressionStream`, hands WOFF2 to a decoder passed in by the entry (wawoff2 in Node, an error in the browser) and rejects TTC/DFONT
 - `font.ts` — `openFont()` returns the `Font` interface: cmap and reverse cmap, `shape()` (HarfBuzz shaping, glyphs with the source text of their cluster, UTF-16 indices), SVG paths, advances, `modified`, GSUB ligature records
-- `gsub.ts` — ligature records of every lookup of type 4 and type 7 wrapping type 4; `reader.ts` — bounds-checked big-endian reads with "Malformed <table>" errors
-- `kern.ts` — the legacy kern table: pair kerning as shapers apply it (horizontal format 0 subtables, override bit) and a subset of it for the kept glyphs; `sfnt.ts` — table directory reading, packing and adding a table with checksums
-- `outline.ts` — HarfBuzz draw commands to SVG path data (y flipped, closing line before `Z` dropped); `tables.ts` — head, vmtx, OS/2 and hhea fields
+- `gsub.ts` — ligature records of every lookup of type 4 and type 7 wrapping type 4; `reader.ts` — bounds-checked big-endian reads that throw `MalformedFontError` ("Malformed <table>: ...")
+- `kern.ts` — the legacy kern table: pair kerning as HarfBuzz applies it (every horizontal format 0 subtable added up, minimum and override bits ignored), a subset of it for the kept glyphs in subtables of at most 10 920 pairs, and what it had to leave out; `sfnt.ts` — table directory reading, packing and adding a table with checksums
+- `outline.ts` — HarfBuzz draw commands to SVG path data (y flipped, closing line before `Z` dropped); `tables.ts` — head, maxp, vmtx, OS/2 and hhea fields
 
 `src/core.ts` holds the environment-independent logic: `resolveLigatures()` turns GSUB records into texts and keeps those the default layout forms (`formsGlyph`); `findMetaByLigatures()` / `findMetaByCodePoints()` build `GlyphMeta`. `src/glyphs.ts` adds the Node `createFont()` with WOFF2 via wawoff2. `src/safari.ts` patches OS/2 and hhea tables for `safariFix`.
 
-**Key types (`src/types.ts`):** `MinifyOption` (discriminated union `IconOption | SubsetOption | ConvertOption`), `FontInput`, `ExtractedResult` (format → Buffer + `meta` + `report`), `GlyphMeta`, `OptimizationReport`.
+**Key types (`src/types.ts`):** `MinifyOption` (discriminated union `IconOption | SubsetOption | ConvertOption`), `FontInput`, `ExtractedResult` (format → Buffer + `meta` + `report` + `warnings`), `FontWarning`, `GlyphMeta`, `OptimizationReport`.
 
 **harfbuzzjs gotchas:**
 
-- hb-subset drops the legacy `kern` table (it cannot renumber its glyphs). `src/engines/kerning.ts` puts back the non-zero pairs of the glyphs the subset kept, matched through the cmap, as one format 0 subtable; fonts whose GPOS has a `kern` feature don't get it back. The harfbuzzjs build ignores `kern` when shaping, so tests compare pairs, not advances
+- hb-subset drops the legacy `kern` table (it cannot renumber its glyphs). `src/engines/kerning.ts` puts back the non-zero pairs of the glyphs the subset kept. Glyphs are matched through the cmap, and in between by order: hb-subset keeps old glyph order, so a gap where it kept all or none of the glyphs is exact. Pairs it can't match, Apple tables, format 2/3, cross-stream and vertical subtables and malformed tables give a `legacy-kern` warning. Fonts whose GPOS has a `kern` feature don't get the table back. OTS drops a kern table with a subtable over 10 922 pairs. The harfbuzzjs build ignores `kern` when shaping, so tests compare pairs, not advances
 - It is imported with `await import("harfbuzzjs")` inside `openFont()`: the module instantiates WebAssembly with top-level await, and a static import would break `require("fontext")`
 - `Face.referenceTable()` returns a view of WebAssembly memory that detaches when memory grows; `tableOf()` copies it
 - The build has no vertical metrics (`glyphVAdvance` is always the em size), so vmtx is read in `tables.ts`
