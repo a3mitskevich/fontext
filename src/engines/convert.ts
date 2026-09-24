@@ -14,9 +14,10 @@ export async function extractConvert(
   const font = await createFont(content);
   const allCodePoints = font.codePoints;
 
-  const ttf = formats.some((f) => f !== "svg")
+  const subset = formats.some((f) => f !== "svg")
     ? await subsetToTtf(content, codePointsToString(allCodePoints), option.safariFix)
     : null;
+  const ttf = subset?.ttf;
   const binaryFonts = ttf ? await encodeFromTtf(ttf, formats) : {};
   const svgFont = formats.includes("svg")
     ? { svg: await convertToSvgFont(fontName, findMetaByCodePoints(font, allCodePoints)) }
@@ -29,5 +30,6 @@ export async function extractConvert(
     ...fonts,
     meta: findMetaByCodePoints(outputFont, outputFont.codePoints),
     report: buildReport(content.length, fonts, formats),
+    warnings: subset?.warnings ?? [],
   };
 }

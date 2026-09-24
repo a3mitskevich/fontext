@@ -2,8 +2,9 @@ import { describe, it, expect } from "vitest";
 import * as hb from "harfbuzzjs";
 import { decompress } from "wawoff2";
 import type { MinifyOption } from "../src";
+import { withTable } from "../src/font/sfnt";
 import { extract, textFont } from "./setup";
-import { findTable, readKernPairs } from "./ttf-utils";
+import { findTable, kernTable, readKernPairs } from "./ttf-utils";
 
 // The text font kerns Ye, Fa, P., W, and V. in a legacy kern table and has no GPOS.
 // The harfbuzzjs build ignores legacy kern tables, so pairs are compared instead of shaped advances
@@ -87,5 +88,66 @@ describe("legacy kern table", () => {
     const output = ttf as Buffer;
 
     expect(readKernPairs(output)).toStrictEqual(expectedPairs(output, KERNED_TEXT));
+  });
+});
+
+const HORIZONTAL = 0x1;
+const FORMAT2 = 0x2_00;
+
+const withKern = (kern: Uint8Array): Buffer => Buffer.from(withTable(textFont, "kern", kern));
+
+describe("legacy kern warnings", () => {
+  const glyph = glyphOf(textFont);
+
+  it("should not warn when all the kerning is kept", async () => {
+    const subset = await extract(textFont, subsetOption(KERNED_TEXT));
+    const converted = await extract(textFont, {
+      fontName: "kerning",
+      engine: "convert",
+      formats: ["ttf"],
+    });
+
+    expect(subset.warnings).toStrictEqual([]);
+    expect(converted.warnings).toStrictEqual([]);
+  });
+
+  it("should keep the pairs it can and warn about a subtable it can't carry over", async () => {
+    const font = withKern(
+      kernTable([
+        { coverage: HORIZONTAL, pairs: [[glyph("A"), glyph("V"), -80]] },
+        { coverage: HORIZONTAL | FORMAT2, pairs: [] },
+      ]),
+    );
+    const { ttf, warnings } = await extract(font, subsetOption("AV"));
+    const output = glyphOf(ttf as Buffer);
+
+    expect(readKernPairs(ttf as Buffer)).toStrictEqual([[output("A"), output("V"), -80]]);
+    expect(warnings).toStrictEqual([
+      {
+        code: "legacy-kern",
+        message:
+          "The font kerns in the legacy kern table, and part of it was left out: 1 subtable of " +
+          "format 2 or 3, cross-stream or vertical kerning. A version of the font with kerning in " +
+          "GPOS avoids this.",
+      },
+    ]);
+  });
+
+  it("should subset a font with a malformed kern table and warn", async () => {
+    const kern = kernTable([{ coverage: HORIZONTAL, pairs: [[glyph("A"), glyph("V"), -80]] }]);
+    const { ttf, warnings } = await extract(withKern(kern.subarray(0, -2)), subsetOption("AV"));
+
+    expect(findTable(ttf as Buffer, "kern")).toBeNull();
+    expect(warnings.map(({ code }) => code)).toStrictEqual(["legacy-kern"]);
+    expect(warnings[0].message).toContain("the table is malformed, so it was left out");
+  });
+
+  it("should warn about an Apple kern table", async () => {
+    const apple = new Uint8Array([0, 1, 0, 0, 0, 0, 0, 0]);
+    const { warnings } = await extract(withKern(apple), subsetOption("AV"));
+
+    expect(warnings.map(({ message }) => message)).toStrictEqual([
+      expect.stringContaining("it is an Apple kern table (version 1), which is not read"),
+    ]);
   });
 });

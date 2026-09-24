@@ -18,9 +18,19 @@ export interface OptimizationReport {
   formats: Partial<Record<Formats, { size: number; saving: number }>>;
 }
 
+/**
+ * Something of the source font the output could not keep. `legacy-kern`: the font kerns only in
+ * the legacy kern table, and part of that kerning was left out.
+ */
+export interface FontWarning {
+  code: "legacy-kern";
+  message: string;
+}
+
 export type ExtractedResult = Partial<Record<Formats, Buffer>> & {
   meta: GlyphMeta[];
   report: OptimizationReport;
+  warnings: FontWarning[];
 };
 
 export interface GlyphMeta {

@@ -2,7 +2,7 @@ import subsetFont from "subset-font";
 import ttf2eot from "ttf2eot";
 import ttf2woff from "ttf2woff";
 import { compress as ttf2woff2, decompress } from "wawoff2";
-import type { Formats, OptimizationReport } from "../types";
+import type { FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
 import { restoreKerning } from "./kerning";
@@ -27,15 +27,20 @@ export async function encodeFromTtf(ttf: Buffer, formats: Formats[]): Promise<Fo
   return Object.fromEntries(encoded);
 }
 
+export interface SubsetTtf {
+  ttf: Buffer;
+  warnings: FontWarning[];
+}
+
 /**
  * Subsets a font to the given text as TrueType, with the legacy kern pairs of the kept glyphs,
- * optionally patched for Safari.
+ * optionally patched for Safari. Warns about legacy kerning it could not keep.
  */
 export async function subsetToTtf(
   content: Buffer,
   text: string,
   safariFix = false,
-): Promise<Buffer> {
+): Promise<SubsetTtf> {
   const source = await toSfnt(content, decompress);
   const subset = await subsetFont(
     Buffer.from(source.buffer, source.byteOffset, source.length),
@@ -44,9 +49,9 @@ export async function subsetToTtf(
       targetFormat: "truetype",
     },
   );
-  const kerned = await restoreKerning(source, subset);
-  const ttf = Buffer.from(kerned.buffer, kerned.byteOffset, kerned.byteLength);
-  return safariFix ? applySafariFix(ttf) : ttf;
+  const { font, warnings } = await restoreKerning(source, subset);
+  const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
+  return { ttf: safariFix ? applySafariFix(ttf) : ttf, warnings };
 }
 
 export function buildReport(

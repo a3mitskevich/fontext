@@ -60,7 +60,11 @@ export async function extractSubset(
     throw new Error("Subset engine does not support SVG format. Use icon engine for SVG output.");
   }
 
-  const ttf = await subsetToTtf(content, codePointsToString(codePoints), option.safariFix);
+  const { ttf, warnings } = await subsetToTtf(
+    content,
+    codePointsToString(codePoints),
+    option.safariFix,
+  );
   const fonts = await encodeFromTtf(ttf, formats);
   const subsetted = await createFont(ttf);
 
@@ -68,5 +72,6 @@ export async function extractSubset(
     ...fonts,
     meta: findMetaByCodePoints(subsetted, subsetted.codePoints),
     report: buildReport(content.length, fonts, formats),
+    warnings,
   };
 }

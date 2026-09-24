@@ -9,6 +9,7 @@ export {
   type SubsetOption,
   type ConvertOption,
   type ExtractedResult,
+  type FontWarning,
   type OptimizationReport,
   type Engine,
   type FontInput,
