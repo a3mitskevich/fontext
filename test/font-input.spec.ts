@@ -72,6 +72,15 @@ describe("font input", () => {
   });
 
   it.each(collections)(
+    "should reject a %s font collection in the subset engine",
+    async (_label, font) => {
+      await expect(
+        extract(font, { fontName: "collection", engine: "subset", characters: "abc" }),
+      ).rejects.toThrow(COLLECTION_ERROR);
+    },
+  );
+
+  it.each(collections)(
     "should reject a %s font collection in the browser entry",
     async (_label, font) => {
       await expect(createFont(new Uint8Array(font))).rejects.toThrow(COLLECTION_ERROR);
