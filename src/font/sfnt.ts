@@ -1,4 +1,4 @@
-import { createReader } from "./reader";
+import { createReader, type BinaryReader } from "./reader";
 
 export interface SfntTable {
   tag: number;
@@ -31,24 +31,36 @@ export function tableChecksum(data: Uint8Array): number {
   return sum;
 }
 
+/** Offsets of the table records of an uncompressed font. */
+const tableRecords = (reader: BinaryReader): number[] =>
+  Array.from(
+    { length: reader.uint16(4) },
+    (_, index) => SFNT_HEADER_SIZE + index * SFNT_TABLE_RECORD_SIZE,
+  );
+
+const recordData = (reader: BinaryReader, record: number): Uint8Array =>
+  reader.bytes(reader.uint32(record + 8), reader.uint32(record + 12));
+
 /** The sfnt version and the tables of an uncompressed font, in directory order. */
 export function readSfnt(sfnt: Uint8Array): { flavor: number; tables: SfntTable[] } {
   const reader = createReader(sfnt, "font");
-  const tables = Array.from({ length: reader.uint16(4) }, (_, index) => {
-    const record = SFNT_HEADER_SIZE + index * SFNT_TABLE_RECORD_SIZE;
-    return {
-      tag: reader.uint32(record),
-      checksum: reader.uint32(record + 4),
-      data: reader.bytes(reader.uint32(record + 8), reader.uint32(record + 12)),
-    };
-  });
+  const tables = tableRecords(reader).map((record) => ({
+    tag: reader.uint32(record),
+    checksum: reader.uint32(record + 4),
+    data: recordData(reader, record),
+  }));
   return { flavor: reader.uint32(0), tables };
 }
 
-/** The data of a table of an uncompressed font, or undefined when the font has none. */
+/**
+ * The data of a table of an uncompressed font, or undefined when the font has none. Only its own
+ * record is read, so a broken record of another table, which HarfBuzz tolerates, does not fail it.
+ */
 export function sfntTable(sfnt: Uint8Array, tag: string): Uint8Array | undefined {
+  const reader = createReader(sfnt, "font");
   const tagValue = tagNumber(tag);
-  return readSfnt(sfnt).tables.find((table) => table.tag === tagValue)?.data;
+  const record = tableRecords(reader).find((offset) => reader.uint32(offset) === tagValue);
+  return record === undefined ? undefined : recordData(reader, record);
 }
 
 /** Packs tables into an sfnt with the given version; tables keep their order and checksums. */

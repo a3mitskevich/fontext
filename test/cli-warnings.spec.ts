@@ -34,7 +34,7 @@ describe("CLI legacy kern warning", () => {
 
     expect(status).toBe(0);
     expect(JSON.parse(stdout).warnings).toStrictEqual([
-      { code: "legacy-kern", message: expect.stringContaining("the table is malformed") },
+      { code: "legacy-kern", message: expect.stringContaining("left out: Malformed kern table") },
     ]);
   });
 
