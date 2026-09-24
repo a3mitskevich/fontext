@@ -10,6 +10,7 @@ const HHEA_ASCENDER = 4;
 const HHEA_DESCENDER = 6;
 const VHEA_LONG_METRICS_COUNT = 34;
 const LONG_METRIC_SIZE = 4;
+const MAXP_NUM_GLYPHS = 4;
 
 /** The head.modified date as Unix time in seconds; dates before 1970 give 0. */
 export function modifiedTime(head: Uint8Array): number {
@@ -17,6 +18,11 @@ export function modifiedTime(head: Uint8Array): number {
   const high = reader.int32(HEAD_MODIFIED);
   const low = reader.uint32(HEAD_MODIFIED + 4);
   return Math.max(high * UINT32_RANGE + low - OPENTYPE_EPOCH_OFFSET, 0);
+}
+
+/** The number of glyphs in the font, from maxp. */
+export function glyphCount(maxp: Uint8Array): number {
+  return createReader(maxp, "maxp table").uint16(MAXP_NUM_GLYPHS);
 }
 
 /**

@@ -472,6 +472,7 @@ async function main(): Promise<void> {
           saving,
         })),
         meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
+        warnings: result.warnings,
       });
     }
 
@@ -497,6 +498,9 @@ async function main(): Promise<void> {
     }
 
     console.log();
+    for (const { message } of result.warnings) {
+      printWarning(`${fontName}: ${message}`);
+    }
   }
 
   const jsonResults: unknown[] = [];

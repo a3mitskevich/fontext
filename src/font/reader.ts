@@ -9,13 +9,18 @@ export interface BinaryReader {
   bytes: (offset: number, length: number) => Uint8Array;
 }
 
+/** A read past the end of font data; the message names the data, e.g. "Malformed kern table: ...". */
+export class MalformedFontError extends Error {
+  override readonly name = "MalformedFontError";
+}
+
 /** `name` goes into error messages, e.g. "GSUB table" or "WOFF file". */
 export function createReader(data: Uint8Array, name: string): BinaryReader {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
   const check = (offset: number, size: number): number => {
     if (!Number.isInteger(offset) || offset < 0 || offset + size > data.byteLength) {
-      throw new Error(
+      throw new MalformedFontError(
         `Malformed ${name}: cannot read ${size} bytes at offset ${offset}, it is ${data.byteLength} bytes long`,
       );
     }

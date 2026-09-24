@@ -115,5 +115,6 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
     ...fonts,
     meta: glyphsMeta,
     report: buildReport(content.length, fonts, formats),
+    warnings: [],
   };
 }

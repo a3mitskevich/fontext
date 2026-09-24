@@ -17,14 +17,33 @@ const KERN_HEADER_SIZE = 4;
 const KERN_SUBTABLE_HEADER_SIZE = 14;
 const KERN_PAIR_SIZE = 6;
 
+export type KernTuple = [left: number, right: number, value: number];
+
+const u16 = (value: number): number[] => [(value >> 8) & 0xff, value & 0xff];
+
+/** A version 0 kern table; the pairs of every subtable are written as format 0. */
+export function kernTable(subtables: { coverage: number; pairs: KernTuple[] }[]): Uint8Array {
+  const body = subtables.flatMap(({ coverage, pairs }) => [
+    ...u16(0),
+    ...u16(KERN_SUBTABLE_HEADER_SIZE + pairs.length * KERN_PAIR_SIZE),
+    ...u16(coverage),
+    ...u16(pairs.length),
+    ...u16(0),
+    ...u16(0),
+    ...u16(0),
+    ...pairs.flatMap(([left, right, value]) => [...u16(left), ...u16(right), ...u16(value)]),
+  ]);
+  return new Uint8Array([...u16(0), ...u16(subtables.length), ...body]);
+}
+
 /** Pairs of every format 0 subtable of a version 0 kern table as [left, right, value]. */
-export function readKernPairs(font: Uint8Array): [number, number, number][] {
+export function readKernPairs(font: Uint8Array): KernTuple[] {
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
   const table = findTable(ttf, "kern");
   if (!table) {
     return [];
   }
-  const pairs: [number, number, number][] = [];
+  const pairs: KernTuple[] = [];
   let subtable = table.offset + KERN_HEADER_SIZE;
   for (let index = 0; index < ttf.readUInt16BE(table.offset + 2); index++) {
     const count = ttf.readUInt16BE(subtable + 6);
