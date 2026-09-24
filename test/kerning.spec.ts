@@ -3,8 +3,8 @@ import * as hb from "harfbuzzjs";
 import { decompress } from "wawoff2";
 import type { MinifyOption } from "../src";
 import { withTable } from "../src/font/sfnt";
-import { extract, textFont } from "./setup";
-import { findTable, kernTable, readKernPairs } from "./ttf-utils";
+import { extract, textFont, ttfOriginalFont } from "./setup";
+import { findTable, kernTable, readKernPairs, withRecordPastEnd } from "./ttf-utils";
 
 // The text font kerns Ye, Fa, P., W, and V. in a legacy kern table and has no GPOS.
 // The harfbuzzjs build ignores legacy kern tables, so pairs are compared instead of shaped advances
@@ -139,7 +139,7 @@ describe("legacy kern warnings", () => {
 
     expect(findTable(ttf as Buffer, "kern")).toBeNull();
     expect(warnings.map(({ code }) => code)).toStrictEqual(["legacy-kern"]);
-    expect(warnings[0].message).toContain("the table is malformed, so it was left out");
+    expect(warnings[0].message).toContain("it was left out: Malformed kern table: cannot read");
   });
 
   it("should warn about an Apple kern table", async () => {
@@ -148,6 +148,43 @@ describe("legacy kern warnings", () => {
 
     expect(warnings.map(({ message }) => message)).toStrictEqual([
       expect.stringContaining("it is an Apple kern table (version 1), which is not read"),
+    ]);
+  });
+});
+
+describe("font with a table record past its end", () => {
+  it("should keep the pairs when another table record points past the end", async () => {
+    const { ttf, warnings } = await extract(
+      withRecordPastEnd(textFont, "zzzz"),
+      subsetOption(KERNED_TEXT),
+    );
+    const output = ttf as Buffer;
+
+    expect(readKernPairs(output)).toStrictEqual(expectedPairs(output, KERNED_TEXT));
+    expect(warnings).toStrictEqual([]);
+  });
+
+  it("should subset a font without a kern table as before", async () => {
+    const { ttf, warnings } = await extract(withRecordPastEnd(ttfOriginalFont, "zzzz"), {
+      fontName: "icons",
+      engine: "subset",
+      characters: "abc",
+      formats: ["ttf"],
+    });
+
+    expect(ttf?.length).toBeGreaterThan(0);
+    expect(warnings).toStrictEqual([]);
+  });
+
+  it("should leave out a kern table whose record points past the end and warn", async () => {
+    const { ttf, warnings } = await extract(
+      withRecordPastEnd(textFont, "kern"),
+      subsetOption(KERNED_TEXT),
+    );
+
+    expect(findTable(ttf as Buffer, "kern")).toBeNull();
+    expect(warnings.map(({ message }) => message)).toStrictEqual([
+      expect.stringContaining("it was left out: Malformed font: cannot read"),
     ]);
   });
 });

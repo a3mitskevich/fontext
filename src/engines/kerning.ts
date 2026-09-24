@@ -1,12 +1,6 @@
 import type { FontWarning } from "../types";
 import { openFont } from "../font/font";
-import {
-  type GlyphMatch,
-  hasGposKern,
-  type KernLoss,
-  type SubsetKern,
-  subsetKern,
-} from "../font/kern";
+import { type GlyphMatch, hasGposKern, type KernLoss, subsetKern } from "../font/kern";
 import { MalformedFontError } from "../font/reader";
 import { sfntTable, withTable } from "../font/sfnt";
 import { glyphCount } from "../font/tables";
@@ -114,39 +108,32 @@ const legacyKernWarning = (description: string): FontWarning => ({
     "A version of the font with kerning in GPOS avoids this.",
 });
 
-/** The kern table of the subset, or undefined when the source table is malformed. */
-function readSubsetKern(kern: Uint8Array, glyphs: GlyphMatch): SubsetKern | undefined {
-  try {
-    return subsetKern(kern, glyphs);
-  } catch (error) {
-    if (error instanceof MalformedFontError) {
-      return undefined;
-    }
-    throw error;
+async function keepKerning(source: Uint8Array, subset: Uint8Array): Promise<KernedFont> {
+  const kern = sfntTable(source, "kern");
+  if (!kern || hasGposKern(sfntTable(source, "GPOS"))) {
+    return { font: subset, warnings: [] };
   }
+  const kept = subsetKern(kern, await matchSubsetGlyphs(source, subset));
+  const description = lossDescription(kept.loss);
+  return {
+    font: kept.table ? withTable(subset, "kern", kept.table) : subset,
+    warnings: description ? [legacyKernWarning(description)] : [],
+  };
 }
 
 /**
  * HarfBuzz drops the legacy kern table when it subsets, because it can't renumber its glyphs.
  * This puts back the pairs of the glyphs the subset kept and warns about the kerning it can't
  * carry over. Fonts whose GPOS has a kern feature don't get the table back: shapers ignore it
- * there.
+ * there. When the source can't be read for it, the subset stays as HarfBuzz made it.
  */
 export async function restoreKerning(source: Uint8Array, subset: Uint8Array): Promise<KernedFont> {
-  const kern = sfntTable(source, "kern");
-  if (!kern || hasGposKern(sfntTable(source, "GPOS"))) {
-    return { font: subset, warnings: [] };
+  try {
+    return await keepKerning(source, subset);
+  } catch (error) {
+    if (error instanceof MalformedFontError) {
+      return { font: subset, warnings: [legacyKernWarning(`it was left out: ${error.message}`)] };
+    }
+    throw error;
   }
-  const kept = readSubsetKern(kern, await matchSubsetGlyphs(source, subset));
-  if (!kept) {
-    return {
-      font: subset,
-      warnings: [legacyKernWarning("the table is malformed, so it was left out")],
-    };
-  }
-  const description = lossDescription(kept.loss);
-  return {
-    font: kept.table ? withTable(subset, "kern", kept.table) : subset,
-    warnings: description ? [legacyKernWarning(description)] : [],
-  };
 }
