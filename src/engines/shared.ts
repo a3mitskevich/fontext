@@ -11,9 +11,24 @@ type BinaryFormat = Exclude<Formats, "svg">;
 
 export type FontBuffers = Partial<Record<Formats, Buffer>>;
 
+// The WOFF header starts with the "wOFF" signature, followed by the flavor
+const WOFF_FLAVOR_OFFSET = 4;
+const SFNT_VERSION_LENGTH = 4;
+
+/**
+ * The ttf2woff package takes the WOFF flavor from `head.version` (always 1.0), so a CFF font gets
+ * 0x00010000 instead of `OTTO` and Safari rejects it. The flavor is the sfnt version, copied here
+ * from the font; the WOFF header has no checksum, so nothing else changes.
+ */
+function toWoff(ttf: Buffer): Buffer {
+  const woff = Buffer.from(ttf2woff(new Uint8Array(ttf)));
+  ttf.copy(woff, WOFF_FLAVOR_OFFSET, 0, SFNT_VERSION_LENGTH);
+  return woff;
+}
+
 const ENCODERS: Record<BinaryFormat, (ttf: Buffer) => Buffer | Promise<Buffer>> = {
   ttf: (ttf) => ttf,
-  woff: (ttf) => Buffer.from(ttf2woff(new Uint8Array(ttf))),
+  woff: toWoff,
   woff2: async (ttf) => Buffer.from(await ttf2woff2(ttf)),
   eot: (ttf) => Buffer.from(ttf2eot(new Uint8Array(ttf))),
 };
