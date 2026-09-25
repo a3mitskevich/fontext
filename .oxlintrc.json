@@ -80,6 +80,20 @@
   },
   "overrides": [
     {
+      "files": ["e2e/**"],
+      "rules": {
+        "node/no-sync": "off"
+      }
+    },
+    {
+      "files": ["e2e/*.e2e.ts"],
+      "rules": {
+        "vitest/prefer-each": "off",
+        "vitest/prefer-importing-vitest-globals": "off",
+        "vitest/no-conditional-in-test": "off"
+      }
+    },
+    {
       "files": ["src/cli.ts", "test/**", "scripts/**"],
       "rules": {
         "node/no-sync": "off"

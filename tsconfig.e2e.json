@@ -1,0 +1,13 @@
+{
+  "extends": "@tsconfig/node22",
+  "compilerOptions": {
+    "strict": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    // Type the page against the sources; Vite bundles it with the built dist/browser.js
+    "paths": { "fontext/browser": ["./src/browser.ts"] },
+  },
+  "include": ["e2e/**/*.ts", "playwright.config.ts"],
+}

@@ -2,3 +2,7 @@ node_modules/
 dist/
 .idea/
 coverage/
+e2e/page/public/generated/
+e2e/.output/
+test-results/
+playwright-report/

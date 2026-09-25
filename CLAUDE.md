@@ -11,7 +11,8 @@ Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs fr
 - **Build:** `npm run build` (tsdown, config in `tsdown.config.ts`; outputs ESM `index.js` + `index.d.ts`, `browser.js` + `browser.d.ts` and `cli.js` to `dist/`)
 - **Test:** `npm test` (Vitest) / `npm run test:watch`
 - **Test against dist:** `npm run test:dist` (same suite against the built output, needs a build first)
-- **Typecheck:** `npm run typecheck` (lib, test and config tsconfig projects)
+- **Browser checks:** `npm run test:e2e` (Playwright in Chromium, Firefox and WebKit; builds the package, the fonts and the page first) / `npm run test:e2e:manual` (builds and serves the page at http://localhost:4178 to open in any browser, e.g. real Safari)
+- **Typecheck:** `npm run typecheck` (lib, test, config and e2e tsconfig projects)
 - **Package checks:** `npm run lint:pkg` (publint + arethetypeswrong on the packed tarball, needs a build first)
 - **Lint:** `npm run lint` / `npm run lint:fix` (Oxlint, `--deny-warnings`)
 - **Format:** `npm run format` / `npm run format:check` (Oxfmt)
@@ -63,9 +64,12 @@ Vitest with real fonts from `assets/`: Material Icons (`font.ttf`, `font.woff2`)
 
 The generators write tables by hand through `scripts/sfnt-writer.mjs`, `font-tables.mjs`, `gsub-writer.mjs` and `cff-writer.mjs`. WOFF, TTC and DFONT inputs are built in tests from the TTF fixtures (`test/font-containers.ts`). `test/setup.ts` switches between `src` and `dist` via `TEST_TARGET`. Tests cover all engines and formats, metadata, reference outlines (checked against fontTools), the SVG font and the TTF built from it (TTF outlines recorded from svgicons2svgfont output), CFF, reports, Safari fix, CLI, browser entry and its Vite bundle, input formats and malformed fonts, determinism and validation errors. Coverage thresholds live in `vitest.config.ts`.
 
+**Browser checks (`e2e/`):** `generate.mjs` runs the cases of `cases.mjs` through the built `dist/` and writes the fonts plus `manifest.json` to `e2e/page/public/generated/` (gitignored). The page (`e2e/page/`, built by Vite with `fontext/browser` aliased to `dist/browser.js`) loads every output format with `FontFace` (EOT through the TTF it wraps), draws each sample with the output font and with the source font at 400px and compares the covered pixels (`raster.ts`: every pixel within 2px of the other drawing, at most 0.2% outliers, ink boxes within 1px, 2px for SVG glyphs drawn with Path2D; resolution about 1% of the em), checks advances, legacy kerning, `safariFix` metrics (typo ascent, descent and line height; Firefox's line height is reported, not asserted), that the SVG font is well-formed XML with each glyph drawn like the source, and that `fontext/browser` returns in the browser what it returns in Node. Icon glyphs are compared with the source drawn `unitsPerEm / verticalAdvance` times larger. Mismatch controls (`expect: "mismatch"`) prove the comparison tells near-identical glyphs apart. `fontext.e2e.ts` opens the page once per case (`?case=<id>`) and fails on any failed check; without `?case` the page runs everything, for manual runs. CI runs it on macOS (`.github/workflows/e2e.yaml`) on demand and weekly.
+
 ## Tooling
 
-- **Linter:** Oxlint (not ESLint) over `src/`, `test/` and `scripts/`; test rules use the `vitest/` namespace
+- **Linter:** Oxlint (not ESLint) over `src/`, `test/`, `scripts/` and `e2e/`; test rules use the `vitest/` namespace
+- **Browser tests:** Playwright (`playwright.config.ts`), specs named `*.e2e.ts` so Vitest ignores them
 - **Scripts:** repo scripts are plain Node ESM (`.mjs`), no Python
 - **Formatter:** Oxfmt (not Prettier); `.gitattributes` enforces LF
 - **Test runner:** Vitest (not Jest)

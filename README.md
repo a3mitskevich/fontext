@@ -188,6 +188,13 @@ await, so the bundler has to keep both:
 - A Content Security Policy must allow `'wasm-unsafe-eval'` in `script-src`, and `.wasm` files must be served as
   `application/wasm`.
 
+## Development
+
+`npm test` runs the Vitest suite. `npm run test:e2e` renders the output of every engine and format in Chromium,
+Firefox and WebKit with Playwright and compares it with the source font pixel by pixel; run
+`npx playwright install` once first. `npm run test:e2e:manual` serves the same checks at http://localhost:4178, so
+they can run in any installed browser, such as Safari.
+
 ## License
 
 [MIT](./LICENSE)
