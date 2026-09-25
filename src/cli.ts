@@ -517,9 +517,6 @@ async function main(): Promise<void> {
     await runOne(entry.inputPath, entry.outputDir, entry.fontName, entry.extractOpts);
 
     if (values.watch && !isDryRun) {
-      if (!isSilent) {
-        console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
-      }
       let debounce: ReturnType<typeof setTimeout> | null = null;
       const inputName = path.basename(entry.inputPath);
       /*
@@ -549,6 +546,10 @@ async function main(): Promise<void> {
         printError(`Watch failed: ${err.message}`);
         process.exit(1);
       });
+      // Only once the watcher is attached: a change made right after the line would be missed otherwise
+      if (!isSilent) {
+        console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
+      }
     }
   }
 
