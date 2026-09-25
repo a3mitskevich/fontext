@@ -59,7 +59,9 @@
     "e2e:generate": "node e2e/generate.mjs",
     "e2e:build": "npm run build && npm run e2e:generate && vite build --config e2e/vite.config.ts",
     "e2e:serve": "vite preview --config e2e/vite.config.ts",
-    "test:e2e": "npm run e2e:build && playwright test",
+    "test:e2e:chrome": "npm run e2e:build && playwright test --project=chrome",
+    "test:e2e:firefox": "npm run e2e:build && playwright test --project=firefox",
+    "test:e2e:safari": "npm run e2e:build && node e2e/run-safari.mjs",
     "test:e2e:manual": "npm run e2e:build && npm run e2e:serve"
   },
   "devDependencies": {

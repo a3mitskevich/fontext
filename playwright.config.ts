@@ -1,26 +1,25 @@
 import { defineConfig, devices } from "@playwright/test";
 import { PORT } from "./e2e/vite.config";
 
-const isCI = Boolean(process.env.CI);
-
-// Run through `npm run test:e2e`, which builds the package, the fonts and the page first
+// Run through `npm run test:e2e:chrome` or `test:e2e:firefox`, which build the package, the fonts
+// and the page first. Safari runs through e2e/run-safari.mjs: Playwright can't drive it
 export default defineConfig({
   testDir: "e2e",
   testMatch: "*.e2e.ts",
   fullyParallel: true,
-  forbidOnly: isCI,
-  reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"]],
+  reporter: [["list"], ["html", { open: "never" }]],
   // Every check of a case runs inside one page; drawing and comparing takes a few seconds
   timeout: 120_000,
   use: { baseURL: `http://localhost:${PORT}` },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // The Google Chrome installed on this machine, not Playwright's Chromium build
+    { name: "chrome", use: { ...devices["Desktop Chrome"], channel: "chrome" } },
+    // Playwright's Firefox build: it can't drive a stock Firefox
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
     command: "npm run e2e:serve",
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !isCI,
+    reuseExistingServer: true,
   },
 });
