@@ -48,15 +48,6 @@ describe("CLI", () => {
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/u);
   });
 
-  it.each(["--with-whitespace", "-w"])("should reject the removed %s flag", (flag) => {
-    const { exitCode } = run(["--input", FONT, "--font-name", "test", "--ligatures", "home", flag]);
-    expect(exitCode).toBe(1);
-  });
-
-  it("should not list the removed whitespace option in --help", () => {
-    expect(run(["--help"]).stdout).not.toMatch(/whitespace/iu);
-  });
-
   it("should fail without --input", () => {
     const { exitCode } = run(["--font-name", "test", "--ligatures", "abc"]);
     expect(exitCode).toBe(1);

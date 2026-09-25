@@ -25,6 +25,29 @@ describe("validation", () => {
     );
   });
 
+  it.each([
+    ["icon", { ligatures: ["home"] }],
+    ["subset", { characters: "abc" }],
+  ] as const)(
+    "should reject the removed withWhitespace option (%s engine)",
+    async (engine, selection) => {
+      // Typed callers can't pass it; JavaScript callers and spread options can
+      const option = {
+        fontName: "test",
+        engine,
+        ...selection,
+        withWhitespace: true,
+        formats: ["ttf"],
+      };
+
+      await expect(
+        extract(ttfOriginalFont, option as Parameters<typeof extract>[1]),
+      ).rejects.toThrow(
+        'withWhitespace was removed: add " " to characters to keep the space (subset engine)',
+      );
+    },
+  );
+
   it("should throw on empty formats", async () => {
     await expect(
       extract(ttfOriginalFont, {
