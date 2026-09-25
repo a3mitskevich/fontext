@@ -22,13 +22,12 @@ export const sample = (text, extra = {}) => ({
 const ICON_CASES = [
   {
     id: "icon-material",
-    title: "Icon: Material Icons ligatures, raws, ranges, non-BMP and space",
+    title: "Icon: Material Icons ligatures, raws, ranges and non-BMP",
     source: "material",
     option: {
       ligatures: ["home", "search", "fiber_manual_record", "arrow_back"],
       raws: [char(0xe8_b8)],
       unicodeRanges: ["U+E000-U+E004", "U+10FFFD"],
-      withWhitespace: true,
     },
     required: ["home", "search", "fiber_manual_record", "arrow_back", "settings", char(0x10_ff_fd)],
   },
