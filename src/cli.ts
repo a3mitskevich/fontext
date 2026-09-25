@@ -525,7 +525,16 @@ async function main(): Promise<void> {
         console.log(`  ${c.dim}Watching ${entry.inputPath} for changes...${c.reset}`);
       }
       let debounce: ReturnType<typeof setTimeout> | null = null;
-      const watcher = fs.watch(entry.inputPath, () => {
+      const inputName = path.basename(entry.inputPath);
+      /*
+       * The directory, not the file: a save that renames a new file over the input replaces its
+       * inode, and a watcher on the old one never fires again
+       */
+      const watcher = fs.watch(path.dirname(entry.inputPath), (_event, filename) => {
+        // Some platforms leave the name out; such an event may be the input's
+        if (filename !== null && filename !== inputName) {
+          return;
+        }
         if (debounce) {
           clearTimeout(debounce);
         }
