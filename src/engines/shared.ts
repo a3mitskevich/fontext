@@ -1,7 +1,7 @@
 import subsetFont from "subset-font";
 import ttf2eot from "ttf2eot";
 import ttf2woff from "ttf2woff";
-import { compress as ttf2woff2, decompress } from "wawoff2";
+import { decodeWoff2, encodeWoff2 } from "../woff2";
 import type { FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
@@ -32,7 +32,7 @@ function toWoff(ttf: Buffer): Buffer {
 const ENCODERS: Record<BinaryFormat, (ttf: Buffer) => Buffer | Promise<Buffer>> = {
   ttf: (ttf) => ttf,
   woff: toWoff,
-  woff2: async (ttf) => Buffer.from(await ttf2woff2(ttf)),
+  woff2: encodeWoff2,
   eot: (ttf) => Buffer.from(ttf2eot(new Uint8Array(ttf))),
 };
 
@@ -59,7 +59,7 @@ export async function subsetToTtf(
   text: string,
   safariFix = false,
 ): Promise<SubsetTtf> {
-  const source = await toSfnt(content, decompress);
+  const source = await toSfnt(content, decodeWoff2);
   const subset = await subsetFont(
     Buffer.from(source.buffer, source.byteOffset, source.length),
     text,
