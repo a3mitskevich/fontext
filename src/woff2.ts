@@ -6,6 +6,8 @@ type Woff2Codec = (data: Uint8Array) => Promise<Uint8Array>;
  * The wawoff2 package returns a view of its WebAssembly memory, which the next call of the same
  * function overwrites. The view reaches the caller only after the promise settles, so a concurrent
  * call can run in between. Calls go one at a time, each result copied before the next starts.
+ * Compress and decompress are separate WebAssembly modules with memories of their own, so each
+ * has a queue of its own; a failed call does not hold up the calls queued after it.
  */
 function oneAtATime(codec: Woff2Codec): (data: Uint8Array) => Promise<Buffer> {
   let last: Promise<unknown> = Promise.resolve();
