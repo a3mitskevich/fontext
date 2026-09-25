@@ -79,7 +79,10 @@ function shapeCheck(
   boxTolerance = BOX_TOLERANCE_PX,
 ): Check {
   const ratio = mismatchRatio(comparison);
-  const detail = `${(ratio * 100).toFixed(2)}% of ${comparison.covered} covered pixels differ, ink box off by ${comparison.boxShift}px`;
+  const box = Number.isFinite(comparison.boxShift)
+    ? `ink box off by ${comparison.boxShift}px`
+    : "one drawing is blank";
+  const detail = `${(ratio * 100).toFixed(2)}% of ${comparison.covered} covered pixels differ, ${box}`;
   const matches = ratio <= MAX_MISMATCH && comparison.boxShift <= boxTolerance;
   const passed = sample.expect === "match" ? matches : !matches;
   const expectation = sample.expect === "match" ? "should match" : "should differ";
