@@ -1,4 +1,6 @@
 {
   "extends": "@tsconfig/node22",
   "include": ["*.config.ts"],
+  // Playwright imports the e2e Vite config, so it is checked with the e2e project
+  "exclude": ["playwright.config.ts"],
 }
