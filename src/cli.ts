@@ -47,13 +47,11 @@ ${c.bold}Icon Engine:${c.reset} ${c.dim}--engine icon (default, for icon fonts)$
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
   ${c.cyan}-r${c.reset}, ${c.cyan}--raws${c.reset} <list>         Comma-separated raw unicode characters
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges
-  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
 
 ${c.bold}Subset Engine:${c.reset} ${c.dim}--engine subset (for text fonts, preserves kerning)${c.reset}
   ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9")${c.reset}
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Ligature component characters
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges
-  ${c.cyan}-w${c.reset}, ${c.cyan}--with-whitespace${c.reset}     Include whitespace glyph
 
 ${c.bold}Convert Engine:${c.reset} ${c.dim}--engine convert (format conversion without minification)${c.reset}
   ${c.dim}No glyph selection needed — converts the full font.${c.reset}
@@ -159,7 +157,6 @@ interface ConfigEntry {
   characters?: string;
   engine?: string;
   formats?: string[];
-  withWhitespace?: boolean;
   safariFix?: boolean;
   dryRun?: boolean;
   silent?: boolean;
@@ -300,7 +297,6 @@ async function main(): Promise<void> {
       characters: { type: "string", short: "c" },
       engine: { type: "string" },
       formats: { type: "string", short: "f" },
-      "with-whitespace": { type: "boolean", short: "w", default: false },
       "safari-fix": { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
@@ -404,8 +400,6 @@ async function main(): Promise<void> {
     } else if (entry.formats) {
       formats = entry.formats as Formats[];
     }
-    const withWhitespace =
-      (cliOverrides && values["with-whitespace"]) || (entry.withWhitespace ?? false);
     const safariFix = (cliOverrides && values["safari-fix"]) || (entry.safariFix ?? false);
     const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
 
@@ -421,7 +415,6 @@ async function main(): Promise<void> {
         characters,
         engine,
         formats,
-        withWhitespace,
         safariFix,
         silent,
       },

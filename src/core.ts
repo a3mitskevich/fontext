@@ -60,21 +60,20 @@ export function findMetaByCodePoints(font: Font, codePoints: readonly number[]):
   return [...names].map(([glyph, name]) => glyphToMeta(font, glyph, name));
 }
 
-/** Glyphs the default layout gives the ligatures, each named after the text it was shaped from. */
-export function findMetaByLigatures(
-  font: Font,
-  ligatures: readonly string[],
-  withWhitespace = false,
-): GlyphMeta[] {
+/**
+ * Glyphs the default layout gives the ligatures, each named after the text it was shaped from.
+ * The ligatures are shaped joined by spaces; the glyph of that separator is never extracted.
+ */
+export function findMetaByLigatures(font: Font, ligatures: readonly string[]): GlyphMeta[] {
   if (ligatures.length === 0) {
     return [];
   }
 
-  // A font without a space glyph shapes the separator to .notdef, which must not be extracted either
+  // A font without a space glyph shapes the separator to .notdef
   const whitespaceGlyph = font.glyphForCodePoint(WHITESPACE.codePointAt(0) as number) ?? NOTDEF;
   const names = new Map<number, string>();
   for (const { id, text } of font.shape(ligatures.join(WHITESPACE))) {
-    if ((withWhitespace || id !== whitespaceGlyph) && !names.has(id)) {
+    if (id !== whitespaceGlyph && !names.has(id)) {
       names.set(id, text);
     }
   }

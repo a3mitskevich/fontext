@@ -38,10 +38,6 @@ function collectCodePoints(option: SubsetOption): number[] {
     }
   }
 
-  if (option.withWhitespace) {
-    codePoints.add(0x20);
-  }
-
   return [...codePoints];
 }
 

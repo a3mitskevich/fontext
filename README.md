@@ -57,7 +57,6 @@ npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf
 | `-u, --unicode-ranges`  | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)   |
 | `-f, --formats`         | Output formats: `svg,ttf,woff,woff2,eot` (default: all) |
 | `-o, --output`          | Output directory (default: `.`)                         |
-| `-w, --with-whitespace` | Include whitespace glyph                                |
 
 ## Quick Start
 
@@ -100,7 +99,6 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | `characters`     | `string`    | —           | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only               |
 | `engine`         | `Engine`    | `'icon'`    | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning), `'convert'` to change format only |
 | `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`              |
-| `withWhitespace` | `boolean`   | `false`     | Include whitespace glyph in the output                                      |
 
 > At least one of `ligatures`, `raws`, `unicodeRanges`, or `characters` must be provided.
 
