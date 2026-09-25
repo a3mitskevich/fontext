@@ -3,7 +3,7 @@
  * with macOS. Playwright can't drive Safari itself, only its own WebKit build.
  * Run `npm run test:e2e:safari` (it builds the page first); pass case ids to run only those.
  * Once per Mac: Safari > Settings > Advanced > "Show features for web developers", then
- * Develop > "Allow Remote Automation".
+ * Settings > Developer > "Allow remote automation".
  */
 
 import { spawn } from "node:child_process";
@@ -22,7 +22,7 @@ const DRIVER_START_TIMEOUT_MS = 10_000;
 
 const SETUP_HELP = `Safari refused automation. Once per Mac:
   1. Safari > Settings > Advanced > "Show features for web developers"
-  2. Develop > "Allow Remote Automation"
+  2. Safari > Settings > Developer > "Allow remote automation"
   (or run: safaridriver --enable, which asks for an admin password)`;
 
 async function webdriver(method, path, body) {

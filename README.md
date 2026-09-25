@@ -194,7 +194,7 @@ await, so the bundler has to keep both:
 with the source font pixel by pixel, one browser per script:
 
 - `npm run test:e2e:safari` — the installed Safari, through `safaridriver`. Once per Mac: Safari > Settings >
-  Advanced > "Show features for web developers", then Develop > "Allow Remote Automation".
+  Advanced > "Show features for web developers", then Settings > Developer > "Allow remote automation".
 - `npm run test:e2e:chrome` — the installed Google Chrome, through Playwright.
 - `npm run test:e2e:firefox` — Playwright's Firefox; run `npx playwright install firefox` once.
 
