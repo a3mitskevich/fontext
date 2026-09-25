@@ -13,6 +13,7 @@ import {
   parseUnicodeRanges,
   resolveLigatures,
 } from "../glyphs";
+import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
 import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
 import { buildSvgFont } from "./svg-font";
@@ -44,6 +45,7 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   } = option;
 
   const font = await createFont(content);
+  assertLigaturesForm(font, ligatures);
   const foundLigatures = resolveLigatures(font, raws);
   const ligatureMeta = findMetaByLigatures(
     font,
@@ -61,6 +63,7 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
       glyphsMeta.push(meta);
     }
   }
+  assertGlyphsSelected(glyphsMeta, unicodeRanges);
 
   const svgFont = buildSvgFont(fontName, glyphsMeta);
   const fonts = await convertByFormats(svgFont, formats, {

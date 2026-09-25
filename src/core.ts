@@ -81,6 +81,37 @@ export function findMetaByLigatures(
   return [...names].map(([glyph, name]) => glyphToMeta(font, glyph, name));
 }
 
+/**
+ * Rejects the first text the default layout doesn't turn into one glyph other than .notdef, which
+ * `findMetaByLigatures()` would extract as the glyphs of its letters. Each text is shaped on its
+ * own like in `formsGlyph()`; it gives the glyphs of the joined shaping as long as no lookup
+ * reaches across the space between the texts.
+ */
+export function assertLigaturesForm(font: Font, ligatures: readonly string[]): void {
+  const unformed = ligatures.find((text) => {
+    const glyphs = font.shape(text);
+    return glyphs.length !== 1 || glyphs[0].id === NOTDEF;
+  });
+  if (unformed !== undefined) {
+    throw new Error(`Font does not contain a ligature for "${unformed}"`);
+  }
+}
+
+/**
+ * Rejects an empty icon font. Ligatures and raws that pass their checks give a glyph each, so only
+ * unicode ranges the cmap doesn't map leave the selection empty.
+ */
+export function assertGlyphsSelected(
+  glyphs: readonly GlyphMeta[],
+  unicodeRanges: readonly string[],
+): void {
+  if (glyphs.length === 0) {
+    throw new Error(
+      `No glyphs match the selection: the font maps none of unicodeRanges ${unicodeRanges.join(", ")}`,
+    );
+  }
+}
+
 /** Text of the first character mapped to each glyph; "" for glyphs outside the cmap. */
 const firstString = (font: Font, glyph: number): string => font.stringsForGlyph(glyph)[0] ?? "";
 
