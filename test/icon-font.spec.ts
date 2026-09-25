@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { IconOption } from "../src";
 import { createFont } from "../src/glyphs";
 import type { GlyphMeta } from "../src/types";
-import { cffFont, extract, ttfOriginalFont } from "./setup";
+import { cffFont, extract, textFont, ttfOriginalFont } from "./setup";
 
 // The SVG font scales every glyph so that its vertical advance fills an em of 1000 units
 const EM = 1000;
@@ -194,6 +194,24 @@ describe("icon engine font", () => {
       }
     },
   );
+
+  it("should escape the characters XML reserves", async () => {
+    const { meta, svgFont, ttf } = await extractSvgFont(textFont, {
+      fontName: 'icon-font & "friends"',
+      unicodeRanges: ["U+0022-U+0026", "U+003C-U+003E"],
+      formats: ["svg", "ttf"],
+    });
+    const output = await createFont(ttf as Buffer);
+
+    expect(elements(svgFont, "font-face")[0]["font-family"]).toBe('icon-font & "friends"');
+    expect(elements(svgFont, "glyph").map((glyph) => glyph["glyph-name"])).toStrictEqual(
+      meta.map((glyph) => glyph.name),
+    );
+    expect(
+      meta.map((glyph) => output.glyphForCodePoint(glyph.name.codePointAt(0) as number)),
+    ).not.toContain(undefined);
+    expect(meta.map((glyph) => glyph.name)).toStrictEqual(['"', "#", "$", "%", "&", "<", "=", ">"]);
+  });
 
   it("should keep a non-BMP code point", async () => {
     const { ttf } = await extractSvgFont(ttfOriginalFont, MATERIAL);

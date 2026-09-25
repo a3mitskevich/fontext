@@ -1,7 +1,7 @@
 import { type ConvertOption, type ExtractedResult, Format } from "../types";
 import { codePointsToString, createFont, findMetaByCodePoints } from "../glyphs";
-import { convertToSvgFont } from "./icon";
 import { buildReport, encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
+import { buildSvgFont } from "./svg-font";
 
 const DEFAULT_FORMATS = Object.values(Format);
 
@@ -20,7 +20,7 @@ export async function extractConvert(
   const ttf = subset?.ttf;
   const binaryFonts = ttf ? await encodeFromTtf(ttf, formats) : {};
   const svgFont = formats.includes("svg")
-    ? { svg: await convertToSvgFont(fontName, findMetaByCodePoints(font, allCodePoints)) }
+    ? { svg: buildSvgFont(fontName, findMetaByCodePoints(font, allCodePoints)) }
     : {};
   const fonts: FontBuffers = { ...binaryFonts, ...svgFont };
 
