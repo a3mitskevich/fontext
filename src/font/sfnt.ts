@@ -63,6 +63,50 @@ export function sfntTable(sfnt: Uint8Array, tag: string): Uint8Array | undefined
   return record === undefined ? undefined : recordData(reader, record);
 }
 
+/**
+ * Tables that HarfBuzz and fontext read to map, shape, draw and measure glyphs. HarfBuzz cuts a
+ * table whose record points past the end of the data short or leaves it out, so a truncated font
+ * would give missing or wrong glyphs instead of an error. kern is not here: restoring legacy
+ * kerning reads it on its own and keeps the subset with a warning when it can't.
+ */
+const GLYPH_TABLES = new Set([
+  "head",
+  "maxp",
+  "cmap",
+  "hhea",
+  "hmtx",
+  "OS/2",
+  "vhea",
+  "vmtx",
+  "loca",
+  "glyf",
+  "CFF ",
+  "CFF2",
+  "GDEF",
+  "GSUB",
+  "GPOS",
+]);
+
+/**
+ * Throws when the record of a table needed to read glyphs points past the end of the font; the
+ * first such table in file order is named. Records of other tables, which HarfBuzz tolerates,
+ * are not checked.
+ */
+export function checkGlyphTables(sfnt: Uint8Array): void {
+  const reader = createReader(sfnt, "font");
+  const records = tableRecords(reader)
+    .filter((record) => GLYPH_TABLES.has(reader.tag(record)))
+    .map((record) => ({
+      name: `${reader.tag(record).trim()} table`,
+      offset: reader.uint32(record + 8),
+      length: reader.uint32(record + 12),
+    }))
+    .toSorted((a, b) => a.offset - b.offset);
+  for (const { name, offset, length } of records) {
+    createReader(sfnt, name).bytes(offset, length);
+  }
+}
+
 /** Packs tables into an sfnt with the given version; tables keep their order and checksums. */
 export function packSfnt(flavor: number, tables: SfntTable[]): Uint8Array {
   const directorySize = SFNT_HEADER_SIZE + tables.length * SFNT_TABLE_RECORD_SIZE;

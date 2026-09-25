@@ -111,7 +111,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 - Font input is not a `Buffer`, `Uint8Array` or `ArrayBuffer` — `TypeError: "Font input must be a Buffer, Uint8Array or ArrayBuffer"`
 - Font data is not TTF, OTF, WOFF or WOFF2 — `"Unsupported font format: ..."`
 - Font is a collection (TTC, DFONT) — `"Font collections (TTC/DFONT) are not supported. Provide a single font file."`
-- Font tables are damaged — `"Malformed GSUB table: ..."`, `"Malformed WOFF file: ..."` and similar, naming the table and offset
+- Font tables are damaged, or the file is cut short so that a table needed to read glyphs runs past its end — `"Malformed GSUB table: ..."`, `"Malformed glyf table: ..."`, `"Malformed WOFF file: ..."` and similar, naming the table and offset
 - Missing `fontName` — `"fontName is required"`
 - No glyph selection for the icon or subset engine —
   `"At least one of ligatures, raws, unicodeRanges, or characters must be provided"`
