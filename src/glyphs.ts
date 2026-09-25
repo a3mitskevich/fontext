@@ -1,4 +1,4 @@
-import { decompress } from "wawoff2";
+import { decodeWoff2 } from "./woff2";
 import { toSfnt } from "./font/container";
 import { openFont, type Font } from "./font/font";
 
@@ -12,5 +12,5 @@ export {
 
 /** Opens a TrueType, OpenType, WOFF or WOFF2 font; font collections are rejected. */
 export async function createFont(content: Uint8Array): Promise<Font> {
-  return openFont(await toSfnt(content, decompress));
+  return openFont(await toSfnt(content, decodeWoff2));
 }
