@@ -26,7 +26,7 @@ Public entry points:
 
 `src/extract.ts` validates options and routes to an engine by `option.engine`:
 
-- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, shapes ligatures with HarfBuzz, turns glyph outlines into SVGs, assembles an SVG font with `buildSvgFont()`, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` (`Font.modified`) so output is deterministic
+- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, rejects ligatures that don't form one glyph (`assertLigaturesForm`) and a selection without glyphs (`assertGlyphsSelected`), shapes ligatures with HarfBuzz, turns glyph outlines into SVGs, assembles an SVG font with `buildSvgFont()`, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` (`Font.modified`) so output is deterministic
 - **subset** (`src/engines/subset.ts`) — HarfBuzz subset by characters / unicode ranges / ligature characters, keeps OpenType features
 - **convert** (`src/engines/convert.ts`) — re-encodes the whole font into other formats
 
@@ -42,7 +42,7 @@ Public entry points:
 - `kern.ts` — the legacy kern table: pair kerning as HarfBuzz applies it (every horizontal format 0 subtable added up, minimum and override bits ignored), a subset of it for the kept glyphs in subtables of at most 10 920 pairs, and what it had to leave out; `sfnt.ts` — table directory reading, packing and adding a table with checksums
 - `outline.ts` — HarfBuzz draw commands to SVG path data (y flipped, closing line before `Z` dropped); `tables.ts` — head, maxp, vmtx, OS/2 and hhea fields
 
-`src/core.ts` holds the environment-independent logic: `resolveLigatures()` turns GSUB records into texts and keeps those the default layout forms (`formsGlyph`); `findMetaByLigatures()` / `findMetaByCodePoints()` build `GlyphMeta`. `src/glyphs.ts` adds the Node `createFont()` with WOFF2 via wawoff2. `src/safari.ts` patches OS/2 and hhea tables for `safariFix`.
+`src/core.ts` holds the environment-independent logic: `resolveLigatures()` turns GSUB records into texts and keeps those the default layout forms (`formsGlyph`); `findMetaByLigatures()` / `findMetaByCodePoints()` build `GlyphMeta` from whatever glyphs they find (the letters of a text that forms no ligature), the icon engine checks the selection with `assertLigaturesForm()` / `assertGlyphsSelected()`. `src/glyphs.ts` adds the Node `createFont()` with WOFF2 via wawoff2. `src/safari.ts` patches OS/2 and hhea tables for `safariFix`.
 
 **Key types (`src/types.ts`):** `MinifyOption` (discriminated union `IconOption | SubsetOption | ConvertOption`), `FontInput`, `ExtractedResult` (format → Buffer + `meta` + `report` + `warnings`), `FontWarning`, `GlyphMeta`, `OptimizationReport`.
 

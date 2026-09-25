@@ -4,7 +4,7 @@ import { readOS2, readHhea } from "./ttf-utils";
 
 describe("safariFix", () => {
   const engineCases: [string, Record<string, unknown>][] = [
-    ["icon engine", { ligatures: ["abc"], engine: "icon" }],
+    ["icon engine", { unicodeRanges: ["U+0061-U+0063"], engine: "icon" }],
     ["subset engine", { characters: "abc", engine: "subset" }],
     ["convert engine", { engine: "convert" }],
   ];

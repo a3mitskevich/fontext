@@ -41,6 +41,12 @@ describe("OpenType font with CFF outlines", () => {
     expect(meta.map((glyph) => glyph.name)).toStrictEqual(["xy"]);
   });
 
+  it("should reject a ligature that forms only in a longer context", async () => {
+    await expect(
+      extract(cffFont, { fontName: "cff", ligatures: ["xy", "yz"], formats: ["svg"] }),
+    ).rejects.toThrow('Font does not contain a ligature for "yz"');
+  });
+
   it("should reject a raw whose ligature forms only in a longer context", async () => {
     await expect(findLigaturesByRaws(new Uint8Array(cffFont), [""])).rejects.toThrow(
       'Font does not contain a ligature for ""',

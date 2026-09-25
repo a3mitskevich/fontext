@@ -117,7 +117,10 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
   `"At least one of ligatures, raws, unicodeRanges, or characters must be provided"`
 - Empty or unknown `formats` — `"At least one output format must be specified"` / `"Invalid format(s): ..."`
 - Font lacks a GSUB ligature lookup table (required for `raws`) — `"Font does not contain a GSUB ligature lookup table"`
-- A raw unicode character has no matching ligature — `"Font does not contain a ligature for \"...\""`
+- A raw unicode character has no matching ligature, or an icon engine ligature doesn't form a single glyph (an
+  unknown name or a typo would otherwise give the glyphs of its letters) — `"Font does not contain a ligature for \"...\""`
+- The icon engine selection matches no glyph, e.g. unicode ranges the font maps none of —
+  `"No glyphs match the selection: the font maps none of unicodeRanges ..."`
 
 ### `ExtractedResult`
 
@@ -174,6 +177,9 @@ const meta = findMetaByLigatures(font, ['home', 'search']);
 // meta[0].svg — SVG markup for the glyph
 const ligatures = await findLigaturesByRaws(data, ['\uE88A']);
 ```
+
+`findMetaByLigatures()` returns the glyphs the text is laid out to: a text that forms no ligature gives the glyphs of
+its letters. `extract()` rejects such ligatures instead.
 
 HarfBuzz runs as WebAssembly (`harfbuzz.wasm`, about 430 KB, 180 KB gzipped). It is loaded on the first
 `createFont()` call from a URL relative to the module (`new URL(..., import.meta.url)`), and the module uses top-level
