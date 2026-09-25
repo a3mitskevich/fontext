@@ -17,6 +17,10 @@ function toBuffer(input: FontInput): Buffer {
   throw new TypeError("Font input must be a Buffer, Uint8Array or ArrayBuffer");
 }
 
+// Removed in 2.0.0; untyped callers and config files would otherwise lose the space silently
+export const WITH_WHITESPACE_REMOVED =
+  'withWhitespace was removed: add " " to characters to keep the space (subset engine), the icon engine never extracts it';
+
 export default function extract(input: FontInput, option: MinifyOption): Promise<ExtractedResult> {
   const content = toBuffer(input);
   const { fontName = "" } = option;
@@ -25,6 +29,10 @@ export default function extract(input: FontInput, option: MinifyOption): Promise
 
   if (!fontName) {
     throw new Error("fontName is required");
+  }
+
+  if ("withWhitespace" in option) {
+    throw new Error(WITH_WHITESPACE_REMOVED);
   }
 
   if (engine !== "convert") {

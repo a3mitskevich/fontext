@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import readline from "readline";
 import { parseArgs } from "node:util";
-import extract from "./extract";
+import extract, { WITH_WHITESPACE_REMOVED } from "./extract";
 import { Format, type Formats } from "./types";
 
 const VALID_FORMATS = Object.values(Format);
@@ -356,6 +356,9 @@ async function main(): Promise<void> {
     }
     if (!fontName) {
       throw new Error("fontName is required");
+    }
+    if ("withWhitespace" in entry) {
+      throw new Error(WITH_WHITESPACE_REMOVED);
     }
 
     const ligatures =

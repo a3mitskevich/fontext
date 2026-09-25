@@ -69,7 +69,7 @@ export function findMetaByLigatures(font: Font, ligatures: readonly string[]): G
     return [];
   }
 
-  // A font without a space glyph shapes the separator to .notdef
+  // A font without a space glyph shapes the separator to .notdef, which is skipped the same way
   const whitespaceGlyph = font.glyphForCodePoint(WHITESPACE.codePointAt(0) as number) ?? NOTDEF;
   const names = new Map<number, string>();
   for (const { id, text } of font.shape(ligatures.join(WHITESPACE))) {
