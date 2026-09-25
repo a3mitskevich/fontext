@@ -6,6 +6,7 @@ import os from "os";
 
 const CLI = path.resolve(import.meta.dirname, "../dist/cli.js");
 const FONT = path.resolve(import.meta.dirname, "../assets/font.ttf");
+const WOFF2_FONT = path.resolve(import.meta.dirname, "../assets/font.woff2");
 
 function run(args: string[], cwd?: string, stdin?: string): { stdout: string; exitCode: number } {
   try {
@@ -80,6 +81,26 @@ describe("CLI", () => {
     expect(stdout).toContain("1 glyph(s) extracted");
     expect(fs.existsSync(path.join(outDir, "test-icons.ttf"))).toBe(true);
     expect(fs.existsSync(path.join(outDir, "test-icons.woff2"))).toBe(true);
+  });
+
+  it("should print the report when an output is larger than the input", () => {
+    const outDir = path.join(tmpDir, "larger-out");
+    const { stdout, exitCode } = run([
+      "--input",
+      WOFF2_FONT,
+      "--font-name",
+      "converted",
+      "--engine",
+      "convert",
+      "--formats",
+      "ttf,eot",
+      "--output",
+      outDir,
+    ]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toMatch(/converted\.ttf.*-\d+(?:\.\d+)?%/u);
+    expect(fs.existsSync(path.join(outDir, "converted.ttf"))).toBe(true);
+    expect(fs.existsSync(path.join(outDir, "converted.eot"))).toBe(true);
   });
 
   it("should output JSON with --json flag", () => {

@@ -139,7 +139,7 @@ interface OptimizationReport {
     formats: {
         [format: string]: {
             size: number;    // output size in bytes
-            saving: number;  // percentage saved (0-100)
+            saving: number;  // percentage saved, negative when the output is larger
         };
     };
 }
