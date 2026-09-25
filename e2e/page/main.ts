@@ -1,6 +1,7 @@
 import { BROWSER_ENTRY_CASE, type CaseResult, type Manifest, type PageResults } from "../manifest";
 import { runBrowserEntry } from "./browser-entry";
 import { type Check, runFontCase } from "./checks";
+import { fetchJson } from "./fetch";
 import { renderCase, renderSummary } from "./report";
 import "./style.css";
 
@@ -31,8 +32,7 @@ function record(id: string, title: string, subtitle: string, checks: Check[]): v
 }
 
 async function run(): Promise<void> {
-  const response = await fetch("generated/manifest.json");
-  const manifest = (await response.json()) as Manifest;
+  const manifest = (await fetchJson("generated/manifest.json")) as Manifest;
   for (const fontCase of manifest.fontCases.filter(({ id }) => isRequested(id))) {
     record(fontCase.id, fontCase.title, fontCase.option, await runFontCase(fontCase));
   }

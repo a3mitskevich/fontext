@@ -1,6 +1,7 @@
 import type { BrowserCall, CallResult } from "../manifest";
 import type * as BrowserEntryModule from "fontext/browser";
 import type { Check } from "./checks";
+import { fetchBytes } from "./fetch";
 
 type BrowserEntry = typeof BrowserEntryModule;
 
@@ -41,17 +42,24 @@ export async function runBrowserEntry(calls: BrowserCall[]): Promise<Check[]> {
   }
   const checks: Check[] = [{ name: "fontext/browser loads", passed: true, detail: "" }];
   for (const call of calls) {
-    const response = await fetch(call.input);
-    const data = new Uint8Array(await response.arrayBuffer());
-    const actual = await invoke(entry, data, call);
-    const passed = JSON.stringify(actual) === JSON.stringify(call.expected);
-    checks.push({
-      name: `browser entry ${call.label}`,
-      passed,
-      detail: passed
-        ? "same as Node"
-        : `got ${preview(actual)}, Node gave ${preview(call.expected)}`,
-    });
+    checks.push(await callCheck(entry, call));
   }
   return checks;
+}
+
+async function callCheck(entry: BrowserEntry, call: BrowserCall): Promise<Check> {
+  const name = `browser entry ${call.label}`;
+  let data: Uint8Array;
+  try {
+    data = new Uint8Array(await fetchBytes(call.input));
+  } catch (error) {
+    return { name, passed: false, detail: messageOf(error) };
+  }
+  const actual = await invoke(entry, data, call);
+  const passed = JSON.stringify(actual) === JSON.stringify(call.expected);
+  return {
+    name,
+    passed,
+    detail: passed ? "same as Node" : `got ${preview(actual)}, Node gave ${preview(call.expected)}`,
+  };
 }

@@ -9,6 +9,7 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import { preview } from "vite";
 
 const MANIFEST = new URL("page/public/generated/manifest.json", import.meta.url);
@@ -104,7 +105,7 @@ const cases = [
   { id: BROWSER_ENTRY_CASE, title: "Browser entry: fontext/browser gives what it gives in Node" },
 ].filter(({ id }) => requested.length === 0 || requested.includes(id));
 
-const server = await preview({ configFile: VITE_CONFIG.pathname, logLevel: "warn" });
+const server = await preview({ configFile: fileURLToPath(VITE_CONFIG), logLevel: "warn" });
 const [baseUrl] = server.resolvedUrls.local;
 const driver = await startDriver();
 let failed = 0;
