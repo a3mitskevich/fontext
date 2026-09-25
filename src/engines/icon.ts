@@ -1,12 +1,9 @@
-import { Readable } from "stream";
 import svg2ttf from "svg2ttf";
-import { SVGIcons2SVGFontStream, type SVGIcons2SVGFontStreamOptions } from "svgicons2svgfont";
 import {
   type ExtractedResult,
   Format,
   type Formats,
   type GlyphMeta,
-  type GlyphStream,
   type IconOption,
 } from "../types";
 import {
@@ -18,9 +15,9 @@ import {
 } from "../glyphs";
 import { applySafariFix } from "../safari";
 import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
+import { buildSvgFont } from "./svg-font";
 
 const DEFAULT_FORMATS = Object.values(Format);
-const DEFAULT_FONT_SIZE = 1000;
 async function convertByFormats(
   svgFont: Buffer,
   formats: Formats[],
@@ -34,44 +31,6 @@ async function convertByFormats(
   const ttf = Buffer.from(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer);
   const binaryFonts = await encodeFromTtf(safariFix ? applySafariFix(ttf) : ttf, formats);
   return { ...svg, ...binaryFonts };
-}
-
-export function createGlyphStream(content: string): GlyphStream {
-  const stream = new Readable();
-  stream.push(content);
-  stream.push(null);
-  return stream as GlyphStream;
-}
-
-export function convertToSvgFont(fontName: string, glyphsMeta: GlyphMeta[]): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    const config: Partial<SVGIcons2SVGFontStreamOptions> = {
-      fontName,
-      normalize: true,
-      fontHeight: DEFAULT_FONT_SIZE,
-    };
-    const stream = new SVGIcons2SVGFontStream(config)
-      .on("data", (data: Buffer | string) => {
-        chunks.push(typeof data === "string" ? Buffer.from(data) : data);
-      })
-      .on("end", () => {
-        resolve(Buffer.concat(chunks));
-      })
-      .on("error", (err) => {
-        reject(err);
-      });
-    glyphsMeta.forEach((meta) => {
-      const glyphStream = createGlyphStream(meta.svg);
-      glyphStream.metadata = {
-        name: meta.name,
-        unicode: [...new Set([...meta.unicode, meta.name])],
-      };
-      stream.write(glyphStream);
-    });
-
-    stream.end();
-  });
 }
 
 export async function extractIcon(content: Buffer, option: IconOption): Promise<ExtractedResult> {
@@ -103,7 +62,7 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
     }
   }
 
-  const svgFont = await convertToSvgFont(fontName, glyphsMeta);
+  const svgFont = buildSvgFont(fontName, glyphsMeta);
   const fonts = await convertByFormats(svgFont, formats, {
     safariFix: option.safariFix,
     /* The source font's head.modified instead of the current time keeps the output

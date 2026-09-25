@@ -1,5 +1,3 @@
-import type { Readable } from "stream";
-
 export const Format = {
   TTF: "ttf",
   EOT: "eot",
@@ -37,13 +35,6 @@ export interface GlyphMeta {
   name: string;
   unicode: string[];
   svg: string;
-}
-
-export interface GlyphStream extends Readable {
-  metadata: {
-    name: string;
-    unicode: string[];
-  };
 }
 
 export type Engine = "icon" | "subset" | "convert";

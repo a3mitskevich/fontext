@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It reads fonts with harfbuzzjs (HarfBuzz as WebAssembly) plus a small own layer in `src/font/`, uses svgicons2svgfont + svg2ttf to build icon fonts, subset-font (HarfBuzz) for subsetting, ttf2woff and wawoff2 for WOFF/WOFF2 encoding and ttf2eot for EOT.
+Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It reads fonts with harfbuzzjs (HarfBuzz as WebAssembly) plus a small own layer in `src/font/`, writes its own SVG font and converts it with svg2ttf to build icon fonts, subset-font (HarfBuzz) for subsetting, ttf2woff and wawoff2 for WOFF/WOFF2 encoding and ttf2eot for EOT.
 
 ## Commands
 
@@ -26,9 +26,11 @@ Public entry points:
 
 `src/extract.ts` validates options and routes to an engine by `option.engine`:
 
-- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, shapes ligatures with HarfBuzz, turns glyph outlines into SVGs, assembles an SVG font with SVGIcons2SVGFontStream, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` (`Font.modified`) so output is deterministic
+- **icon** (`src/engines/icon.ts`, default) — resolves `raws` to ligature strings, shapes ligatures with HarfBuzz, turns glyph outlines into SVGs, assembles an SVG font with `buildSvgFont()`, then converts it to TTF with svg2ttf. The TTF timestamp comes from the source font's `head.modified` (`Font.modified`) so output is deterministic
 - **subset** (`src/engines/subset.ts`) — HarfBuzz subset by characters / unicode ranges / ligature characters, keeps OpenType features
 - **convert** (`src/engines/convert.ts`) — re-encodes the whole font into other formats
+
+`src/engines/svg-font.ts` — `buildSvgFont()`, the SVG font of the icon engine and of the `svg` format of convert: every glyph scaled so its vertical advance fills a 1000 unit em (the float operations of svgicons2svgfont with `normalize`, which it replaced, so svg2ttf writes the same TTF), a `<glyph>` element per character and per ligature text (svg2ttf merges elements with the same outline and advance and builds GSUB ligatures from multi-code-point `unicode` values), names and texts escaped for XML. It reads the viewBox and path of `GlyphMeta.svg` and accepts only the absolute M, L, Q, C and Z commands `outline.ts` writes.
 
 `src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType, restore legacy kerning with warnings about what it can't keep, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF via ttf2woff, WOFF2 via wawoff2, EOT via ttf2eot) and `buildReport()`.
 
@@ -59,7 +61,7 @@ Vitest with real fonts from `assets/`: Material Icons (`font.ttf`, `font.woff2`)
 - `font-multi-ligature-lookups.ttf` — ligatures split across subtables, lookups and an extension lookup, plus a `dlig`-only ligature that must not be resolved (`node scripts/make-ligature-fixture.mjs`)
 - `font-cff-features.otf` — CFF outlines, vhea/vmtx, a `liga` ligature, a ligature `calt` forms without context and one it forms only before another glyph (`node scripts/make-cff-fixture.mjs`)
 
-The generators write tables by hand through `scripts/sfnt-writer.mjs`, `font-tables.mjs`, `gsub-writer.mjs` and `cff-writer.mjs`. WOFF, TTC and DFONT inputs are built in tests from the TTF fixtures (`test/font-containers.ts`). `test/setup.ts` switches between `src` and `dist` via `TEST_TARGET`. Tests cover all engines and formats, metadata, reference outlines (checked against fontTools), CFF, reports, Safari fix, CLI, browser entry and its Vite bundle, input formats and malformed fonts, determinism and validation errors. Coverage thresholds live in `vitest.config.ts`.
+The generators write tables by hand through `scripts/sfnt-writer.mjs`, `font-tables.mjs`, `gsub-writer.mjs` and `cff-writer.mjs`. WOFF, TTC and DFONT inputs are built in tests from the TTF fixtures (`test/font-containers.ts`). `test/setup.ts` switches between `src` and `dist` via `TEST_TARGET`. Tests cover all engines and formats, metadata, reference outlines (checked against fontTools), the SVG font and the TTF built from it (TTF outlines recorded from svgicons2svgfont output), CFF, reports, Safari fix, CLI, browser entry and its Vite bundle, input formats and malformed fonts, determinism and validation errors. Coverage thresholds live in `vitest.config.ts`.
 
 ## Tooling
 
