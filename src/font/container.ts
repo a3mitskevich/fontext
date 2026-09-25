@@ -1,5 +1,5 @@
 import { createReader, type BinaryReader } from "./reader";
-import { packSfnt, type SfntTable } from "./sfnt";
+import { checkGlyphTables, packSfnt, type SfntTable } from "./sfnt";
 
 /** Turns WOFF2 data into an uncompressed sfnt (TrueType or OpenType) font. */
 export type Woff2Decoder = (data: Uint8Array) => Promise<Uint8Array>;
@@ -101,11 +101,7 @@ async function woffToSfnt(data: Uint8Array): Promise<Uint8Array> {
   return packSfnt(flavor, tables);
 }
 
-/**
- * Returns the font as an uncompressed sfnt, which is what HarfBuzz reads. WOFF is inflated
- * here, WOFF2 goes to `decodeWoff2`; font collections are rejected.
- */
-export async function toSfnt(data: Uint8Array, decodeWoff2: Woff2Decoder): Promise<Uint8Array> {
+async function unwrap(data: Uint8Array, decodeWoff2: Woff2Decoder): Promise<Uint8Array> {
   switch (detectFormat(createReader(data, "font data"))) {
     case "sfnt": {
       return data;
@@ -120,4 +116,15 @@ export async function toSfnt(data: Uint8Array, decodeWoff2: Woff2Decoder): Promi
       throw new Error(COLLECTION_ERROR);
     }
   }
+}
+
+/**
+ * Returns the font as an uncompressed sfnt, which is what HarfBuzz reads. WOFF is inflated
+ * here, WOFF2 goes to `decodeWoff2`; font collections are rejected, and so are fonts whose
+ * tables needed to read glyphs run past the end of the data.
+ */
+export async function toSfnt(data: Uint8Array, decodeWoff2: Woff2Decoder): Promise<Uint8Array> {
+  const sfnt = await unwrap(data, decodeWoff2);
+  checkGlyphTables(sfnt);
+  return sfnt;
 }
