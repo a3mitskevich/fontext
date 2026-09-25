@@ -99,22 +99,18 @@ describe("validation", () => {
     expect(meta.map((glyph) => glyph.name)).toStrictEqual(["abc", "a"]);
   });
 
-  it.each([false, true])(
-    "should throw when unicode ranges match no glyph (withWhitespace: %s)",
-    async (withWhitespace) => {
-      // Material Icons maps no capital letters
-      await expect(
-        extract(ttfOriginalFont, {
-          fontName: "test",
-          unicodeRanges: ["U+0041-U+0043"],
-          withWhitespace,
-          formats: ["ttf"],
-        }),
-      ).rejects.toThrow(
-        "No glyphs match the selection: the font maps none of unicodeRanges U+0041-U+0043",
-      );
-    },
-  );
+  it("should throw when unicode ranges match no glyph", async () => {
+    // Material Icons maps no capital letters
+    await expect(
+      extract(ttfOriginalFont, {
+        fontName: "test",
+        unicodeRanges: ["U+0041-U+0043"],
+        formats: ["ttf"],
+      }),
+    ).rejects.toThrow(
+      "No glyphs match the selection: the font maps none of unicodeRanges U+0041-U+0043",
+    );
+  });
 
   it("should keep a unicode range that partly overlaps the cmap", async () => {
     const { meta } = await extract(ttfOriginalFont, {

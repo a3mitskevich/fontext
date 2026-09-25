@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extract, ttfOriginalFont, woff2OriginalFont } from "./setup";
+import { extract, multiLookupFont, ttfOriginalFont, woff2OriginalFont } from "./setup";
 
 const ABC_SVG_PATH =
   'd="M448 -277L416 -277L416 -288L373 -288L373 -224L416 -224L416 -235L448 -235L448 -213Q448 -205 441.5 -198.5Q435 -192 427 -192L363 -192Q354 -192 347.5 -198.5Q341 -205 341 -213L341 -299Q341 -307 347.5 -313.5Q354 -320 363 -320L427 -320Q435 -320 441.5 -313.5Q448 -307 448 -299ZM171 -299L171 -192L139 -192L139 -224L96 -224L96 -192L64 -192L64 -299Q64 -307 70.5 -313.5Q77 -320 85 -320L149 -320Q158 -320 164.5 -313.5Q171 -307 171 -299ZM139 -288L96 -288L96 -256L139 -256ZM288 -256Q297 -256 303 -249.5Q309 -243 309 -235L309 -213Q309 -205 303 -198.5Q297 -192 288 -192L203 -192L203 -320L288 -320Q297 -320 303 -313.5Q309 -307 309 -299L309 -277Q309 -269 303 -262.5Q297 -256 288 -256ZM235 -288L235 -272L277 -272L277 -288ZM277 -240L235 -240L235 -224L277 -224Z"';
@@ -60,5 +60,22 @@ describe("extract", () => {
       expect(glyphMeta.unicode).toEqual(["\uEB94"]);
       expect(glyphMeta.svg).toContain(ABC_SVG_PATH);
     });
+  });
+});
+
+describe("space between ligatures", () => {
+  // The icon engine shapes the ligatures joined by spaces; the separator must never become a glyph
+  it.each([
+    [
+      "without a space glyph (the separator shapes to .notdef)",
+      ttfOriginalFont,
+      ["home", "search"],
+    ],
+    ["with a space glyph", multiLookupFont, ["abc", "def"]],
+  ])("should not extract it from a font %s", async (_, font, ligatures) => {
+    const { meta, svg } = await extract(font, { fontName: "test", ligatures, formats: ["svg"] });
+
+    expect(meta.map((glyph) => glyph.name)).toStrictEqual(ligatures);
+    expect(svg?.toString()).not.toContain('unicode="&#x20;"');
   });
 });

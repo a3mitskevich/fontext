@@ -41,17 +41,12 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
     ligatures = [],
     raws = [],
     unicodeRanges = [],
-    withWhitespace = false,
   } = option;
 
   const font = await createFont(content);
   assertLigaturesForm(font, ligatures);
   const foundLigatures = resolveLigatures(font, raws);
-  const ligatureMeta = findMetaByLigatures(
-    font,
-    [ligatures, foundLigatures].flat(),
-    withWhitespace,
-  );
+  const ligatureMeta = findMetaByLigatures(font, [ligatures, foundLigatures].flat());
   const unicodeMeta =
     unicodeRanges.length > 0 ? findMetaByCodePoints(font, parseUnicodeRanges(unicodeRanges)) : [];
 

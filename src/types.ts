@@ -51,7 +51,6 @@ export interface IconOption extends BaseOption {
   ligatures?: string[];
   raws?: string[];
   unicodeRanges?: string[];
-  withWhitespace?: boolean;
 }
 
 export interface SubsetOption extends BaseOption {
@@ -59,7 +58,6 @@ export interface SubsetOption extends BaseOption {
   characters?: string;
   ligatures?: string[];
   unicodeRanges?: string[];
-  withWhitespace?: boolean;
 }
 
 export interface ConvertOption extends BaseOption {

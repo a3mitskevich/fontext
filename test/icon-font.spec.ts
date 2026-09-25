@@ -13,7 +13,6 @@ const MATERIAL: IconOption = {
   ligatures: ["home", "search", "fiber_manual_record", "arrow_back"],
   raws: [""],
   unicodeRanges: ["U+E000-U+E004", "U+10FFFD"],
-  withWhitespace: true,
   formats: ["svg", "ttf"],
 };
 
@@ -22,7 +21,6 @@ const CFF: IconOption = {
   fontName: "icon-font",
   ligatures: ["fi", "xy", "x"],
   unicodeRanges: ["U+0066"],
-  withWhitespace: true,
   formats: ["svg", "ttf"],
 };
 
