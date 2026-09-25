@@ -2,7 +2,14 @@ import { describe, it, expect } from "vitest";
 import { compress } from "wawoff2";
 import type { ExtractedResult, MinifyOption } from "../src";
 import { createFont } from "../src/glyphs";
-import { cffFont, extract, multiLookupFont, textFont, ttfOriginalFont } from "./setup";
+import {
+  cffFont,
+  extract,
+  multiLookupFont,
+  textFont,
+  ttfOriginalFont,
+  woff2OriginalFont,
+} from "./setup";
 
 type Call = [Buffer, MinifyOption];
 
@@ -39,9 +46,14 @@ describe("concurrent calls", () => {
   it("should encode WOFF2 that decodes to a readable font", async () => {
     const together = await extractAtOnce(woff2Calls);
 
-    for (const { woff2 } of together) {
-      expect(woff2?.toString("latin1", 0, 4)).toBe("wOF2");
-      const font = await createFont(woff2 as Buffer);
+    const files = together
+      .map((result) => result.woff2)
+      .filter((woff2): woff2 is Buffer => woff2 !== undefined);
+
+    expect(files).toHaveLength(woff2Calls.length);
+    for (const woff2 of files) {
+      expect(woff2.toString("latin1", 0, 4)).toBe("wOF2");
+      const font = await createFont(woff2);
       expect(font.codePoints.length).toBeGreaterThan(0);
     }
   });
@@ -65,5 +77,23 @@ describe("concurrent calls", () => {
     const together = await extractAtOnce(calls);
 
     expect(together.map((result) => result.ttf)).toStrictEqual(alone.map((result) => result.ttf));
+  });
+
+  it("should keep decoding after a WOFF2 input fails to decode", async () => {
+    // A valid header over a zeroed body, so the WOFF2 decoder itself fails
+    const corrupt = Buffer.from(woff2OriginalFont).fill(0, 48);
+    const option: MinifyOption = { fontName: "icons", ligatures: ["home"], formats: ["ttf"] };
+    const [alone] = await extractOneByOne([[woff2OriginalFont, option]]);
+
+    const [failed, decoded] = await Promise.allSettled([
+      extract(corrupt, option),
+      extract(woff2OriginalFont, option),
+    ]);
+
+    expect(failed).toMatchObject({
+      status: "rejected",
+      reason: { message: "ConvertWOFF2ToTTF failed" },
+    });
+    expect(decoded).toMatchObject({ status: "fulfilled", value: { ttf: alone?.ttf } });
   });
 });
