@@ -190,10 +190,15 @@ await, so the bundler has to keep both:
 
 ## Development
 
-`npm test` runs the Vitest suite. `npm run test:e2e` renders the output of every engine and format in Chromium,
-Firefox and WebKit with Playwright and compares it with the source font pixel by pixel; run
-`npx playwright install` once first. `npm run test:e2e:manual` serves the same checks at http://localhost:4178, so
-they can run in any installed browser, such as Safari.
+`npm test` runs the Vitest suite. The browser checks render the output of every engine and format and compare it
+with the source font pixel by pixel, one browser per script:
+
+- `npm run test:e2e:safari` — the installed Safari, through `safaridriver`. Once per Mac: Safari > Settings >
+  Advanced > "Show features for web developers", then Develop > "Allow Remote Automation".
+- `npm run test:e2e:chrome` — the installed Google Chrome, through Playwright.
+- `npm run test:e2e:firefox` — Playwright's Firefox; run `npx playwright install firefox` once.
+
+`npm run test:e2e:manual` serves the same checks at http://localhost:4178 to open in any browser.
 
 ## License
 
