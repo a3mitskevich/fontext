@@ -11,18 +11,21 @@ type BinaryFormat = Exclude<Formats, "svg">;
 
 export type FontBuffers = Partial<Record<Formats, Buffer>>;
 
-// The WOFF header starts with the "wOFF" signature, followed by the flavor
+// The sfnt version is the first field of a font, the WOFF flavor the second field of its header
+const SFNT_VERSION_OFFSET = 0;
 const WOFF_FLAVOR_OFFSET = 4;
-const SFNT_VERSION_LENGTH = 4;
 
 /**
  * The ttf2woff package takes the WOFF flavor from `head.version` (always 1.0), so a CFF font gets
  * 0x00010000 instead of `OTTO` and Safari rejects it. The flavor is the sfnt version, copied here
  * from the font; the WOFF header has no checksum, so nothing else changes.
+ *
+ * Upstream treats WOFF as outdated and will not fix this, see
+ * https://github.com/fontello/ttf2woff/issues/14, so the copy stays as long as ttf2woff does.
  */
 function toWoff(ttf: Buffer): Buffer {
   const woff = Buffer.from(ttf2woff(new Uint8Array(ttf)));
-  ttf.copy(woff, WOFF_FLAVOR_OFFSET, 0, SFNT_VERSION_LENGTH);
+  woff.writeUInt32BE(ttf.readUInt32BE(SFNT_VERSION_OFFSET), WOFF_FLAVOR_OFFSET);
   return woff;
 }
 
