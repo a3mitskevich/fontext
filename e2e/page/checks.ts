@@ -1,4 +1,5 @@
 import type { CheckResult, FontCase, LoadableFormat, Metrics, Sample } from "../manifest";
+import { fetchBytes, fetchText } from "./fetch";
 import {
   BOX_TOLERANCE_PX,
   canvasWidth,
@@ -42,14 +43,6 @@ const pass = (name: string, detail = ""): Check => ({ name, passed: true, detail
 const fail = (name: string, detail: string): Check => ({ name, passed: false, detail });
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
-
-async function fetchBytes(path: string): Promise<ArrayBuffer> {
-  const response = await fetch(path);
-  if (!response.ok) {
-    throw new Error(`GET ${path}: ${response.status}`);
-  }
-  return response.arrayBuffer();
-}
 
 /** The TrueType font an EOT wraps: its last FontDataSize bytes, stored uncompressed by ttf2eot. */
 function eotPayload(eot: ArrayBuffer): ArrayBuffer {
@@ -212,8 +205,12 @@ async function svgChecks(fontCase: FontCase, reference: string): Promise<Check[]
   if (!fontCase.outputs.svg) {
     return [];
   }
-  const response = await fetch(fontCase.outputs.svg);
-  const text = await response.text();
+  let text: string;
+  try {
+    text = await fetchText(fontCase.outputs.svg);
+  } catch (error) {
+    return [fail("svg loads", messageOf(error))];
+  }
   const document = new DOMParser().parseFromString(text, "image/svg+xml");
   const error = document.querySelector("parsererror");
   if (error) {

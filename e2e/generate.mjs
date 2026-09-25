@@ -176,11 +176,8 @@ for (const { file } of Object.values(SOURCES)) {
   copyFileSync(new URL(file, ASSETS), new URL(`reference/${file}`, OUTPUT));
 }
 
-// One case at a time: concurrent extract() calls can corrupt each other's WOFF2 output
-const fontCases = [];
-for (const definition of FONT_CASES) {
-  fontCases.push(await buildFontCase(definition));
-}
+// All cases at once, as a build calling extract() in parallel would: WOFF2 output must survive it
+const fontCases = await Promise.all(FONT_CASES.map((definition) => buildFontCase(definition)));
 const manifest = { fontCases, browserCalls: await buildBrowserCalls() };
 writeFileSync(new URL("manifest.json", OUTPUT), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(
