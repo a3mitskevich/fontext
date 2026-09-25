@@ -111,10 +111,13 @@ function savingColor(saving: number): string {
   return c.red;
 }
 
+const SAVING_BAR_WIDTH = 20;
+
+// An output larger than the input has a negative saving and gets an empty bar
 function savingBar(saving: number): string {
-  const width = 20;
-  const filled = Math.round((saving / 100) * width);
-  const empty = width - filled;
+  const share = Math.round((saving / 100) * SAVING_BAR_WIDTH);
+  const filled = Math.min(Math.max(share, 0), SAVING_BAR_WIDTH);
+  const empty = SAVING_BAR_WIDTH - filled;
   const color = savingColor(saving);
   return `${color}${"█".repeat(filled)}${c.dim}${"░".repeat(empty)}${c.reset}`;
 }
