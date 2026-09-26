@@ -1,6 +1,16 @@
 #!/bin/sh
 
 commit_msg_file="$1"
+
+# Drop coding agent attribution lines (Co-Authored-By: Claude, Claude-Session,
+# "Generated with Claude Code"). This repository sets core.hooksPath, which shadows
+# a global hook that would do it
+awk '
+  tolower($0) ~ /^[[:space:]]*(co-authored-by:[[:space:]]*claude|claude-session:)/ { next }
+  tolower($0) ~ /^[^a-z]*generated with \[?claude code/ { next }
+  { print }
+' "$commit_msg_file" > "$commit_msg_file.tmp" && mv "$commit_msg_file.tmp" "$commit_msg_file"
+
 commit_msg=$(head -1 "$commit_msg_file")
 
 # Skip merge commits
