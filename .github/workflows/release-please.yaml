@@ -34,6 +34,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:dist
+      # Trusted publishing: npm exchanges the job's OIDC token (id-token: write) for a
+      # short-lived publish token, so no NPM_TOKEN secret is needed. Needs npm >=11.5.1
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
