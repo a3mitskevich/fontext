@@ -4,6 +4,59 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.11.0...fontext-v2.0.0) (2026-09-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* the withWhitespace option, the -w/--with-whitespace CLI flag and the withWhitespace config field are removed; extract() and the CLI config throw when they get it instead of ignoring it, and findMetaByLigatures() of fontext/browser takes no third argument. The icon engine never adds a space glyph; with the subset engine add a space to characters.
+* the icon engine now rejects a ligature that doesn't shape into one glyph other than .notdef with 'Font does not contain a ligature for "<text>"', the same error raws give, and a selection that matches no glyph with "No glyphs match the selection: the font maps none of unicodeRanges <ranges>". The fontext/browser helpers findMetaByLigatures() and findMetaByCodePoints() still return what they find.
+* the svg output of the icon and convert engines is written without the XML declaration and DOCTYPE and with one element per line, so its bytes and content hashes change; its glyphs, mappings, advances and outlines are the same. The internal createGlyphStream(), convertToSvgFont() and GlyphStream type are removed; no entry point exported them.
+* SVG paths of glyphs whose contours start at an off-curve point change, so icon fonts built from such glyphs get new bytes and content hashes. fontext/browser is async now: createFont() and findLigaturesByRaws() return promises, and createFont() returns fontext's own Font interface instead of a fontkit Font. The browser entry rejects WOFF2 input; the Node entry still reads it. Malformed fonts fail with "Malformed <table>" errors, unknown data with "Unsupported font format".
+* fontext is ESM only and requires Node.js >=22.13; Node.js 20 is no longer supported. CommonJS code can still load it with require("fontext").
+
+### Features
+
+* accept Uint8Array and ArrayBuffer font input in extract() ([69a112a](https://github.com/a3mitskevich/fontext/commit/69a112a1b8654da5691e28e0c519c6fb37517144))
+* warn about legacy kern kerning the subset can't keep ([c6acbe9](https://github.com/a3mitskevich/fontext/commit/c6acbe90ac55c89c7262f70d3ecfdcb19915d5e6))
+
+
+### Bug Fixes
+
+* announce --watch only once the watcher is attached ([5bdedb9](https://github.com/a3mitskevich/fontext/commit/5bdedb98fe76e8adca098b3f862b65c3e9d04d26))
+* avoid call stack overflow on large code point sets ([9d84e17](https://github.com/a3mitskevich/fontext/commit/9d84e1700c270abf2b126d1c911657701308e766))
+* correct exports map so ESM consumers get ESM types ([956396e](https://github.com/a3mitskevich/fontext/commit/956396e5679b2d2f198bf6be9e27365a70b20a29))
+* **deps:** update dependencies and patch @xmldom/xmldom advisories ([1ea491c](https://github.com/a3mitskevich/fontext/commit/1ea491c6d788c9bfb17e27c26fc10ae5d5f8c3ea))
+* keep the legacy kern pairs of the kept glyphs in subset output ([ab1ec51](https://github.com/a3mitskevich/fontext/commit/ab1ec5142b1540694aa512f34cd5c61f3b01f51b))
+* keep watching the input after it is replaced ([8a5bc6a](https://github.com/a3mitskevich/fontext/commit/8a5bc6a7717873fda586bcb300a2420aef78861b))
+* keep WOFF2 output and input intact across concurrent calls ([9c09273](https://github.com/a3mitskevich/fontext/commit/9c09273bacd18b29e51159cfce94fa1cfe3a12e6))
+* make icon engine output deterministic ([f705add](https://github.com/a3mitskevich/fontext/commit/f705addec88f0203a05f3ae0637330a81a761dc2))
+* print the report bar when an output is larger than the input ([63b9d64](https://github.com/a3mitskevich/fontext/commit/63b9d649e829e649a55b219500710404f687e8c9))
+* reject font input that is not binary data ([ac18407](https://github.com/a3mitskevich/fontext/commit/ac18407b9204f2f8afcdea11d0524ef72532f076))
+* reject fonts whose glyph tables run past the end of the data ([07d026c](https://github.com/a3mitskevich/fontext/commit/07d026ca06ec63c9e5ec5441b7e9b21dc9ebe460))
+* reject icon ligatures and selections the font cannot form ([07867cc](https://github.com/a3mitskevich/fontext/commit/07867ccc7ae33d5a892118a52ef99489c4a2730f))
+* resolve ligatures from every GSUB lookup and subtable ([178adb7](https://github.com/a3mitskevich/fontext/commit/178adb797e32e5ec861194563cf4fb659b77b1b0))
+* resolve only ligatures that the default features form ([ac25640](https://github.com/a3mitskevich/fontext/commit/ac256406b2ee6826c187394bc8b8c991acba82d8))
+* subset fonts whose other table records point past the end ([dea0fd8](https://github.com/a3mitskevich/fontext/commit/dea0fd8d5263b18bbb923c405cba3fed00e0d451))
+* write the OTTO flavor into WOFF output of CFF fonts ([efc829c](https://github.com/a3mitskevich/fontext/commit/efc829cfd581243b5e936fa96889e8ce5b57e9ee))
+
+
+### Performance Improvements
+
+* encode WOFF2 with wawoff2 (WebAssembly) instead of the native ttf2woff2 addon, about 3 times faster and slightly smaller ([02356fc](https://github.com/a3mitskevich/fontext/commit/02356fc2ce0bb22fc714b75790c3c60825a997ea))
+
+
+### Code Refactoring
+
+* build the SVG font without svgicons2svgfont ([b254ef0](https://github.com/a3mitskevich/fontext/commit/b254ef0a8b6cd7c2c21503a07ee8d92dc31bd7ae))
+* read fonts with harfbuzzjs instead of fontkit ([8a8953d](https://github.com/a3mitskevich/fontext/commit/8a8953da03820d709d741099f3852a6122fd8f12))
+* remove the withWhitespace option ([a43d067](https://github.com/a3mitskevich/fontext/commit/a43d067e43fc8b84e301103c258f98c20791d3ca), [49363da](https://github.com/a3mitskevich/fontext/commit/49363da8e4fc185665ca8eb32dea6cd731a26c30))
+
+
+### Build System
+
+* ship ESM only and require Node.js &gt;=22.13 ([242282b](https://github.com/a3mitskevich/fontext/commit/242282bfd95edc1c7faa39b04e3d5eb2def82574))
+
 ## [1.11.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.10.0...fontext-v1.11.0) (2026-03-23)
 
 
