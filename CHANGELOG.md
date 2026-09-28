@@ -9,13 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### ⚠ BREAKING CHANGES
 
-* reject the removed withWhitespace option instead of ignoring it
-* the withWhitespace option, the -w/--with-whitespace CLI flag and the withWhitespace config field are removed, and findMetaByLigatures() of fontext/browser takes no third argument. The icon engine never adds a space glyph; with the subset engine add a space to characters.
+* the withWhitespace option, the -w/--with-whitespace CLI flag and the withWhitespace config field are removed; extract() and the CLI config throw when they get it instead of ignoring it, and findMetaByLigatures() of fontext/browser takes no third argument. The icon engine never adds a space glyph; with the subset engine add a space to characters.
 * the icon engine now rejects a ligature that doesn't shape into one glyph other than .notdef with 'Font does not contain a ligature for "<text>"', the same error raws give, and a selection that matches no glyph with "No glyphs match the selection: the font maps none of unicodeRanges <ranges>". The fontext/browser helpers findMetaByLigatures() and findMetaByCodePoints() still return what they find.
 * the svg output of the icon and convert engines is written without the XML declaration and DOCTYPE and with one element per line, so its bytes and content hashes change; its glyphs, mappings, advances and outlines are the same. The internal createGlyphStream(), convertToSvgFont() and GlyphStream type are removed; no entry point exported them.
 * SVG paths of glyphs whose contours start at an off-curve point change, so icon fonts built from such glyphs get new bytes and content hashes. fontext/browser is async now: createFont() and findLigaturesByRaws() return promises, and createFont() returns fontext's own Font interface instead of a fontkit Font. The browser entry rejects WOFF2 input; the Node entry still reads it. Malformed fonts fail with "Malformed <table>" errors, unknown data with "Unsupported font format".
-* fontext is ESM only and requires Node.js >=22.13. CommonJS code can still load it with require("fontext").
-* Node.js 20 is no longer supported; the minimum is 22.12.
+* fontext is ESM only and requires Node.js >=22.13; Node.js 20 is no longer supported. CommonJS code can still load it with require("fontext").
 
 ### Features
 
@@ -40,26 +38,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 * resolve ligatures from every GSUB lookup and subtable ([178adb7](https://github.com/a3mitskevich/fontext/commit/178adb797e32e5ec861194563cf4fb659b77b1b0))
 * resolve only ligatures that the default features form ([ac25640](https://github.com/a3mitskevich/fontext/commit/ac256406b2ee6826c187394bc8b8c991acba82d8))
 * subset fonts whose other table records point past the end ([dea0fd8](https://github.com/a3mitskevich/fontext/commit/dea0fd8d5263b18bbb923c405cba3fed00e0d451))
-* **test:** resolve the dist entry at runtime so typecheck works without a build ([a75ea4a](https://github.com/a3mitskevich/fontext/commit/a75ea4a39a0757e683b64c64f453cb6010a7008a))
 * write the OTTO flavor into WOFF output of CFF fonts ([efc829c](https://github.com/a3mitskevich/fontext/commit/efc829cfd581243b5e936fa96889e8ce5b57e9ee))
 
 
 ### Performance Improvements
 
-* encode WOFF/WOFF2 via fontverter and drop ttf2woff2 ([02356fc](https://github.com/a3mitskevich/fontext/commit/02356fc2ce0bb22fc714b75790c3c60825a997ea))
+* encode WOFF2 with wawoff2 (WebAssembly) instead of the native ttf2woff2 addon, about 3 times faster and slightly smaller ([02356fc](https://github.com/a3mitskevich/fontext/commit/02356fc2ce0bb22fc714b75790c3c60825a997ea))
 
 
 ### Code Refactoring
 
 * build the SVG font without svgicons2svgfont ([b254ef0](https://github.com/a3mitskevich/fontext/commit/b254ef0a8b6cd7c2c21503a07ee8d92dc31bd7ae))
 * read fonts with harfbuzzjs instead of fontkit ([8a8953d](https://github.com/a3mitskevich/fontext/commit/8a8953da03820d709d741099f3852a6122fd8f12))
-* reject the removed withWhitespace option instead of ignoring it ([49363da](https://github.com/a3mitskevich/fontext/commit/49363da8e4fc185665ca8eb32dea6cd731a26c30))
-* remove the withWhitespace option ([a43d067](https://github.com/a3mitskevich/fontext/commit/a43d067e43fc8b84e301103c258f98c20791d3ca))
+* remove the withWhitespace option ([a43d067](https://github.com/a3mitskevich/fontext/commit/a43d067e43fc8b84e301103c258f98c20791d3ca), [49363da](https://github.com/a3mitskevich/fontext/commit/49363da8e4fc185665ca8eb32dea6cd731a26c30))
 
 
 ### Build System
 
-* require Node.js &gt;=22.12 ([c0f9b5d](https://github.com/a3mitskevich/fontext/commit/c0f9b5d87f07231a07c7b07336accdf703ecdcec))
 * ship ESM only and require Node.js &gt;=22.13 ([242282b](https://github.com/a3mitskevich/fontext/commit/242282bfd95edc1c7faa39b04e3d5eb2def82574))
 
 ## [1.11.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.10.0...fontext-v1.11.0) (2026-03-23)
