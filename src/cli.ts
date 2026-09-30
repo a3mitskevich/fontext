@@ -5,6 +5,7 @@ import readline from "readline";
 import { parseArgs } from "node:util";
 import extract, { WITH_WHITESPACE_REMOVED } from "./extract";
 import { type OptimizationConfig, resolveOptimizationOptions } from "./cli-optimization";
+import { chunkOutputs, chunkSummary, fileSummary, outputFiles, resolveSplit } from "./cli-split";
 import { Format, type Formats } from "./types";
 
 const VALID_FORMATS = Object.values(Format);
@@ -51,6 +52,8 @@ ${c.bold}Optimization:${c.reset}
       ${c.cyan}--layout-features${c.reset} <v>  Layout features to keep: ${c.dim}all${c.reset} | ${c.dim}default${c.reset} | ${c.dim}tag,tag${c.reset} ${c.dim}(subset and convert engines)${c.reset}
       ${c.cyan}--name-ids${c.reset} <list>      Name ids to keep ${c.dim}(e.g. 1,2,4)${c.reset}
       ${c.cyan}--drop-tables${c.reset} <list>   Tables to drop ${c.dim}(e.g. MATH,DSIG)${c.reset}
+      ${c.cyan}--split${c.reset} scripts       Also write a font per Unicode script: ${c.dim}<font-name>.<script>.<format>${c.reset}
+                              ${c.dim}Each keeps digits, punctuation and marks (subset and convert engines)${c.reset}
 
 ${c.bold}Icon Engine:${c.reset} ${c.dim}--engine icon (default, for icon fonts)${c.reset}
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
@@ -74,7 +77,7 @@ ${c.bold}Config file:${c.reset}
   ${c.dim}  "ligatures": ["home","search"], "formats": ["woff2","ttf"] }${c.reset}
 
   ${c.dim}Optimization keys: "target", "hinting", "layoutFeatures" ("all", "default" or tags),${c.reset}
-  ${c.dim}"nameIds", "dropTables"; also in batch entries.${c.reset}
+  ${c.dim}"nameIds", "dropTables", "split"; also in batch entries.${c.reset}
 
   ${c.dim}Batch mode — process multiple fonts:${c.reset}
   ${c.dim}{ "output": "./fonts", "formats": ["woff2"],${c.reset}
@@ -171,6 +174,7 @@ interface ConfigEntry extends OptimizationConfig {
   engine?: string;
   formats?: string[];
   safariFix?: boolean;
+  split?: string;
   dryRun?: boolean;
   silent?: boolean;
 }
@@ -316,6 +320,7 @@ async function main(): Promise<void> {
       "layout-features": { type: "string" },
       "name-ids": { type: "string" },
       "drop-tables": { type: "string" },
+      split: { type: "string" },
       "dry-run": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
       json: { type: "boolean", short: "j", default: false },
@@ -426,6 +431,7 @@ async function main(): Promise<void> {
     const safariFix = (cliOverrides && values["safari-fix"]) || (entry.safariFix ?? false);
     const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
     const optimization = resolveOptimizationOptions(entry, values, cliOverrides);
+    const split = resolveSplit(entry.split, values.split, cliOverrides);
 
     return {
       inputPath,
@@ -442,6 +448,7 @@ async function main(): Promise<void> {
         safariFix,
         silent,
         ...optimization,
+        split,
       },
     };
   }
@@ -462,22 +469,12 @@ async function main(): Promise<void> {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const files: { path: string; format: string; size: number; saving: number }[] = [];
-
-    for (const format of VALID_FORMATS) {
-      const buffer = result[format];
-      if (buffer) {
-        const filePath = path.join(outputDir, `${fontName}.${format}`);
-        if (!isDryRun) {
-          fs.writeFileSync(filePath, buffer);
-        }
-        const formatReport = result.report.formats[format];
-        files.push({
-          path: filePath,
-          format,
-          size: buffer.length,
-          saving: formatReport?.saving ?? 0,
-        });
+    const fontFiles = outputFiles(result, outputDir, fontName);
+    const chunks = chunkOutputs(result, outputDir, fontName);
+    const files = [...fontFiles, ...chunks.flatMap((chunk) => chunk.files)];
+    if (!isDryRun) {
+      for (const file of files) {
+        fs.writeFileSync(file.path, file.buffer);
       }
     }
 
@@ -486,14 +483,10 @@ async function main(): Promise<void> {
         fontName,
         glyphs: result.meta.length,
         originalSize: result.report.originalSize,
-        files: files.map(({ path: p, format, size, saving }) => ({
-          path: p,
-          format,
-          size,
-          saving,
-        })),
+        files: fontFiles.map((file) => fileSummary(file)),
         meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
         warnings: result.warnings,
+        ...(result.chunks ? { chunks: chunks.map((chunk) => chunkSummary(chunk)) } : {}),
       });
     }
 
@@ -521,6 +514,11 @@ async function main(): Promise<void> {
     console.log();
     for (const { message } of result.warnings) {
       printWarning(`${fontName}: ${message}`);
+    }
+    for (const { script, warnings } of chunks) {
+      for (const { message } of warnings) {
+        printWarning(`${fontName}.${script}: ${message}`);
+      }
     }
   }
 
