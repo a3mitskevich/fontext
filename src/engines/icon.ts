@@ -87,7 +87,7 @@ export async function extractIcon(content: Buffer, option: IconOption): Promise<
   }
   assertGlyphsSelected(glyphsMeta, unicodeRanges);
 
-  const svgFont = buildSvgFont(fontName, glyphsMeta);
+  const svgFont = buildSvgFont(fontName, glyphsMeta, font.unitsPerEm);
   const fonts = await convertByFormats(svgFont, formats, {
     safariFix: option.safariFix,
     /* The source font's head.modified instead of the current time keeps the output

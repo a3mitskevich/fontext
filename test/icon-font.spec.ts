@@ -4,8 +4,10 @@ import { createFont } from "../src/glyphs";
 import type { GlyphMeta } from "../src/types";
 import { cffFont, extract, textFont, ttfOriginalFont } from "./setup";
 
-// The SVG font scales every glyph so that its vertical advance fills an em of 1000 units
-const EM = 1000;
+/* The SVG font scales every glyph so that its vertical advance fills the em: the units per em
+   of the source font, 512 in Material Icons and 1000 in the CFF font */
+const MATERIAL_EM = 512;
+const CFF_EM = 1000;
 const DIGITS = 9;
 
 const MATERIAL: IconOption = {
@@ -25,24 +27,25 @@ const CFF: IconOption = {
 };
 
 const CASES = [
-  ["Material Icons", ttfOriginalFont, MATERIAL],
-  ["the CFF font", cffFont, CFF],
+  ["Material Icons", ttfOriginalFont, MATERIAL, MATERIAL_EM],
+  ["the CFF font", cffFont, CFF, CFF_EM],
 ] as const;
 
-/* TTF outlines recorded from the SVG font svgicons2svgfont assembled: svg2ttf rounds the points
-   to integers and turns the cubic curves of the CFF font into quadratic ones */
+/* TTF outlines recorded from the SVG font svgicons2svgfont assembled, on an em of 1000 units, the
+   CFF ones, and from the SVG font at Material Icons' own 512 units: svg2ttf rounds the points to
+   integers and turns the cubic curves of the CFF font into quadratic ones */
 const TTF_OUTLINES = [
   [
     "home",
     ttfOriginalFont,
     MATERIAL,
-    "M416 -166L209 -166L209 -500L84 -500L500 -875L916 -500L791 -500L791 -166L584 -166L584 -416L416 -416Z",
+    "M213 -85L107 -85L107 -256L43 -256L256 -448L469 -256L405 -256L405 -85L299 -85L299 -213L213 -213Z",
   ],
   [
     "fiber_manual_record",
     ttfOriginalFont,
     MATERIAL,
-    "M265 -265Q166 -363 166 -500Q166 -637 264.5 -735.5Q363 -834 500 -834Q637 -834 735.5 -735.5Q834 -637 834 -500Q834 -363 735.5 -264.5Q637 -166 500 -166Q363 -166 265 -265Z",
+    "M136 -136Q85 -186 85 -256Q85 -326 135.5 -376.5Q186 -427 256 -427Q326 -427 376.5 -376.5Q427 -326 427 -256Q427 -186 376.5 -135.5Q326 -85 256 -85Q186 -85 136 -136Z",
   ],
   [
     "fi",
@@ -84,9 +87,9 @@ function outlineOf(meta: GlyphMeta) {
   };
 }
 
-const scaledWidth = (meta: GlyphMeta): number => {
+const scaledWidth = (meta: GlyphMeta, em: number): number => {
   const { width, height } = outlineOf(meta);
-  return (width * EM) / height;
+  return (width * em) / height;
 };
 
 /** Commands of path data as their letter and numbers. */
@@ -97,9 +100,9 @@ const commandsOf = (d: string) =>
   }));
 
 /** The glyph SVG path scaled to the em and flipped to the font y axis, which points up. */
-function scaledCommandsOf(meta: GlyphMeta) {
+function scaledCommandsOf(meta: GlyphMeta, em: number) {
   const { height, d } = outlineOf(meta);
-  const scale = EM / height;
+  const scale = em / height;
   return commandsOf(d).map(({ command, values }) => ({
     command,
     values: values.map((value, index) => value * scale * (index % 2 === 1 ? -1 : 1)),
@@ -119,17 +122,17 @@ async function extractSvgFont(font: Buffer, option: IconOption) {
 }
 
 describe("icon engine font", () => {
-  it.each(CASES)("should describe the SVG font of %s", async (_, font, option) => {
+  it.each(CASES)("should describe the SVG font of %s", async (_, font, option, em) => {
     const { meta, svgFont } = await extractSvgFont(font, option);
 
     const [fontElement] = elements(svgFont, "font");
     expect(fontElement.id).toBe("icon-font");
     expect(Number(fontElement["horiz-adv-x"])).toBeCloseTo(
-      Math.max(...meta.map((glyph) => scaledWidth(glyph))),
+      Math.max(...meta.map((glyph) => scaledWidth(glyph, em))),
       DIGITS,
     );
     expect(elements(svgFont, "font-face")).toStrictEqual([
-      { "font-family": "icon-font", "units-per-em": "1000", ascent: "1000", descent: "0" },
+      { "font-family": "icon-font", "units-per-em": `${em}`, ascent: `${em}`, descent: "0" },
     ]);
     expect(elements(svgFont, "missing-glyph")).toStrictEqual([{ "horiz-adv-x": "0" }]);
   });
@@ -150,16 +153,16 @@ describe("icon engine font", () => {
 
   it.each(CASES)(
     "should scale each outline of %s so its vertical advance fills the em",
-    async (_, font, option) => {
+    async (_, font, option, em) => {
       const { meta, svgFont } = await extractSvgFont(font, option);
       const glyphs = new Map(elements(svgFont, "glyph").map((glyph) => [glyph.unicode, glyph]));
 
       for (const glyph of meta) {
-        const expected = scaledCommandsOf(glyph);
+        const expected = scaledCommandsOf(glyph, em);
         for (const text of textsOf(glyph)) {
           const element = glyphs.get(text) as Attributes;
           const actual = commandsOf(element.d);
-          expect(Number(element["horiz-adv-x"])).toBeCloseTo(scaledWidth(glyph), DIGITS);
+          expect(Number(element["horiz-adv-x"])).toBeCloseTo(scaledWidth(glyph, em), DIGITS);
           expect(actual.map(({ command }) => command)).toStrictEqual(
             expected.map(({ command }) => command),
           );
@@ -176,7 +179,7 @@ describe("icon engine font", () => {
 
   it.each(CASES)(
     "should map the characters and ligatures of %s in the TTF",
-    async (_, font, option) => {
+    async (_, font, option, em) => {
       const { meta, ttf } = await extractSvgFont(font, option);
       const output = await createFont(ttf as Buffer);
 
@@ -188,7 +191,7 @@ describe("icon engine font", () => {
           expect(output.glyphForCodePoint(char.codePointAt(0) as number)).toBe(shaped[0].id);
         }
         // The TTF advance is the integer part: svg2ttf reads horiz-adv-x with parseInt
-        expect(output.advanceWidth(shaped[0].id)).toBe(Math.trunc(scaledWidth(glyph)));
+        expect(output.advanceWidth(shaped[0].id)).toBe(Math.trunc(scaledWidth(glyph, em)));
       }
     },
   );

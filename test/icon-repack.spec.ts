@@ -225,7 +225,7 @@ describe("icon engine TTF repack", () => {
   it("should keep 20 Material Icons within a WOFF2 size budget", async () => {
     const { woff2 } = await extract(ttfOriginalFont, option({ ligatures: MATERIAL_20 }));
 
-    // 2 204 bytes as svg2ttf wrote it, 1 636 repacked
-    expect(woff2?.length).toBeLessThanOrEqual(1700);
+    // 2 204 bytes as svg2ttf wrote it on an em of 1000 units, 1 592 repacked at the source's 512
+    expect(woff2?.length).toBeLessThanOrEqual(1620);
   });
 });

@@ -19,8 +19,6 @@ const PADDING = FONT_SIZE / 2;
 const HEIGHT = FONT_SIZE * 3;
 const BASELINE = FONT_SIZE * 2;
 const COVERED_ALPHA = 128;
-/** The em of the SVG font, `EM` in src/engines/svg-font.ts. */
-export const SVG_UNITS_PER_EM = 1000;
 
 export interface Drawing {
   canvas: HTMLCanvasElement;
@@ -76,10 +74,9 @@ export function drawText(family: string, size: number, text: string, width: numb
   return toDrawing(context);
 }
 
-/** A glyph of an SVG font: path data in font units, y up, on an em of 1000 units. */
-export function drawSvgGlyph(d: string, size: number, width: number): Drawing {
+/** A glyph of an SVG font: path data in font units, y up, drawn at `scale` pixels per unit. */
+export function drawSvgGlyph(d: string, scale: number, width: number): Drawing {
   const context = newContext(width);
-  const scale = size / SVG_UNITS_PER_EM;
   context.setTransform(scale, 0, 0, -scale, PADDING, BASELINE);
   // oxlint-disable-next-line unicorn/no-array-fill-with-reference-type -- CanvasRenderingContext2D.fill, not Array#fill
   context.fill(new Path2D(d));
