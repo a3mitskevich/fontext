@@ -67,9 +67,10 @@ npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf
 | `--layout-features`     | `all`, `default` or tags: `liga,kern`                    |
 | `--name-ids`            | Name ids to keep: `1,2,4`                                |
 | `--drop-tables`         | Tables to drop: `MATH,DSIG`                              |
+| `--split scripts`       | Also write a font per script: `<font-name>.<script>.<format>` |
 
-`.fontextrc.json` and its batch entries take the same options as `target`, `hinting`, `layoutFeatures`, `nameIds`
-and `dropTables`. `fontext --help` lists every flag.
+`.fontextrc.json` and its batch entries take the same options as `target`, `hinting`, `layoutFeatures`, `nameIds`,
+`dropTables` and `split`. `fontext --help` lists every flag.
 
 ## Quick Start
 
@@ -118,7 +119,8 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | `layoutFeatures` | `LayoutFeatures` | `'all'` | `'all'`, `'default'` (HarfBuzz's default set) or feature tags — subset and convert engines |
 | `nameIds`        | `number[]`  | 0–6 (icon: 1, 2, 4, 6) | Name ids to keep                                                 |
 | `dropTables`     | `string[]`  | `[]`        | Tags of tables to drop                                                      |
-| `transform`      | `FontTransform` | —       | `(ttf: Uint8Array) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding |
+| `transform`      | `FontTransform` | —       | `(ttf: Uint8Array, context?: { script }) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding |
+| `split`          | `Split`     | —           | `'scripts'`: also a font per Unicode script in `chunks`, see [Splitting by script](#splitting-by-script) — subset and convert engines |
 
 > At least one of `ligatures`, `raws`, `unicodeRanges`, or `characters` must be provided.
 
@@ -146,6 +148,9 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 - The subset engine keeps `ligatures` the source forms, but the `layoutFeatures` left out the feature that forms
   them — `"Ligatures do not form with these layoutFeatures: \"home\"; they need the GSUB feature(s) rlig, which the
   subset left out. ..."` (Material Icons forms its ligatures with `rlig`, not `liga`)
+- A `split` other than `'scripts'` — `"Invalid split: ..."`; `split` with the icon engine — `"split is not supported by
+  the icon engine: ..."`; a subset `ligatures` text whose letters belong to two scripts (Common letters such as `_` and
+  digits aside) — `"Ligature \"...\" mixes the scripts latin and greek, ..."`: split fonts can't form it
 - `transform` throws or rejects — `"transform failed: ..."` with the original error as `cause`; it returns WOFF,
   WOFF2, a collection or no font — `"transform must return an uncompressed TrueType or OpenType font, not WOFF2"` and
   similar
@@ -153,7 +158,8 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 ### `ExtractedResult`
 
 An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `woff2`, `eot`), each containing a
-`Buffer`. Also includes `meta`, `report` and `warnings`:
+`Buffer`. Also includes `meta`, `report` and `warnings`, and with `split` the `chunks` (see
+[Splitting by script](#splitting-by-script)):
 
 ```typescript
 interface GlyphMeta {
@@ -230,7 +236,7 @@ Per engine: the subset and convert engines take every option. The icon engine ta
 what forms the icons: `hinting` and `layoutFeatures` are not part of its options type and are ignored if given. The
 `svg` format is not affected by any of these options.
 
-`transform` receives the final font once — after the legacy `kern` table is restored and the Safari fix applied,
+`transform` receives the final font once (and once more per chunk with `split`) — after the legacy `kern` table is restored and the Safari fix applied,
 before encoding — and what it returns is encoded into every binary format. It must return an uncompressed TrueType or
 OpenType font. The subset and convert engines read `meta` from the transformed font. It is not called when only `svg`
 is requested:
@@ -246,6 +252,79 @@ const result = await extract(font, {
 });
 
 fs.writeFileSync('roboto-3d.ttf', result.ttf);
+```
+
+### Splitting by script
+
+`split: 'scripts'` also builds a font per Unicode script of the selection into `result.chunks`, so an app loads the
+writing system a text needs and the others on demand: browsers through `@font-face` with `unicode-range`, runtimes
+through their fallback fonts (Rive's `setFallbackFontCallback`, troika's fallback fonts). The top-level buffers,
+`meta`, `report` and `warnings` stay the unsplit font, as without `split`. The subset engine splits its
+characters, unicode ranges and ligature letters (only code points the font maps), convert every code point of the font.
+The icon engine rejects `split`.
+
+```typescript
+type FontChunk = Partial<Record<Formats, Buffer>> & {
+    script: string;        // "latin", "cyrillic", "old_italic"...; "unknown" (private use), "common"
+    codePoints: number[];  // everything the chunk's font maps
+    unicodeRange: string;  // "U+0020-007E,U+00A0" — what to load this font for
+    meta: GlyphMeta[];
+    report: OptimizationReport;
+    warnings: FontWarning[];
+};
+```
+
+- **Common and Inherited code points** — digits, punctuation, space, emoji, combining marks — are in **every** chunk's
+  font, so a Cyrillic font draws "12:30, №5" and accents on its own. They are in the `unicodeRange` of one chunk only,
+  latin or else the first: a page with a digit loads that one font, not all of them. A selection of Common and
+  Inherited code points alone gives one chunk, `"common"`.
+- **Unknown**: code points of no script, e.g. private use icons, form a chunk of their own.
+- **Ligatures** of the subset engine go to the chunk of their letters' script; Common letters (`_`, digits) don't
+  decide it, and a ligature of Common letters only goes into every chunk. A ligature mixing two scripts is rejected:
+  its letters would be in different fonts, where it can't form.
+- Chunks are ordered by the first code point of their script, and each is a subset of the source with the same
+  options: target, hinting, layout features, names, dropped tables, legacy kern pairs of its glyphs, Safari fix.
+  Kern pairs across two scripts stay only in the unsplit font. `transform` runs for the unsplit font as before, then
+  once per chunk with `{ script }` as its second argument.
+- Scripts follow the Unicode version of the Node.js runtime (`\p{Script=…}`); the list covers Unicode 17.
+
+The CLI writes the chunks next to the unsplit font as `<font-name>.<script>.<format>`, and `--json` lists each with
+its script, `unicodeRange`, counts and files.
+
+```javascript
+const {chunks} = await extract(font, {
+    fontName: 'noto',
+    engine: 'subset',
+    unicodeRanges: ['U+0000-00FF', 'U+0370-03FF', 'U+0400-04FF'],
+    formats: ['woff2'],
+    split: 'scripts',
+});
+
+const css = chunks.map(({script, unicodeRange, woff2}) => {
+    fs.writeFileSync(`noto.${script}.woff2`, woff2);
+    return `@font-face {
+  font-family: "Noto";
+  src: url("noto.${script}.woff2") format("woff2");
+  unicode-range: ${unicodeRange};
+}`;
+});
+fs.writeFileSync('noto.css', css.join('\n'));
+```
+
+In Rive, the chunks of `target: 'runtime'` (TTF) are fallback fonts, looked up by the missing code point:
+
+```javascript
+import {RiveFont, decodeFont} from '@rive-app/webgl2';
+
+// chunks: [{script, codePoints}] saved at build time, next to the chunks' TTF files
+const fallbacks = await Promise.all(chunks.map(async ({script, codePoints}) => {
+    const bytes = await fetch(`/fonts/noto.${script}.ttf`).then((res) => res.arrayBuffer());
+    return {codePoints: new Set(codePoints), font: await decodeFont(new Uint8Array(bytes))};
+}));
+
+// Before Rive starts rendering
+RiveFont.setFallbackFontCallback((codePoint) =>
+    fallbacks.filter(({codePoints}) => codePoints.has(codePoint)).map(({font}) => font));
 ```
 
 ## Supported Input Formats
