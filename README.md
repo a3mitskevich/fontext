@@ -35,6 +35,8 @@ both:
 - **Glyph metadata** — get name, unicode mappings, and SVG path data for each extracted glyph
 - **Reproducible output** — identical input produces byte-identical fonts, so content-hashed asset names stay stable
   between builds
+- **Targets** — `target: "web"` or `"runtime"` trims hinting, layout features and names for browsers or for 3D and
+  animation runtimes that load TTF directly (see [Targets and optimization options](#targets-and-optimization-options))
 
 ## Installation
 
@@ -60,6 +62,14 @@ npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf
 | `-u, --unicode-ranges`  | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)   |
 | `-f, --formats`         | Output formats: `svg,ttf,woff,woff2,eot` (default: all) |
 | `-o, --output`          | Output directory (default: `.`)                         |
+| `--target`              | `web` or `runtime`                                        |
+| `--no-hinting`          | Drop TrueType hinting (`--hinting` keeps it)             |
+| `--layout-features`     | `all`, `default` or tags: `liga,kern`                    |
+| `--name-ids`            | Name ids to keep: `1,2,4`                                |
+| `--drop-tables`         | Tables to drop: `MATH,DSIG`                              |
+
+`.fontextrc.json` and its batch entries take the same options as `target`, `hinting`, `layoutFeatures`, `nameIds`
+and `dropTables`. `fontext --help` lists every flag.
 
 ## Quick Start
 
@@ -101,7 +111,14 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | `unicodeRanges`  | `string[]`  | `[]`        | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)              |
 | `characters`     | `string`    | —           | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only               |
 | `engine`         | `Engine`    | `'icon'`    | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning), `'convert'` to change format only |
-| `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`              |
+| `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`; the subset engine defaults to TTF, WOFF and WOFF2, a `target` to its own |
+| `safariFix`      | `boolean`   | `false`     | Patch OS/2 and hhea metrics for Safari                                      |
+| `target`         | `Target`    | —           | `'web'` or `'runtime'`, see [Targets and optimization options](#targets-and-optimization-options) |
+| `hinting`        | `boolean`   | `true`      | Keep TrueType hinting — subset and convert engines                         |
+| `layoutFeatures` | `LayoutFeatures` | `'all'` | `'all'`, `'default'` (HarfBuzz's default set) or feature tags — subset and convert engines |
+| `nameIds`        | `number[]`  | 0–6 (icon: 1, 2, 4, 6) | Name ids to keep                                                 |
+| `dropTables`     | `string[]`  | `[]`        | Tags of tables to drop                                                      |
+| `transform`      | `FontTransform` | —       | `(ttf: Uint8Array) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding |
 
 > At least one of `ligatures`, `raws`, `unicodeRanges`, or `characters` must be provided.
 
@@ -122,6 +139,12 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
   unknown name or a typo would otherwise give the glyphs of its letters) — `"Font does not contain a ligature for \"...\""`
 - The icon engine selection matches no glyph, e.g. unicode ranges the font maps none of —
   `"No glyphs match the selection: the font maps none of unicodeRanges ..."`
+- An unknown `target`, a `hinting` that is not a boolean, a `layoutFeatures` keyword other than `all` / `default`,
+  a name id that is not an integer from 0 to 32767, or a tag that is not 1–4 printable ASCII characters —
+  `"Invalid target: ..."`, `"Invalid name id(s): ..."`, `"Invalid tag(s) in dropTables: ..."` and similar
+- `transform` throws or rejects — `"transform failed: ..."` with the original error as `cause`; it returns WOFF,
+  WOFF2, a collection or no font — `"transform must return an uncompressed TrueType or OpenType font, not WOFF2"` and
+  similar
 
 ### `ExtractedResult`
 
@@ -164,6 +187,59 @@ units is multiplied up to at least 512, since outlines are rounded to whole unit
 would overflow TrueType coordinates is lowered. Ligatures are `liga` ligatures under the `DFLT` and `latn` scripts. The
 font keeps only the family, subfamily, full and PostScript names (Windows, English) and has no glyph names in its
 `post` table: `meta` gives the name of each glyph.
+
+### Targets and optimization options
+
+Fonts go to browsers, and to runtimes that load a TTF directly and draw its outlines as vector paths or SDF: Rive
+(TTF/OTF through HarfBuzz), three.js `TTFLoader` and opentype.js, troika-three-text (TTF, OTF, WOFF, no WOFF2). None
+of those runtimes use hinting. `target` picks defaults for either:
+
+| `target`    | Formats | Hinting | Layout features | Name ids   | CFF             |
+|-------------|---------|---------|-----------------|------------|-----------------|
+| none        | all (subset: TTF, WOFF, WOFF2) | kept | all | 0–6 (icon: 1, 2, 4, 6) | kept as is |
+| `'web'`     | WOFF2   | kept    | HarfBuzz default | 1, 2, 4, 6 | desubroutinized |
+| `'runtime'` | TTF     | dropped | HarfBuzz default | 1, 2, 4, 6 | kept as is      |
+
+Explicit `formats`, `hinting`, `layoutFeatures`, `nameIds` and `dropTables` override the target. Without a target
+and these options the output is what it was before they existed.
+
+- **Hinting** is most of a hinted TrueType font: Latin and Cyrillic of Liberation Sans take 53 840 → 20 496 bytes as
+  TTF (WOFF2 32 272 → 11 224), DejaVu 38 832 → 22 256. `hinting: false` drops `fpgm`, `prep`, `cvt `, `hdmx`,
+  `VDMX` and the glyph instructions; outlines stay the same.
+- **Layout features**: HarfBuzz's default set (`liga`, `rlig`, `calt`, `kern`, `mark`, script features and so on)
+  is what troika, opentype.js and Rive apply, and browsers apply it unless CSS asks for more. Dropping the other
+  features takes DejaVu's WOFF2 9 984 → 8 892 bytes. Glyphs only an optional feature such as `dlig` reaches are
+  left out too.
+- **Name ids** 1, 2, 4 and 6 are family, subfamily, full name (three.js `TTFLoader` reads it) and PostScript name; the
+  rest saves a few hundred bytes.
+- **CFF desubroutinization** helps WOFF2 (13 860 → 13 392 bytes) but grows a raw OTF (27 376 → 33 872), so only the
+  web target does it.
+
+Tags of `layoutFeatures` and `dropTables` are 1–4 printable ASCII characters; shorter ones are padded with spaces, so
+`"cvt"` is the `cvt ` table.
+
+Per engine: the subset and convert engines take every option. The icon engine takes `target`, `nameIds`,
+`dropTables` and `transform`; its font comes from SVG outlines, so it has no hinting, and its one `liga` feature is
+what forms the icons: `hinting` and `layoutFeatures` are not part of its options type and are ignored if given. The
+`svg` format is not affected by any of these options.
+
+`transform` receives the final font once — after the legacy `kern` table is restored and the Safari fix applied,
+before encoding — and what it returns is encoded into every binary format. It must return an uncompressed TrueType or
+OpenType font. The subset and convert engines read `meta` from the transformed font. It is not called when only `svg`
+is requested:
+
+```javascript
+const result = await extract(font, {
+    fontName: 'roboto-3d',
+    engine: 'subset',
+    characters: 'ABCabc0123',
+    target: 'runtime',
+    // e.g. run the font through another tool that takes and returns TTF bytes
+    transform: async (ttf) => myFontTool(ttf),
+});
+
+fs.writeFileSync('roboto-3d.ttf', result.ttf);
+```
 
 ## Supported Input Formats
 
