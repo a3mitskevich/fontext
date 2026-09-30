@@ -1,13 +1,16 @@
 import ttf2eot from "ttf2eot";
 import ttf2woff from "ttf2woff";
 import { decodeWoff2, encodeWoff2 } from "../woff2";
-import type { FontWarning, Formats, OptimizationReport } from "../types";
+import type { FontTransform, FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
 import { openFont } from "../font/font";
+import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
-import { hbSubset, SubsetFlag } from "./hb-subset";
+import { assertLigaturesKept } from "./ligature-check";
+import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
 import { restoreKerning } from "./kerning";
+import { applyTransform } from "./transform";
 
 type BinaryFormat = Exclude<Formats, "svg">;
 
@@ -39,7 +42,10 @@ const ENCODERS: Record<BinaryFormat, (ttf: Buffer) => Buffer | Promise<Buffer>> 
 };
 
 /** Encodes a TrueType font into every requested binary format; `svg` is skipped. */
-export async function encodeFromTtf(ttf: Buffer, formats: Formats[]): Promise<FontBuffers> {
+export async function encodeFromTtf(
+  ttf: Buffer,
+  formats: readonly Formats[],
+): Promise<FontBuffers> {
   const binaryFormats = formats.filter((format): format is BinaryFormat => format !== "svg");
   const encoded = await Promise.all(
     binaryFormats.map(async (format) => [format, await ENCODERS[format](ttf)] as const),
@@ -65,25 +71,58 @@ export interface SubsetSelection {
 
 const codePointsOf = (text: string): number[] => [...text].map((char) => char.codePointAt(0) ?? 0);
 
+/** How hb-subset writes the font: what the optimization keeps besides the glyphs. */
+type SubsetOutput = Pick<SubsetInput, "flags" | "layoutFeatures" | "nameIds" | "dropTables">;
+
+const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
+
+/** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
+function subsetOutputOf(optimization: Optimization): SubsetOutput {
+  const { hinting, layoutFeatures, nameIds, dropTables, desubroutinize } = optimization;
+  return {
+    flags: (hinting ? 0 : SubsetFlag.NO_HINTING) | (desubroutinize ? SubsetFlag.DESUBROUTINIZE : 0),
+    layoutFeatures:
+      typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
+    nameIds,
+    dropTables,
+  };
+}
+
 /**
  * HarfBuzz keeps every glyph the layout can reach from the code points, so the letters of a
  * ligature in an icon font would keep nearly every icon. Ligatures are kept as glyph ids without
  * the layout closure instead; the closure of the other code points is found in a pass of its own.
  */
-async function subsetSfnt(source: Uint8Array, selection: SubsetSelection): Promise<Uint8Array> {
+async function subsetSfnt(
+  source: Uint8Array,
+  selection: SubsetSelection,
+  output: SubsetOutput,
+): Promise<Uint8Array> {
   const { codePoints } = selection;
   const ligatures = selection.ligatures?.filter((text) => text.length > 0) ?? [];
   if (ligatures.length === 0) {
-    return hbSubset(source, { unicodes: codePoints, layoutFeatures: "*" });
+    return hbSubset(source, { ...output, unicodes: codePoints });
   }
   const font = await openFont(source);
-  const closure = codePoints.length > 0 ? await layoutClosure(source, codePoints) : [];
-  return hbSubset(source, {
+  const closure =
+    codePoints.length > 0 ? await layoutClosure(source, codePoints, output.layoutFeatures) : [];
+  const subset = await hbSubset(source, {
+    ...output,
     unicodes: [...codePoints, ...ligatures.flatMap((text) => codePointsOf(text))],
     glyphs: [...closure, ...ligatures.flatMap((text) => font.layoutGlyphs(text))],
-    flags: SubsetFlag.NO_LAYOUT_CLOSURE,
-    layoutFeatures: "*",
+    flags: (output.flags ?? 0) | SubsetFlag.NO_LAYOUT_CLOSURE,
   });
+  // Every feature keeps every ligature; a narrower set may leave one out
+  if (output.layoutFeatures !== "*") {
+    await assertLigaturesKept(font, subset, ligatures);
+  }
+  return subset;
+}
+
+export interface SubsetSettings {
+  readonly optimization: Optimization;
+  readonly safariFix?: boolean;
+  readonly transform?: FontTransform;
 }
 
 /**
@@ -93,19 +132,22 @@ async function subsetSfnt(source: Uint8Array, selection: SubsetSelection): Promi
 export async function subsetToTtf(
   content: Buffer,
   selection: SubsetSelection,
-  safariFix = false,
+  { optimization, safariFix = false, transform }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
-  const subset = await subsetSfnt(source, selection);
-  const { font, warnings } = await restoreKerning(source, subset);
+  const subset = await subsetSfnt(source, selection, subsetOutputOf(optimization));
+  // HarfBuzz drops the legacy kern table; it is put back unless the options drop it
+  const { font, warnings } = optimization.dropTables.includes("kern")
+    ? { font: subset, warnings: [] }
+    : await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
-  return { ttf: safariFix ? applySafariFix(ttf) : ttf, warnings };
+  return { ttf: await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform), warnings };
 }
 
 export function buildReport(
   originalSize: number,
   fonts: FontBuffers,
-  formats: Formats[],
+  formats: readonly Formats[],
 ): OptimizationReport {
   const entries = formats.flatMap((format) => {
     const buffer = fonts[format];

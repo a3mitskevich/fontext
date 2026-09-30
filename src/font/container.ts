@@ -4,7 +4,7 @@ import { checkGlyphTables, packSfnt, type SfntTable } from "./sfnt";
 /** Turns WOFF2 data into an uncompressed sfnt (TrueType or OpenType) font. */
 export type Woff2Decoder = (data: Uint8Array) => Promise<Uint8Array>;
 
-type ContainerFormat = "sfnt" | "woff" | "woff2" | "collection";
+export type ContainerFormat = "sfnt" | "woff" | "woff2" | "collection";
 
 const SFNT_SIGNATURES = new Set(["\0\x01\0\0", "OTTO", "true"]);
 const SIGNATURES: Record<string, ContainerFormat> = {
@@ -101,8 +101,12 @@ async function woffToSfnt(data: Uint8Array): Promise<Uint8Array> {
   return packSfnt(flavor, tables);
 }
 
+/** The container format of font data by its signature; throws on data of no known format. */
+export const containerFormat = (data: Uint8Array): ContainerFormat =>
+  detectFormat(createReader(data, "font data"));
+
 async function unwrap(data: Uint8Array, decodeWoff2: Woff2Decoder): Promise<Uint8Array> {
-  switch (detectFormat(createReader(data, "font data"))) {
+  switch (containerFormat(data)) {
     case "sfnt": {
       return data;
     }

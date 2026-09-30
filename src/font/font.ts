@@ -23,8 +23,11 @@ export interface Font {
   glyphForCodePoint: (codePoint: number) => number | undefined;
   /** Characters the cmap maps to `glyph`, by ascending code point. */
   stringsForGlyph: (glyph: number) => readonly string[];
-  /** Shapes `text` with the default features of its script and language. */
-  shape: (text: string) => ShapedGlyph[];
+  /**
+   * Shapes `text` with the default features of its script and language, changed by `features`
+   * in HarfBuzz's syntax, e.g. "-rlig" to turn rlig off.
+   */
+  shape: (text: string, features?: readonly string[]) => ShapedGlyph[];
   /**
    * Every glyph `shape(text)` passes through: those of its result and those GSUB turns into
    * others on the way, e.g. a ligature a later lookup substitutes again. Ascending glyph ids.
@@ -32,6 +35,8 @@ export interface Font {
   layoutGlyphs: (text: string) => number[];
   /** Every ligature of the GSUB ligature lookups, whether a default feature reaches it or not. */
   ligatures: () => readonly LigatureRecord[];
+  /** Tags of the GSUB features, each once, in the order of the feature list. */
+  gsubFeatures: () => readonly string[];
   /** SVG path data of the glyph outline, y axis pointing down. */
   svgPath: (glyph: number) => string;
   advanceWidth: (glyph: number) => number;
@@ -42,6 +47,7 @@ type HarfBuzz = typeof HarfBuzzModule;
 type Face = InstanceType<HarfBuzz["Face"]>;
 type HbFont = InstanceType<HarfBuzz["Font"]>;
 type HbBuffer = InstanceType<HarfBuzz["Buffer"]>;
+type HbFeature = InstanceType<HarfBuzz["Feature"]>;
 
 interface Tracer {
   readonly buffer: HbBuffer;
@@ -116,6 +122,17 @@ function clusterTexts(text: string, clusters: readonly number[]): Map<number, st
   );
 }
 
+/** HarfBuzz features of their strings; a string HarfBuzz can't parse is an error. */
+function parseFeatures(hb: HarfBuzz, features: readonly string[]): HbFeature[] {
+  return features.map((feature) => {
+    const parsed = hb.Feature.fromString(feature);
+    if (!parsed) {
+      throw new Error(`Invalid feature: ${JSON.stringify(feature)}`);
+    }
+    return parsed;
+  });
+}
+
 /**
  * Opens an uncompressed sfnt font. HarfBuzz is imported on first use: it instantiates its
  * WebAssembly module with top-level await, which a static import would pass on to this package
@@ -143,11 +160,11 @@ export async function openFont(sfnt: Uint8Array): Promise<Font> {
     unitsPerEm: face.upem,
     glyphForCodePoint,
     stringsForGlyph: (glyph) => strings.get(glyph) ?? [],
-    shape(text) {
+    shape(text, features = []) {
       const buffer = new hb.Buffer();
       buffer.addText(text);
       buffer.guessSegmentProperties();
-      hb.shape(font, buffer);
+      hb.shape(font, buffer, parseFeatures(hb, features));
       const infos = buffer.getGlyphInfos();
       const texts = clusterTexts(
         text,
@@ -160,6 +177,7 @@ export async function openFont(sfnt: Uint8Array): Promise<Font> {
     },
     layoutGlyphs: (text) => traceLayout(hb, font, text),
     ligatures: () => (ligatures ??= readLigatures(tableOf(face, "GSUB"))),
+    gsubFeatures: () => [...new Set(face.getTableFeatureTags("GSUB"))],
     svgPath: (glyph) => toSvgPath(font.glyphToJson(glyph)),
     advanceWidth: (glyph) => font.glyphHAdvance(glyph),
     advanceHeight: (glyph) => vmtxAdvance?.(glyph) ?? defaultVerticalAdvance(os2, hhea),

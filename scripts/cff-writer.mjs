@@ -1,6 +1,7 @@
 /**
  * A minimal CFF (version 1) table writer for test fixtures: one font, glyph names in the String
- * INDEX, a format 0 charset and Type 2 charstrings built from absolute outline points.
+ * INDEX, a format 0 charset, Type 2 charstrings built from absolute outline points and optional
+ * global and local subroutines.
  * https://adobe-type-tools.github.io/font-tech-notes/pdfs/5176.CFF.pdf
  */
 
@@ -11,12 +12,17 @@ const FONT_BBOX = 5;
 const CHARSET = 15;
 const CHAR_STRINGS = 17;
 const PRIVATE = 18;
+const SUBRS = 19;
 const DEFAULT_WIDTH_X = 20;
 // Type 2 charstring operators
 const RLINETO = 5;
 const RRCURVETO = 8;
+const CALLSUBR = 10;
 const ENDCHAR = 14;
 const RMOVETO = 21;
+const CALLGSUBR = 29;
+// Subroutine numbers are biased by 107 in an INDEX of fewer than 1240 subroutines
+const SUBR_BIAS = 107;
 // The first SID after the 391 standard strings
 const FIRST_CUSTOM_SID = 391;
 
@@ -70,11 +76,22 @@ function cffIndex(items) {
   );
 }
 
+/** A subroutine that ends the charstring calling it. */
+export const endcharSubr = () => struct(u8(ENDCHAR));
+
+/** The end of a charstring: `endchar`, or a call of subroutine 0 that holds it. */
+const ENDINGS = {
+  endchar: () => u8(ENDCHAR),
+  globalSubr: () => [shortInt(-SUBR_BIAS), u8(CALLGSUBR)],
+  localSubr: () => [shortInt(-SUBR_BIAS), u8(CALLSUBR)],
+};
+
 /**
  * A Type 2 charstring from contours given as a start point and segments in absolute font
- * units: one point per line, three (two controls and the end) per cubic curve.
+ * units: one point per line, three (two controls and the end) per cubic curve. `ending` is
+ * "endchar", "globalSubr" or "localSubr", the last two calling subroutine 0 for the endchar.
  */
-export function charstring(contours) {
+export function charstring(contours, ending = "endchar") {
   const commands = contours.flatMap(([start, ...segments]) => [
     { points: [start], operator: RMOVETO },
     ...segments.map((points) => ({ points, operator: points.length === 1 ? RLINETO : RRCURVETO })),
@@ -93,25 +110,46 @@ export function charstring(contours) {
         .map((value) => shortInt(value)),
       u8(operator),
     ]),
-    u8(ENDCHAR),
+    ENDINGS[ending](),
   );
+}
+
+/** A Private DICT; local subroutines follow it, at an offset relative to its start. */
+function privateDictOf(defaultWidth, localSubrs) {
+  const width = [shortInt(defaultWidth), DEFAULT_WIDTH_X];
+  if (localSubrs.length === 0) {
+    return dict([width]);
+  }
+  // The offset field has a fixed size, so the DICT length is known before the offset
+  const withOffset = (offset) => dict([width, [fixedInt(offset), SUBRS]]);
+  return withOffset(withOffset(0).length);
 }
 
 /**
  * A CFF table for one font. `glyphNames` start with .notdef; `charstrings` are in glyph order.
  * Advance widths come from hmtx, `defaultWidth` only keeps the charstrings free of widths.
+ * `globalSubrs` and `localSubrs` are charstrings the glyphs call.
  */
-export function cff({ fontName, glyphNames, charstrings, bbox, defaultWidth }) {
+export function cff({
+  fontName,
+  glyphNames,
+  charstrings,
+  bbox,
+  defaultWidth,
+  globalSubrs: globalSubrCharstrings = [],
+  localSubrs: localSubrCharstrings = [],
+}) {
   const header = struct(u8(1), u8(0), u8(4), u8(4));
   const names = cffIndex([ascii(fontName)]);
   const strings = cffIndex(glyphNames.slice(1).map((glyphName) => ascii(glyphName)));
-  const globalSubrs = cffIndex([]);
+  const globalSubrs = cffIndex(globalSubrCharstrings);
+  const localSubrs = localSubrCharstrings.length > 0 ? cffIndex(localSubrCharstrings) : struct();
   const charset = struct(
     u8(0),
     u16s(glyphNames.slice(1).map((_, position) => FIRST_CUSTOM_SID + position)),
   );
   const charStrings = cffIndex(charstrings);
-  const privateDict = dict([[shortInt(defaultWidth), DEFAULT_WIDTH_X]]);
+  const privateDict = privateDictOf(defaultWidth, localSubrCharstrings);
   const topDict = ({ charsetAt, charStringsAt, privateAt }) =>
     cffIndex([
       dict([
@@ -130,6 +168,6 @@ export function cff({ fontName, glyphNames, charstrings, bbox, defaultWidth }) {
     [header, names, topDict({ charsetAt, charStringsAt, privateAt }), strings, globalSubrs].map(
       (part) => bytes(part),
     ),
-    [charset, charStrings, privateDict].map((part) => bytes(part)),
+    [charset, charStrings, privateDict, localSubrs].map((part) => bytes(part)),
   );
 }

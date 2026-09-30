@@ -1,7 +1,7 @@
 import { createReader } from "../font/reader";
 import { requiredSfntTable, withTable } from "../font/sfnt";
 import { glyphCount } from "../font/tables";
-import { hbSubset } from "./hb-subset";
+import { hbSubset, type SubsetInput } from "./hb-subset";
 
 const HHEA_LONG_METRICS_COUNT = 34;
 const LONG_METRIC_SIZE = 4;
@@ -38,16 +38,17 @@ function advances(sfnt: Uint8Array): number[] {
 }
 
 /**
- * The glyph ids hb-subset keeps for the code points with its layout closure: their glyphs, the
- * glyphs GSUB can turn them into (e.g. the "fi" ligature of "f" and "i") and the components of
- * composite glyphs. HarfBuzz exports no closure call, so it subsets a copy of the font whose
- * advances name the glyphs and reads the kept ones back.
+ * The glyph ids hb-subset keeps for the code points with its layout closure over the layout
+ * features: their glyphs, the glyphs GSUB can turn them into (e.g. the "fi" ligature of "f" and
+ * "i") and the components of composite glyphs. HarfBuzz exports no closure call, so it subsets a
+ * copy of the font whose advances name the glyphs and reads the kept ones back.
  */
 export async function layoutClosure(
   sfnt: Uint8Array,
   unicodes: readonly number[],
+  layoutFeatures: SubsetInput["layoutFeatures"],
 ): Promise<number[]> {
-  const subset = await hbSubset(withGlyphIdAdvances(sfnt), { unicodes, layoutFeatures: "*" });
+  const subset = await hbSubset(withGlyphIdAdvances(sfnt), { unicodes, layoutFeatures });
   const glyphs = advances(subset).map((advance) => advance - 1);
   const isRenumbering = glyphs.every(
     (glyph, index) => glyph >= 0 && (index === 0 ? glyph === 0 : glyph > glyphs[index - 1]),

@@ -1,8 +1,17 @@
 import { types } from "util";
-import { type ExtractedResult, type FontInput, Format, type MinifyOption } from "./types";
+import {
+  type ConvertOption,
+  type ExtractedResult,
+  type FontInput,
+  Format,
+  type IconOption,
+  type MinifyOption,
+  type SubsetOption,
+} from "./types";
 import { extractIcon } from "./engines/icon";
 import { extractSubset } from "./engines/subset";
 import { extractConvert } from "./engines/convert";
+import { assertOptimizationOptions, resolveOptimization } from "./optimization";
 
 function toBuffer(input: FontInput): Buffer {
   if (Buffer.isBuffer(input)) {
@@ -29,7 +38,6 @@ export default async function extract(
   const content = toBuffer(input);
   const { fontName = "" } = option;
   const engine = option.engine ?? "icon";
-  const formats = option.formats ?? Object.values(Format);
 
   if (!fontName) {
     throw new Error("fontName is required");
@@ -58,6 +66,10 @@ export default async function extract(
     }
   }
 
+  assertOptimizationOptions(option as unknown as Record<string, unknown>);
+  const optimization = resolveOptimization(option);
+  const { formats } = optimization;
+
   if (formats.length === 0) {
     throw new Error("At least one output format must be specified");
   }
@@ -71,12 +83,12 @@ export default async function extract(
   }
 
   if (engine === "convert") {
-    return await extractConvert(content, option as MinifyOption & { engine: "convert" });
+    return await extractConvert(content, option as ConvertOption, optimization);
   }
 
   if (engine === "subset") {
-    return await extractSubset(content, option as MinifyOption & { engine: "subset" });
+    return await extractSubset(content, option as SubsetOption, optimization);
   }
 
-  return await extractIcon(content, option as MinifyOption & { engine?: "icon" });
+  return await extractIcon(content, option as IconOption, optimization);
 }

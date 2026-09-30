@@ -9,12 +9,14 @@
  *   lookup 4:   y z -> U+E003                        (no feature: "yz" alone doesn't form it)
  *
  * Letters are boxes; ligatures are arches with a cubic curve. vmtx gives letters and
- * ligatures vertical advances that differ from the OS/2 line height.
+ * ligatures vertical advances that differ from the OS/2 line height. Letters end their
+ * charstrings in a global subroutine, ligatures in a local one, so a desubroutinized subset
+ * differs from one that keeps the subroutines.
  * The output is deterministic. Run: node scripts/make-cff-fixture.mjs
  */
 
 import { writeFileSync } from "node:fs";
-import { charstring, cff } from "./cff-writer.mjs";
+import { charstring, cff, endcharSubr } from "./cff-writer.mjs";
 import { cmap, head, hhea, maxpCff, metrics, name, os2, post, vhea } from "./font-tables.mjs";
 import {
   CHAINED_CONTEXT_LOOKUP,
@@ -111,6 +113,14 @@ const outline = (glyphName) => {
   return [isLigature(glyphName) ? arch(inset) : box(inset)];
 };
 
+/** Letters call the global subroutine, ligatures the local one, the rest end on their own. */
+const ending = (glyphName) => {
+  if (isLigature(glyphName)) {
+    return "localSubr";
+  }
+  return LETTERS.includes(glyphName) ? "globalSubr" : "endchar";
+};
+
 const advanceHeight = (glyphName) =>
   isLigature(glyphName) ? LIGATURE_ADVANCE_HEIGHT : LETTER_ADVANCE_HEIGHT;
 
@@ -119,9 +129,13 @@ const font = sfnt(
     "CFF ": cff({
       fontName: "FontextCffFixture-Regular",
       glyphNames: GLYPH_ORDER,
-      charstrings: GLYPH_ORDER.map((glyphName) => charstring(outline(glyphName))),
+      charstrings: GLYPH_ORDER.map((glyphName) =>
+        charstring(outline(glyphName), ending(glyphName)),
+      ),
       bbox: BBOX,
       defaultWidth: ADVANCE,
+      globalSubrs: [endcharSubr()],
+      localSubrs: [endcharSubr()],
     }),
     GSUB,
     "OS/2": os2({
