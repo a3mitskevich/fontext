@@ -1,7 +1,51 @@
 import { describe, it, expect } from "vitest";
-import { extract, ttfOriginalFont } from "./setup";
+import { extract, importFontext, textFont, ttfOriginalFont } from "./setup";
+
+type Arguments = Parameters<typeof extract>;
 
 describe("validation", () => {
+  // The extract wrapper of setup is async and turns a synchronous throw into a rejection
+  it.each([
+    [
+      "input that is not binary data",
+      ["font.ttf", { fontName: "test", ligatures: ["home"] }],
+      "Font input must be a Buffer, Uint8Array or ArrayBuffer",
+    ],
+    [
+      "a missing fontName",
+      [ttfOriginalFont, { fontName: "", ligatures: ["home"] }],
+      "fontName is required",
+    ],
+    [
+      "the removed withWhitespace option",
+      [ttfOriginalFont, { fontName: "test", ligatures: ["home"], withWhitespace: true }],
+      "withWhitespace was removed",
+    ],
+    [
+      "an empty glyph selection",
+      [ttfOriginalFont, { fontName: "test" }],
+      "At least one of ligatures",
+    ],
+    [
+      "an invalid format",
+      [ttfOriginalFont, { fontName: "test", ligatures: ["home"], formats: ["bmp"] }],
+      "Invalid format(s): bmp",
+    ],
+    [
+      "SVG output of the subset engine",
+      [textFont, { fontName: "test", engine: "subset", characters: "abc", formats: ["svg"] }],
+      "Subset engine does not support SVG format",
+    ],
+  ])("should reject %s instead of throwing synchronously", async (_label, args, message) => {
+    const { extract: extractDirectly } = await importFontext();
+    let result: ReturnType<typeof extract> | undefined;
+
+    expect(() => {
+      result = extractDirectly(...(args as unknown as Arguments));
+    }).not.toThrow();
+    await expect(result).rejects.toThrow(message);
+  });
+
   it("should throw on missing fontName", async () => {
     await expect(
       extract(ttfOriginalFont, {

@@ -104,7 +104,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 
 ### Error Handling
 
-`extract()` throws in the following cases:
+`extract()` returns a rejected promise, never a synchronous throw, in the following cases:
 
 - Font input is not a `Buffer`, `Uint8Array` or `ArrayBuffer` — `TypeError: "Font input must be a Buffer, Uint8Array or ArrayBuffer"`
 - Font data is not TTF, OTF, WOFF or WOFF2 — `"Unsupported font format: ..."`
