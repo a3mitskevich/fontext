@@ -130,7 +130,10 @@ export async function subsetToTtf(
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
   const subset = await subsetSfnt(source, selection, subsetOutputOf(optimization));
-  const { font, warnings } = await restoreKerning(source, subset);
+  // HarfBuzz drops the legacy kern table; it is put back unless the options drop it
+  const { font, warnings } = optimization.dropTables.includes("kern")
+    ? { font: subset, warnings: [] }
+    : await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
   return { ttf: await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform), warnings };
 }

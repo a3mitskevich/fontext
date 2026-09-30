@@ -141,7 +141,8 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
   `"No glyphs match the selection: the font maps none of unicodeRanges ..."`
 - An unknown `target`, a `hinting` that is not a boolean, a `layoutFeatures` keyword other than `all` / `default`,
   a name id that is not an integer from 0 to 32767, or a tag that is not 1–4 printable ASCII characters —
-  `"Invalid target: ..."`, `"Invalid name id(s): ..."`, `"Invalid tag(s) in dropTables: ..."` and similar
+  `"Invalid target: ..."`, `"Invalid name id(s): ..."`, `"Invalid tag(s) in dropTables: ..."` and similar; a
+  `dropTables` tag of a table every font needs — `"Invalid tag(s) in dropTables: \"head\". The font needs these tables: ..."`
 - `transform` throws or rejects — `"transform failed: ..."` with the original error as `cause`; it returns WOFF,
   WOFF2, a collection or no font — `"transform must return an uncompressed TrueType or OpenType font, not WOFF2"` and
   similar
@@ -216,7 +217,9 @@ and these options the output is what it was before they existed.
   web target does it.
 
 Tags of `layoutFeatures` and `dropTables` are 1–4 printable ASCII characters; shorter ones are padded with spaces, so
-`"cvt"` is the `cvt ` table.
+`"cvt"` is the `cvt ` table. `dropTables` rejects the tables every font needs — those browsers require (`cmap`,
+`head`, `hhea`, `hmtx`, `maxp`, `name`, `OS/2`, `post`) and the outlines (`glyf`, `loca`, `CFF`, `CFF2`).
+Dropping `kern` also keeps the subset and convert engines from putting the legacy kern pairs back.
 
 Per engine: the subset and convert engines take every option. The icon engine takes `target`, `nameIds`,
 `dropTables` and `transform`; its font comes from SVG outlines, so it has no hinting, and its one `liga` feature is

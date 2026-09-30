@@ -164,6 +164,16 @@ describe("optimization option validation", () => {
       { dropTables: ["DSIG", "GSUBX", 7] },
       'Invalid tag(s) in dropTables: "GSUBX", 7',
     ],
+    [
+      "a table the font needs",
+      { dropTables: ["DSIG", "head", "OS/2"] },
+      'Invalid tag(s) in dropTables: "head", "OS/2". The font needs these tables: cmap, head, hhea, hmtx, maxp, name, OS/2, post, glyf, loca, CFF, CFF2',
+    ],
+    [
+      "a short tag of a table the font needs",
+      { dropTables: ["CFF"] },
+      'dropTables: "CFF". The font needs',
+    ],
   ])("should reject %s", (_, option, message) => {
     expect(() => assertOptimizationOptions(option)).toThrow(message);
   });
@@ -184,6 +194,9 @@ describe("optimization option validation", () => {
     ["subset", textFont, { engine: "subset", characters: "abc", hinting: 0 }, "hinting"],
     ["icon", ttfOriginalFont, { ligatures: ["home"], layoutFeatures: "some" }, "layoutFeatures"],
     ["convert", textFont, { engine: "convert", nameIds: [70_000] }, "Invalid name id(s): 70000"],
+    ["icon", ttfOriginalFont, { ligatures: ["home"], dropTables: ["cmap"] }, 'dropTables: "cmap"'],
+    ["subset", textFont, { engine: "subset", characters: "a", dropTables: ["glyf"] }, '"glyf"'],
+    ["convert", textFont, { engine: "convert", dropTables: ["loca", "post"] }, '"loca", "post"'],
   ])("should reject invalid options in extract() (%s engine)", async (_, font, option, message) => {
     const invalid = { fontName: "test", formats: ["ttf"], ...option } as unknown as MinifyOption;
     await expect(extract(font, invalid)).rejects.toThrow(message);

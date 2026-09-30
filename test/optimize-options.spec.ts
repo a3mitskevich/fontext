@@ -173,13 +173,22 @@ describe("nameIds and dropTables options", () => {
   it.each<[...EngineCase, dropTables: string[]]>([
     ["subset", { engine: "subset", characters: "abc" }, textFont, ["gasp", "cvt"]],
     ["convert", { engine: "convert" }, textFont, ["gasp", "cvt"]],
-    ["icon", { ligatures: ["home"] }, ttfOriginalFont, ["OS/2"]],
+    ["icon", { ligatures: ["home"] }, ttfOriginalFont, ["GSUB"]],
   ])("should drop the given tables (%s engine)", async (_, option, font, dropTables) => {
     const before = tablesOf(await ttfOf(font, option));
     const after = tablesOf(await ttfOf(font, { ...option, dropTables }));
     const padded = dropTables.map((tag) => tag.padEnd(4, " "));
     expect(before).toEqual(expect.arrayContaining(padded));
     expect(after).toStrictEqual(before.filter((tag) => !padded.includes(tag)));
+  });
+});
+
+describe("dropping the kern table", () => {
+  it("should not restore the legacy kern pairs", async () => {
+    const kerned = await subsetTtf(textFont, { characters: LATIN });
+    const unkerned = await subsetTtf(textFont, { characters: LATIN, dropTables: ["kern"] });
+    expect(readKernPairs(kerned).length).toBeGreaterThan(0);
+    expect(tablesOf(unkerned)).not.toContain("kern");
   });
 });
 

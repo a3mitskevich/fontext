@@ -64,6 +64,26 @@ const PRINTABLE_TAG = /^[\x20-\x7e]{1,4}$/u;
 /** A tag padded with spaces to four characters, the way OpenType stores "cvt " or "CFF ". */
 const paddedTag = (tag: string): string => tag.padEnd(TAG_LENGTH, " ");
 
+/**
+ * Tables no font can drop: those OTS, the sanitizer of browsers, requires of every font (cmap,
+ * head, hhea, hmtx, maxp, name, OS/2, post), and the outlines, TrueType (glyf, loca) or CFF
+ * (CFF, CFF2). HarfBuzz and the engines need the same ones to read the glyphs back.
+ */
+export const REQUIRED_TABLES: readonly string[] = [
+  "cmap",
+  "head",
+  "hhea",
+  "hmtx",
+  "maxp",
+  "name",
+  "OS/2",
+  "post",
+  "glyf",
+  "loca",
+  "CFF ",
+  "CFF2",
+];
+
 /** Options every engine reads the same way; an engine that has no such option leaves it out. */
 interface OptimizationFields {
   readonly target?: Target;
@@ -106,6 +126,15 @@ function assertTags(name: string, tags: unknown): void {
   if (invalid.length > 0) {
     throw new Error(
       `Invalid tag(s) in ${name}: ${quoted(invalid)}. A tag is 1 to 4 printable ASCII characters`,
+    );
+  }
+}
+
+function assertDroppable(tags: readonly string[]): void {
+  const required = tags.filter((tag) => REQUIRED_TABLES.includes(paddedTag(tag)));
+  if (required.length > 0) {
+    throw new Error(
+      `Invalid tag(s) in dropTables: ${quoted(required)}. The font needs these tables: ${REQUIRED_TABLES.map((tag) => tag.trim()).join(", ")}`,
     );
   }
 }
@@ -158,6 +187,7 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   }
   if (dropTables !== undefined) {
     assertTags("dropTables", dropTables);
+    assertDroppable(dropTables as string[]);
   }
   if (transform !== undefined && typeof transform !== "function") {
     throw new TypeError("transform must be a function");

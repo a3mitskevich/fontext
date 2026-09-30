@@ -157,14 +157,14 @@ describe("CLI optimization flags", () => {
         "--name-ids",
         "1,4",
         "--drop-tables",
-        "gasp,OS/2",
+        "gasp,kern",
       ),
     );
     expect(status).toBe(0);
     const ttf = writtenTtf(outDir, "text");
     expect(sfntTable(ttf, "fpgm")).toBeUndefined();
     expect(sfntTable(ttf, "gasp")).toBeUndefined();
-    expect(sfntTable(ttf, "OS/2")).toBeUndefined();
+    expect(sfntTable(ttf, "kern")).toBeUndefined();
     expect(nameIdsOf(ttf)).toStrictEqual([1, 4]);
   });
 
@@ -173,10 +173,31 @@ describe("CLI optimization flags", () => {
     [["--name-ids", "1,x"], 'Invalid name id(s): "x"'],
     [["--drop-tables", "GSUBX"], 'Invalid tag(s) in dropTables: "GSUBX"'],
     [["--layout-features", "liga,ligature"], 'Invalid tag(s) in layoutFeatures: "ligature"'],
+    [["--drop-tables", "DSIG,glyf"], 'Invalid tag(s) in dropTables: "glyf". The font needs'],
   ])("should fail on %j", (args, message) => {
     const { status, stderr } = runCli(subsetArgs(path.join(tmpDir, "invalid"), ...args));
     expect(status).toBe(1);
     expect(stderr).toContain(message);
+  });
+
+  it("should fail on a table the font needs in .fontextrc.json", () => {
+    const projectDir = path.join(tmpDir, "rc-required-table");
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectDir, ".fontextrc.json"),
+      JSON.stringify({
+        input: TEXT_FONT,
+        fontName: "text",
+        engine: "subset",
+        characters: "abc",
+        output: path.join(projectDir, "out"),
+        dropTables: ["hmtx"],
+      }),
+    );
+    const { status, stderr } = runCli([], projectDir);
+    expect(status).toBe(1);
+    expect(stderr).toContain('Invalid tag(s) in dropTables: "hmtx". The font needs');
+    expect(fs.existsSync(path.join(projectDir, "out"))).toBe(false);
   });
 
   it("should read the optimization keys from .fontextrc.json and its batch entries", () => {
