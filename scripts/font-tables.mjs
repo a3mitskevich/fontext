@@ -132,3 +132,22 @@ export function name({ family, postScriptName }) {
 
 /** Version 3: no glyph names. */
 export const post = () => struct(u32(0x3_00_00), u32(0), i16s([-75, 50]), zeros(u32, 5));
+
+const KERN_SUBTABLE_HEADER_SIZE = 14;
+const KERN_PAIR_SIZE = 6;
+const HORIZONTAL_KERNING = 1;
+
+/** A version 0 kern table with one horizontal format 0 subtable of [left, right, value] pairs. */
+export function kern(pairs) {
+  const sorted = pairs.toSorted(
+    ([leftA, rightA], [leftB, rightB]) => leftA - leftB || rightA - rightB,
+  );
+  const entrySelector = Math.floor(Math.log2(sorted.length));
+  const searchRange = 2 ** entrySelector * KERN_PAIR_SIZE;
+  return struct(
+    u16s([0, 1]),
+    u16s([0, KERN_SUBTABLE_HEADER_SIZE + sorted.length * KERN_PAIR_SIZE, HORIZONTAL_KERNING]),
+    u16s([sorted.length, searchRange, entrySelector, sorted.length * KERN_PAIR_SIZE - searchRange]),
+    sorted.map(([left, right, value]) => [u16(left), u16(right), i16(value)]),
+  );
+}
