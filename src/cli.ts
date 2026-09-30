@@ -4,6 +4,7 @@ import path from "path";
 import readline from "readline";
 import { parseArgs } from "node:util";
 import extract, { WITH_WHITESPACE_REMOVED } from "./extract";
+import { type OptimizationConfig, resolveOptimizationOptions } from "./cli-optimization";
 import { Format, type Formats } from "./types";
 
 const VALID_FORMATS = Object.values(Format);
@@ -32,7 +33,7 @@ ${c.bold}Common Options:${c.reset}
   ${c.cyan}-i${c.reset}, ${c.cyan}--input${c.reset} <path>        Path to the font file ${c.dim}(required)${c.reset}
   ${c.cyan}-o${c.reset}, ${c.cyan}--output${c.reset} <dir>        Output directory ${c.dim}(default: .)${c.reset}
   ${c.cyan}-n${c.reset}, ${c.cyan}--font-name${c.reset} <name>    Name for the output font ${c.dim}(required)${c.reset}
-  ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all)${c.reset}
+  ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all; subset: ttf,woff,woff2; a target sets its own)${c.reset}
       ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default)${c.reset} | ${c.dim}subset${c.reset} | ${c.dim}convert${c.reset}
       ${c.cyan}--safari-fix${c.reset}            Fix OS/2 and hhea tables for Safari compatibility
       ${c.cyan}--dry-run${c.reset}              Run without writing files ${c.dim}(preview output only)${c.reset}
@@ -42,6 +43,14 @@ ${c.bold}Common Options:${c.reset}
       ${c.cyan}--init${c.reset}                Create .fontextrc.json via interactive wizard
   ${c.cyan}-h${c.reset}, ${c.cyan}--help${c.reset}                Show this help message
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
+
+${c.bold}Optimization:${c.reset}
+      ${c.cyan}--target${c.reset} <target>      Where the font goes: ${c.dim}web${c.reset} (WOFF2, CFF desubroutinized) | ${c.dim}runtime${c.reset} (TTF, no hinting)
+                              ${c.dim}Both keep the default layout features and name ids 1,2,4,6; flags below override${c.reset}
+      ${c.cyan}--no-hinting${c.reset}          Drop TrueType hinting ${c.dim}(--hinting keeps it; subset and convert engines)${c.reset}
+      ${c.cyan}--layout-features${c.reset} <v>  Layout features to keep: ${c.dim}all${c.reset} | ${c.dim}default${c.reset} | ${c.dim}tag,tag${c.reset} ${c.dim}(subset and convert engines)${c.reset}
+      ${c.cyan}--name-ids${c.reset} <list>      Name ids to keep ${c.dim}(e.g. 1,2,4)${c.reset}
+      ${c.cyan}--drop-tables${c.reset} <list>   Tables to drop ${c.dim}(e.g. MATH,DSIG)${c.reset}
 
 ${c.bold}Icon Engine:${c.reset} ${c.dim}--engine icon (default, for icon fonts)${c.reset}
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Comma-separated ligature names
@@ -64,6 +73,9 @@ ${c.bold}Config file:${c.reset}
   ${c.dim}{ "input": "icons.woff2", "fontName": "my-icons",${c.reset}
   ${c.dim}  "ligatures": ["home","search"], "formats": ["woff2","ttf"] }${c.reset}
 
+  ${c.dim}Optimization keys: "target", "hinting", "layoutFeatures" ("all", "default" or tags),${c.reset}
+  ${c.dim}"nameIds", "dropTables"; also in batch entries.${c.reset}
+
   ${c.dim}Batch mode — process multiple fonts:${c.reset}
   ${c.dim}{ "output": "./fonts", "formats": ["woff2"],${c.reset}
   ${c.dim}  "batch": [${c.reset}
@@ -77,7 +89,8 @@ ${c.bold}Examples:${c.reset}
   ${c.dim}$${c.reset} fontext -i icons.ttf -n my-icons -u U+E000-U+E010 -f woff2
   ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto-latin --engine subset -c "ABCabc" -f woff2
   ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto-cyrillic --engine subset -u U+0400-U+04FF -f woff2
-  ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto --engine convert -f woff2,ttf
+  ${c.dim}${c.reset} fontext -i Roboto.ttf -n roboto --engine convert -f woff2,ttf
+  ${c.dim}${c.reset} fontext -i Roboto.ttf -n roboto-3d --engine subset -c "ABCabc" --target runtime
   ${c.dim}$${c.reset} fontext ${c.dim}# uses .fontextrc.json${c.reset}
 `);
 }
@@ -147,7 +160,7 @@ function createSpinner(text: string): { stop: () => void } {
   };
 }
 
-interface ConfigEntry {
+interface ConfigEntry extends OptimizationConfig {
   input?: string;
   output?: string;
   fontName?: string;
@@ -298,6 +311,11 @@ async function main(): Promise<void> {
       engine: { type: "string" },
       formats: { type: "string", short: "f" },
       "safari-fix": { type: "boolean", default: false },
+      target: { type: "string" },
+      hinting: { type: "boolean" },
+      "layout-features": { type: "string" },
+      "name-ids": { type: "string" },
+      "drop-tables": { type: "string" },
       "dry-run": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
       json: { type: "boolean", short: "j", default: false },
@@ -307,6 +325,8 @@ async function main(): Promise<void> {
       version: { type: "boolean", short: "v", default: false },
     },
     strict: true,
+    // --no-hinting
+    allowNegative: true,
   });
 
   if (values.help) {
@@ -405,6 +425,7 @@ async function main(): Promise<void> {
     }
     const safariFix = (cliOverrides && values["safari-fix"]) || (entry.safariFix ?? false);
     const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
+    const optimization = resolveOptimizationOptions(entry, values, cliOverrides);
 
     return {
       inputPath,
@@ -420,6 +441,7 @@ async function main(): Promise<void> {
         formats,
         safariFix,
         silent,
+        ...optimization,
       },
     };
   }
