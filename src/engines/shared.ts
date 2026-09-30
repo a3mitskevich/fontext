@@ -1,7 +1,7 @@
 import ttf2eot from "ttf2eot";
 import ttf2woff from "ttf2woff";
 import { decodeWoff2, encodeWoff2 } from "../woff2";
-import type { FontWarning, Formats, OptimizationReport } from "../types";
+import type { FontTransform, FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
 import { openFont } from "../font/font";
@@ -9,6 +9,7 @@ import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
 import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
 import { restoreKerning } from "./kerning";
+import { applyTransform } from "./transform";
 
 type BinaryFormat = Exclude<Formats, "svg">;
 
@@ -115,6 +116,7 @@ async function subsetSfnt(
 export interface SubsetSettings {
   readonly optimization: Optimization;
   readonly safariFix?: boolean;
+  readonly transform?: FontTransform;
 }
 
 /**
@@ -124,13 +126,13 @@ export interface SubsetSettings {
 export async function subsetToTtf(
   content: Buffer,
   selection: SubsetSelection,
-  { optimization, safariFix = false }: SubsetSettings,
+  { optimization, safariFix = false, transform }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
   const subset = await subsetSfnt(source, selection, subsetOutputOf(optimization));
   const { font, warnings } = await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
-  return { ttf: safariFix ? applySafariFix(ttf) : ttf, warnings };
+  return { ttf: await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform), warnings };
 }
 
 export function buildReport(

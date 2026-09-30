@@ -50,6 +50,12 @@ export type Target = "web" | "runtime";
 /** Layout features to keep: every one, HarfBuzz's default set or these tags. */
 export type LayoutFeatures = "all" | "default" | string[];
 
+/**
+ * Rewrites the final TrueType or OpenType font; its result is encoded into every binary format.
+ * It must return an uncompressed font, not WOFF, WOFF2 or a collection.
+ */
+export type FontTransform = (ttf: Uint8Array) => Uint8Array | Promise<Uint8Array>;
+
 interface BaseOption {
   fontName: string;
   formats?: Formats[];
@@ -61,6 +67,12 @@ interface BaseOption {
   nameIds?: number[];
   /** Tables to drop, tags of 1-4 printable ASCII characters; shorter tags are padded with spaces. */
   dropTables?: string[];
+  /**
+   * Called once with the final TTF (after kerning restore and Safari fix, before encoding); its
+   * result is encoded into every binary format, and the subset and convert engines read `meta`
+   * from it. Not called when only `svg` is requested.
+   */
+  transform?: FontTransform;
 }
 
 /**

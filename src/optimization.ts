@@ -141,7 +141,7 @@ function assertNameIds(nameIds: unknown): void {
  * also those it ignores, so a typo fails where it was made.
  */
 export function assertOptimizationOptions(option: Readonly<Record<string, unknown>>): void {
-  const { target, hinting, layoutFeatures, nameIds, dropTables } = option;
+  const { target, hinting, layoutFeatures, nameIds, dropTables, transform } = option;
   if (target !== undefined && !Object.hasOwn(TARGETS, target as string)) {
     throw new Error(
       `Invalid target: ${JSON.stringify(target)}. Valid targets: ${Object.keys(TARGETS).join(", ")}`,
@@ -158,5 +158,8 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   }
   if (dropTables !== undefined) {
     assertTags("dropTables", dropTables);
+  }
+  if (transform !== undefined && typeof transform !== "function") {
+    throw new TypeError("transform must be a function");
   }
 }

@@ -30,7 +30,7 @@ export async function extractSubset(
   const { ttf, warnings } = await subsetToTtf(
     content,
     { codePoints, ligatures },
-    { optimization, safariFix: option.safariFix },
+    { optimization, safariFix: option.safariFix, transform: option.transform },
   );
   const fonts = await encodeFromTtf(ttf, formats);
   const subsetted = await createFont(ttf);

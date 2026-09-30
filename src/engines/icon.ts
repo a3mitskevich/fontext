@@ -1,5 +1,5 @@
 import svg2ttf from "svg2ttf";
-import type { ExtractedResult, GlyphMeta, IconOption } from "../types";
+import type { ExtractedResult, FontTransform, GlyphMeta, IconOption } from "../types";
 import type { Optimization } from "../optimization";
 import {
   createFont,
@@ -12,6 +12,7 @@ import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
 import { hbSubset, SubsetFlag } from "./hb-subset";
 import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
+import { applyTransform } from "./transform";
 import { buildSvgFont } from "./svg-font";
 
 /**
@@ -46,12 +47,13 @@ async function repack(ttf: Uint8Array, optimization: Optimization): Promise<Buff
 interface IconSettings {
   readonly optimization: Optimization;
   readonly safariFix?: boolean;
+  readonly transform?: FontTransform;
   readonly timestamp: number;
 }
 
 async function convertByFormats(
   svgFont: Buffer,
-  { optimization, safariFix = false, timestamp }: IconSettings,
+  { optimization, safariFix = false, transform, timestamp }: IconSettings,
 ): Promise<FontBuffers> {
   const { formats } = optimization;
   const svg = formats.includes("svg") ? { svg: svgFont } : {};
@@ -60,7 +62,8 @@ async function convertByFormats(
   }
 
   const ttf = await repack(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer, optimization);
-  const binaryFonts = await encodeFromTtf(safariFix ? applySafariFix(ttf) : ttf, formats);
+  const final = await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform);
+  const binaryFonts = await encodeFromTtf(final, formats);
   return { ...svg, ...binaryFonts };
 }
 
@@ -93,6 +96,7 @@ export async function extractIcon(
   const fonts = await convertByFormats(svgFont, {
     optimization,
     safariFix: option.safariFix,
+    transform: option.transform,
     /* The source font's head.modified instead of the current time keeps the output
        byte-identical for identical input, so content-hashed asset names stay stable */
     timestamp: font.modified,

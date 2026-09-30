@@ -19,7 +19,7 @@ export async function extractConvert(
     ? await subsetToTtf(
         content,
         { codePoints: allCodePoints },
-        { optimization, safariFix: option.safariFix },
+        { optimization, safariFix: option.safariFix, transform: option.transform },
       )
     : null;
   const ttf = subset?.ttf;
