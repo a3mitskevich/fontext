@@ -4,7 +4,9 @@ import { decodeWoff2, encodeWoff2 } from "../woff2";
 import type { FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
-import { hbSubset } from "./hb-subset";
+import { openFont } from "../font/font";
+import { layoutClosure } from "./closure";
+import { hbSubset, SubsetFlag } from "./hb-subset";
 import { restoreKerning } from "./kerning";
 
 type BinaryFormat = Exclude<Formats, "svg">;
@@ -50,20 +52,51 @@ export interface SubsetTtf {
   warnings: FontWarning[];
 }
 
+/** What a subset keeps. */
+export interface SubsetSelection {
+  /** Code points, with every glyph the layout can reach from them, e.g. "fi" for "f" and "i". */
+  readonly codePoints: readonly number[];
+  /**
+   * Texts as the default layout shapes them, e.g. the ligature of "home" and its letters; other
+   * glyphs their letters reach, like the ligature of "work", are left out.
+   */
+  readonly ligatures?: readonly string[];
+}
+
+const codePointsOf = (text: string): number[] => [...text].map((char) => char.codePointAt(0) ?? 0);
+
 /**
- * Subsets a font to the given text as TrueType, with the legacy kern pairs of the kept glyphs,
- * optionally patched for Safari. Warns about legacy kerning it could not keep.
+ * HarfBuzz keeps every glyph the layout can reach from the code points, so the letters of a
+ * ligature in an icon font would keep nearly every icon. Ligatures are kept as glyph ids without
+ * the layout closure instead; the closure of the other code points is found in a pass of its own.
+ */
+async function subsetSfnt(source: Uint8Array, selection: SubsetSelection): Promise<Uint8Array> {
+  const { codePoints } = selection;
+  const ligatures = selection.ligatures?.filter((text) => text.length > 0) ?? [];
+  if (ligatures.length === 0) {
+    return hbSubset(source, { unicodes: codePoints, layoutFeatures: "*" });
+  }
+  const font = await openFont(source);
+  const closure = codePoints.length > 0 ? await layoutClosure(source, codePoints) : [];
+  return hbSubset(source, {
+    unicodes: [...codePoints, ...ligatures.flatMap((text) => codePointsOf(text))],
+    glyphs: [...closure, ...ligatures.flatMap((text) => font.layoutGlyphs(text))],
+    flags: SubsetFlag.NO_LAYOUT_CLOSURE,
+    layoutFeatures: "*",
+  });
+}
+
+/**
+ * Subsets a font as TrueType, with the legacy kern pairs of the kept glyphs, optionally patched
+ * for Safari. Warns about legacy kerning it could not keep.
  */
 export async function subsetToTtf(
   content: Buffer,
-  text: string,
+  selection: SubsetSelection,
   safariFix = false,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
-  const subset = await hbSubset(source, {
-    unicodes: [...text].map((char) => char.codePointAt(0) ?? 0),
-    layoutFeatures: "*",
-  });
+  const subset = await subsetSfnt(source, selection);
   const { font, warnings } = await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
   return { ttf: safariFix ? applySafariFix(ttf) : ttf, warnings };

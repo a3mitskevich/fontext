@@ -1,4 +1,4 @@
-import { createReader, type BinaryReader } from "./reader";
+import { createReader, type BinaryReader, MalformedFontError } from "./reader";
 
 export interface SfntTable {
   tag: number;
@@ -61,6 +61,15 @@ export function sfntTable(sfnt: Uint8Array, tag: string): Uint8Array | undefined
   const tagValue = tagNumber(tag);
   const record = tableRecords(reader).find((offset) => reader.uint32(offset) === tagValue);
   return record === undefined ? undefined : recordData(reader, record);
+}
+
+/** The data of a table the font must have; its absence is a MalformedFontError. */
+export function requiredSfntTable(sfnt: Uint8Array, tag: string): Uint8Array {
+  const table = sfntTable(sfnt, tag);
+  if (!table) {
+    throw new MalformedFontError(`Malformed font: it has no ${tag} table`);
+  }
+  return table;
 }
 
 /**

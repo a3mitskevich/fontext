@@ -8,10 +8,6 @@ function renderSvg(svgPath: string, width: number, height: number): string {
   return `<svg viewBox="0 -${height} ${width} ${height}" xmlns="http://www.w3.org/2000/svg">\n  <path d="${svgPath}" />\n</svg>`;
 }
 
-export function codePointsToString(symbols: readonly number[]): string {
-  return symbols.map((symbol) => String.fromCodePoint(symbol)).join("");
-}
-
 function toSvg(font: Font, glyph: number): string {
   return renderSvg(font.svgPath(glyph), font.advanceWidth(glyph), font.advanceHeight(glyph));
 }
