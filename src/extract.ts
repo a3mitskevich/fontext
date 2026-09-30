@@ -21,7 +21,11 @@ function toBuffer(input: FontInput): Buffer {
 export const WITH_WHITESPACE_REMOVED =
   'withWhitespace was removed: add " " to characters to keep the space (subset engine), the icon engine never extracts it';
 
-export default function extract(input: FontInput, option: MinifyOption): Promise<ExtractedResult> {
+// Async so that invalid input and options reject the returned promise instead of throwing
+export default async function extract(
+  input: FontInput,
+  option: MinifyOption,
+): Promise<ExtractedResult> {
   const content = toBuffer(input);
   const { fontName = "" } = option;
   const engine = option.engine ?? "icon";
@@ -67,12 +71,12 @@ export default function extract(input: FontInput, option: MinifyOption): Promise
   }
 
   if (engine === "convert") {
-    return extractConvert(content, option as MinifyOption & { engine: "convert" });
+    return await extractConvert(content, option as MinifyOption & { engine: "convert" });
   }
 
   if (engine === "subset") {
-    return extractSubset(content, option as MinifyOption & { engine: "subset" });
+    return await extractSubset(content, option as MinifyOption & { engine: "subset" });
   }
 
-  return extractIcon(content, option as MinifyOption & { engine?: "icon" });
+  return await extractIcon(content, option as MinifyOption & { engine?: "icon" });
 }

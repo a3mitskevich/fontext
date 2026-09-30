@@ -31,8 +31,13 @@ export const cffFont = fs.readFileSync(
   path.resolve(import.meta.dirname, "../assets/font-cff-features.otf"),
 );
 
-export const extract: Extract = async (...args: Parameters<Extract>): ReturnType<Extract> => {
+/** The module under test, for checks the async `extract` wrapper below would hide. */
+export const importFontext = (): Promise<FontextModule> => {
   const testTarget = process.env.TEST_TARGET as keyof typeof importTargets;
-  const { default: index } = await importTargets[testTarget ?? "local"]();
+  return Promise.resolve(importTargets[testTarget ?? "local"]());
+};
+
+export const extract: Extract = async (...args: Parameters<Extract>): ReturnType<Extract> => {
+  const { default: index } = await importFontext();
   return index(...args);
 };
