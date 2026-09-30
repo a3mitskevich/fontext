@@ -12,10 +12,10 @@ export const SubsetFlag = {
 
 /** What to keep of a font; unset sets keep the HarfBuzz defaults. */
 export interface SubsetInput {
-  /** Code points to keep, with the glyphs the cmap maps them to. */
-  readonly unicodes?: Iterable<number>;
-  /** Glyph ids to keep. */
-  readonly glyphs?: Iterable<number>;
+  /** Code points to keep, with the glyphs the cmap maps them to; `*` keeps every one. */
+  readonly unicodes?: "*" | Iterable<number>;
+  /** Glyph ids to keep; `*` keeps every glyph. */
+  readonly glyphs?: "*" | Iterable<number>;
   /** `SubsetFlag` values or-ed together, added to the default flags. */
   readonly flags?: number;
   /** Layout features to keep: `*` for all of them, else the tags of the kept ones. */
@@ -24,6 +24,8 @@ export interface SubsetInput {
   readonly dropTables?: readonly string[];
   /** Name ids to keep instead of the default 0-6. */
   readonly nameIds?: readonly number[];
+  /** Language ids of the Windows and Unicode name records to keep instead of the default 0x409. */
+  readonly nameLanguages?: readonly number[];
 }
 
 // Neither the ES lib nor @types/node declares WebAssembly; this is the one call made here
@@ -34,6 +36,7 @@ declare const WebAssembly: {
 // Sets of hb_subset_input_set(), the hb_subset_sets_t enum
 const SETS_DROP_TABLE_TAG = 3;
 const SETS_NAME_ID = 4;
+const SETS_NAME_LANG_ID = 5;
 const SETS_LAYOUT_FEATURE_TAG = 6;
 const MEMORY_MODE_WRITABLE = 2;
 
@@ -96,20 +99,34 @@ function addAll(hb: HbSubsetExports, set: number, values: Iterable<number>): voi
   }
 }
 
+/** Fills an empty set with the values, or with every value for `*`. */
+function fill(hb: HbSubsetExports, set: number, values: "*" | Iterable<number>): void {
+  if (values === "*") {
+    hb.hb_set_invert(set);
+  } else {
+    addAll(hb, set, values);
+  }
+}
+
+/** Replaces the HarfBuzz default values of a set. */
+function replace(hb: HbSubsetExports, set: number, values: "*" | Iterable<number>): void {
+  hb.hb_set_clear(set);
+  fill(hb, set, values);
+}
+
 function configure(hb: HbSubsetExports, input: number, options: SubsetInput): void {
-  addAll(hb, hb.hb_subset_input_unicode_set(input), options.unicodes ?? []);
-  addAll(hb, hb.hb_subset_input_glyph_set(input), options.glyphs ?? []);
+  fill(hb, hb.hb_subset_input_unicode_set(input), options.unicodes ?? []);
+  fill(hb, hb.hb_subset_input_glyph_set(input), options.glyphs ?? []);
   if (options.flags) {
     hb.hb_subset_input_set_flags(input, hb.hb_subset_input_get_flags(input) | options.flags);
   }
   if (options.layoutFeatures) {
-    const features = hb.hb_subset_input_set(input, SETS_LAYOUT_FEATURE_TAG);
-    hb.hb_set_clear(features);
-    if (options.layoutFeatures === "*") {
-      hb.hb_set_invert(features);
-    } else {
-      addAll(hb, features, options.layoutFeatures.map(tagNumber));
-    }
+    const { layoutFeatures } = options;
+    replace(
+      hb,
+      hb.hb_subset_input_set(input, SETS_LAYOUT_FEATURE_TAG),
+      layoutFeatures === "*" ? "*" : layoutFeatures.map((tag) => tagNumber(tag)),
+    );
   }
   if (options.dropTables) {
     addAll(
@@ -119,9 +136,10 @@ function configure(hb: HbSubsetExports, input: number, options: SubsetInput): vo
     );
   }
   if (options.nameIds) {
-    const nameIds = hb.hb_subset_input_set(input, SETS_NAME_ID);
-    hb.hb_set_clear(nameIds);
-    addAll(hb, nameIds, options.nameIds);
+    replace(hb, hb.hb_subset_input_set(input, SETS_NAME_ID), options.nameIds);
+  }
+  if (options.nameLanguages) {
+    replace(hb, hb.hb_subset_input_set(input, SETS_NAME_LANG_ID), options.nameLanguages);
   }
 }
 

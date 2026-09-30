@@ -15,10 +15,37 @@ import {
 } from "../glyphs";
 import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
+import { hbSubset, SubsetFlag } from "./hb-subset";
 import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
 import { buildSvgFont } from "./svg-font";
 
 const DEFAULT_FORMATS = Object.values(Format);
+/**
+ * Name records the repacked font keeps: family, subfamily, full name (three.js TTFLoader reads
+ * it) and PostScript name.
+ */
+const NAME_IDS = [1, 2, 4, 6];
+/** Windows English, the only language svg2ttf writes. */
+const NAME_LANGUAGES = [0x4_09];
+
+/**
+ * Rewrites the TTF of svg2ttf with hb-subset, keeping every glyph, code point and layout feature.
+ * svg2ttf writes cmap subtables for several platforms, glyph names in post and Mac and Windows
+ * name records; HarfBuzz writes the cmap compactly, post without glyph names (the names are in
+ * `meta`) and only the Windows records of the kept names. The head dates stay those of svg2ttf.
+ */
+async function repack(ttf: Uint8Array): Promise<Buffer> {
+  const packed = await hbSubset(ttf, {
+    unicodes: "*",
+    glyphs: "*",
+    flags: SubsetFlag.NO_HINTING,
+    layoutFeatures: "*",
+    nameIds: NAME_IDS,
+    nameLanguages: NAME_LANGUAGES,
+  });
+  return Buffer.from(packed.buffer, packed.byteOffset, packed.byteLength);
+}
+
 async function convertByFormats(
   svgFont: Buffer,
   formats: Formats[],
@@ -29,7 +56,7 @@ async function convertByFormats(
     return svg;
   }
 
-  const ttf = Buffer.from(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer);
+  const ttf = await repack(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer);
   const binaryFonts = await encodeFromTtf(safariFix ? applySafariFix(ttf) : ttf, formats);
   return { ...svg, ...binaryFonts };
 }
