@@ -1,8 +1,7 @@
-import { type ExtractedResult, type Formats, type SubsetOption } from "../types";
+import type { ExtractedResult, SubsetOption } from "../types";
+import type { Optimization } from "../optimization";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
 import { buildReport, encodeFromTtf, subsetToTtf } from "./shared";
-
-const DEFAULT_FORMATS: Formats[] = ["ttf", "woff", "woff2"];
 
 /** Code points of the characters and unicode ranges; ligatures are kept apart from them. */
 function collectCodePoints(option: SubsetOption): number[] {
@@ -14,8 +13,10 @@ function collectCodePoints(option: SubsetOption): number[] {
 export async function extractSubset(
   content: Buffer,
   option: SubsetOption,
+  optimization: Optimization,
 ): Promise<ExtractedResult> {
-  const { formats = DEFAULT_FORMATS, ligatures = [] } = option;
+  const { ligatures = [] } = option;
+  const { formats } = optimization;
 
   const codePoints = collectCodePoints(option);
   if (codePoints.length === 0 && ligatures.every((ligature) => ligature.length === 0)) {
@@ -26,7 +27,11 @@ export async function extractSubset(
     throw new Error("Subset engine does not support SVG format. Use icon engine for SVG output.");
   }
 
-  const { ttf, warnings } = await subsetToTtf(content, { codePoints, ligatures }, option.safariFix);
+  const { ttf, warnings } = await subsetToTtf(
+    content,
+    { codePoints, ligatures },
+    { optimization, safariFix: option.safariFix },
+  );
   const fonts = await encodeFromTtf(ttf, formats);
   const subsetted = await createFont(ttf);
 

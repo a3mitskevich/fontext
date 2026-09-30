@@ -39,11 +39,29 @@ export interface GlyphMeta {
 
 export type Engine = "icon" | "subset" | "convert";
 
+/** Layout features to keep: every one, HarfBuzz's default set or these tags. */
+export type LayoutFeatures = "all" | "default" | string[];
+
 interface BaseOption {
   fontName: string;
   formats?: Formats[];
   safariFix?: boolean;
   silent?: boolean;
+  /** Name ids to keep. */
+  nameIds?: number[];
+  /** Tables to drop, tags of 1-4 printable ASCII characters; shorter tags are padded with spaces. */
+  dropTables?: string[];
+}
+
+/**
+ * Options of the engines that subset a source font. The icon engine builds its font from SVG
+ * outlines, with no hinting and one `liga` feature it needs, so it takes neither.
+ */
+interface SourceLayoutOption {
+  /** Keep TrueType hinting: fpgm, prep, cvt, glyph instructions, hdmx and VDMX (HarfBuzz always drops LTSH). */
+  hinting?: boolean;
+  /** Layout features to keep: every one ("all"), HarfBuzz's default set ("default") or these tags. */
+  layoutFeatures?: LayoutFeatures;
 }
 
 export interface IconOption extends BaseOption {
@@ -53,14 +71,14 @@ export interface IconOption extends BaseOption {
   unicodeRanges?: string[];
 }
 
-export interface SubsetOption extends BaseOption {
+export interface SubsetOption extends BaseOption, SourceLayoutOption {
   engine: "subset";
   characters?: string;
   ligatures?: string[];
   unicodeRanges?: string[];
 }
 
-export interface ConvertOption extends BaseOption {
+export interface ConvertOption extends BaseOption, SourceLayoutOption {
   engine: "convert";
 }
 

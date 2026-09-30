@@ -1,21 +1,26 @@
-import { type ConvertOption, type ExtractedResult, Format } from "../types";
+import type { ConvertOption, ExtractedResult } from "../types";
+import type { Optimization } from "../optimization";
 import { createFont, findMetaByCodePoints } from "../glyphs";
 import { buildReport, encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
 import { buildSvgFont } from "./svg-font";
 
-const DEFAULT_FORMATS = Object.values(Format);
-
 export async function extractConvert(
   content: Buffer,
   option: ConvertOption,
+  optimization: Optimization,
 ): Promise<ExtractedResult> {
-  const { fontName = "", formats = DEFAULT_FORMATS } = option;
+  const { fontName = "" } = option;
+  const { formats } = optimization;
 
   const font = await createFont(content);
   const allCodePoints = font.codePoints;
 
   const subset = formats.some((f) => f !== "svg")
-    ? await subsetToTtf(content, { codePoints: allCodePoints }, option.safariFix)
+    ? await subsetToTtf(
+        content,
+        { codePoints: allCodePoints },
+        { optimization, safariFix: option.safariFix },
+      )
     : null;
   const ttf = subset?.ttf;
   const binaryFonts = ttf ? await encodeFromTtf(ttf, formats) : {};

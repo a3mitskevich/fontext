@@ -5,8 +5,9 @@ import type { FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
 import { openFont } from "../font/font";
+import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
-import { hbSubset, SubsetFlag } from "./hb-subset";
+import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
 import { restoreKerning } from "./kerning";
 
 type BinaryFormat = Exclude<Formats, "svg">;
@@ -39,7 +40,10 @@ const ENCODERS: Record<BinaryFormat, (ttf: Buffer) => Buffer | Promise<Buffer>> 
 };
 
 /** Encodes a TrueType font into every requested binary format; `svg` is skipped. */
-export async function encodeFromTtf(ttf: Buffer, formats: Formats[]): Promise<FontBuffers> {
+export async function encodeFromTtf(
+  ttf: Buffer,
+  formats: readonly Formats[],
+): Promise<FontBuffers> {
   const binaryFormats = formats.filter((format): format is BinaryFormat => format !== "svg");
   const encoded = await Promise.all(
     binaryFormats.map(async (format) => [format, await ENCODERS[format](ttf)] as const),
@@ -65,25 +69,52 @@ export interface SubsetSelection {
 
 const codePointsOf = (text: string): number[] => [...text].map((char) => char.codePointAt(0) ?? 0);
 
+/** How hb-subset writes the font: what the optimization keeps besides the glyphs. */
+type SubsetOutput = Pick<SubsetInput, "flags" | "layoutFeatures" | "nameIds" | "dropTables">;
+
+const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
+
+/** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
+function subsetOutputOf(optimization: Optimization): SubsetOutput {
+  const { hinting, layoutFeatures, nameIds, dropTables } = optimization;
+  return {
+    flags: hinting ? 0 : SubsetFlag.NO_HINTING,
+    layoutFeatures:
+      typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
+    nameIds,
+    dropTables,
+  };
+}
+
 /**
  * HarfBuzz keeps every glyph the layout can reach from the code points, so the letters of a
  * ligature in an icon font would keep nearly every icon. Ligatures are kept as glyph ids without
  * the layout closure instead; the closure of the other code points is found in a pass of its own.
  */
-async function subsetSfnt(source: Uint8Array, selection: SubsetSelection): Promise<Uint8Array> {
+async function subsetSfnt(
+  source: Uint8Array,
+  selection: SubsetSelection,
+  output: SubsetOutput,
+): Promise<Uint8Array> {
   const { codePoints } = selection;
   const ligatures = selection.ligatures?.filter((text) => text.length > 0) ?? [];
   if (ligatures.length === 0) {
-    return hbSubset(source, { unicodes: codePoints, layoutFeatures: "*" });
+    return hbSubset(source, { ...output, unicodes: codePoints });
   }
   const font = await openFont(source);
-  const closure = codePoints.length > 0 ? await layoutClosure(source, codePoints) : [];
+  const closure =
+    codePoints.length > 0 ? await layoutClosure(source, codePoints, output.layoutFeatures) : [];
   return hbSubset(source, {
+    ...output,
     unicodes: [...codePoints, ...ligatures.flatMap((text) => codePointsOf(text))],
     glyphs: [...closure, ...ligatures.flatMap((text) => font.layoutGlyphs(text))],
-    flags: SubsetFlag.NO_LAYOUT_CLOSURE,
-    layoutFeatures: "*",
+    flags: (output.flags ?? 0) | SubsetFlag.NO_LAYOUT_CLOSURE,
   });
+}
+
+export interface SubsetSettings {
+  readonly optimization: Optimization;
+  readonly safariFix?: boolean;
 }
 
 /**
@@ -93,10 +124,10 @@ async function subsetSfnt(source: Uint8Array, selection: SubsetSelection): Promi
 export async function subsetToTtf(
   content: Buffer,
   selection: SubsetSelection,
-  safariFix = false,
+  { optimization, safariFix = false }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
-  const subset = await subsetSfnt(source, selection);
+  const subset = await subsetSfnt(source, selection, subsetOutputOf(optimization));
   const { font, warnings } = await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
   return { ttf: safariFix ? applySafariFix(ttf) : ttf, warnings };
@@ -105,7 +136,7 @@ export async function subsetToTtf(
 export function buildReport(
   originalSize: number,
   fonts: FontBuffers,
-  formats: Formats[],
+  formats: readonly Formats[],
 ): OptimizationReport {
   const entries = formats.flatMap((format) => {
     const buffer = fonts[format];

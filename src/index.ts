@@ -13,5 +13,6 @@ export {
   type OptimizationReport,
   type Engine,
   type FontInput,
+  type LayoutFeatures,
 } from "./types";
 export type Extract = typeof extract;
