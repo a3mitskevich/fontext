@@ -39,6 +39,14 @@ export interface GlyphMeta {
 
 export type Engine = "icon" | "subset" | "convert";
 
+/**
+ * Where the font goes. `web`: browsers, WOFF2 by default, CFF desubroutinized. `runtime`:
+ * runtimes that load TTF directly and draw the outlines themselves (three.js, troika, Rive), TTF
+ * by default, hinting dropped. Both keep HarfBuzz's default layout features and name ids 1, 2, 4
+ * and 6. Explicit options override what the target sets.
+ */
+export type Target = "web" | "runtime";
+
 /** Layout features to keep: every one, HarfBuzz's default set or these tags. */
 export type LayoutFeatures = "all" | "default" | string[];
 
@@ -47,6 +55,8 @@ interface BaseOption {
   formats?: Formats[];
   safariFix?: boolean;
   silent?: boolean;
+  /** Where the font goes: browsers ("web") or runtimes that load TTF directly ("runtime"). */
+  target?: Target;
   /** Name ids to keep. */
   nameIds?: number[];
   /** Tables to drop, tags of 1-4 printable ASCII characters; shorter tags are padded with spaces. */
@@ -58,7 +68,10 @@ interface BaseOption {
  * outlines, with no hinting and one `liga` feature it needs, so it takes neither.
  */
 interface SourceLayoutOption {
-  /** Keep TrueType hinting: fpgm, prep, cvt, glyph instructions, hdmx and VDMX (HarfBuzz always drops LTSH). */
+  /**
+   * Keep TrueType hinting: fpgm, prep, cvt, glyph instructions, hdmx and VDMX. HarfBuzz drops
+   * LTSH either way.
+   */
   hinting?: boolean;
   /** Layout features to keep: every one ("all"), HarfBuzz's default set ("default") or these tags. */
   layoutFeatures?: LayoutFeatures;

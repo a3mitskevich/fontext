@@ -76,9 +76,9 @@ const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
 
 /** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
 function subsetOutputOf(optimization: Optimization): SubsetOutput {
-  const { hinting, layoutFeatures, nameIds, dropTables } = optimization;
+  const { hinting, layoutFeatures, nameIds, dropTables, desubroutinize } = optimization;
   return {
-    flags: hinting ? 0 : SubsetFlag.NO_HINTING,
+    flags: (hinting ? 0 : SubsetFlag.NO_HINTING) | (desubroutinize ? SubsetFlag.DESUBROUTINIZE : 0),
     layoutFeatures:
       typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
     nameIds,

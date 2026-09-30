@@ -22,9 +22,72 @@ describe("resolveOptimization", () => {
         layoutFeatures: "all",
         nameIds: undefined,
         dropTables: [],
+        desubroutinize: false,
       });
     },
   );
+
+  it.each([
+    ["icon", icon],
+    ["subset", subset],
+    ["convert", convert],
+  ] as const)("should resolve the web target (%s engine)", (_, option) => {
+    expect(resolveOptimization({ ...option, target: "web" })).toStrictEqual({
+      formats: ["woff2"],
+      hinting: true,
+      layoutFeatures: "default",
+      nameIds: [1, 2, 4, 6],
+      dropTables: [],
+      desubroutinize: true,
+    });
+  });
+
+  it.each([
+    ["icon", icon],
+    ["subset", subset],
+    ["convert", convert],
+  ] as const)("should resolve the runtime target (%s engine)", (_, option) => {
+    expect(resolveOptimization({ ...option, target: "runtime" })).toStrictEqual({
+      formats: ["ttf"],
+      hinting: false,
+      layoutFeatures: "default",
+      nameIds: [1, 2, 4, 6],
+      dropTables: [],
+      desubroutinize: false,
+    });
+  });
+
+  it("should let explicit options override the target", () => {
+    const runtime: SubsetOption = {
+      ...subset,
+      target: "runtime",
+      formats: ["ttf", "woff2"],
+      hinting: true,
+      layoutFeatures: "all",
+      nameIds: [4],
+      dropTables: ["DSIG"],
+    };
+    expect(resolveOptimization(runtime)).toStrictEqual({
+      formats: ["ttf", "woff2"],
+      hinting: true,
+      layoutFeatures: "all",
+      nameIds: [4],
+      dropTables: ["DSIG"],
+      desubroutinize: false,
+    });
+    const web: SubsetOption = {
+      ...subset,
+      target: "web",
+      hinting: false,
+      layoutFeatures: ["liga"],
+    };
+    expect(resolveOptimization(web)).toMatchObject({
+      formats: ["woff2"],
+      hinting: false,
+      layoutFeatures: ["liga"],
+      desubroutinize: true,
+    });
+  });
 
   it("should take the explicit options", () => {
     const option: SubsetOption = {
@@ -41,6 +104,7 @@ describe("resolveOptimization", () => {
       layoutFeatures: "default",
       nameIds: [1, 4],
       dropTables: ["MATH", "DSIG"],
+      desubroutinize: false,
     });
   });
 
@@ -63,6 +127,13 @@ describe("resolveOptimization", () => {
 
 describe("optimization option validation", () => {
   it.each([
+    [
+      "an unknown target",
+      { target: "print" },
+      'Invalid target: "print". Valid targets: web, runtime',
+    ],
+    ["a target that is not a string", { target: 1 }, "Invalid target: 1"],
+    ["a target named after an object property", { target: "toString" }, "Invalid target"],
     ["hinting that is not a boolean", { hinting: "no" }, "hinting must be a boolean"],
     [
       "an unknown layoutFeatures keyword",

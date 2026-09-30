@@ -1,4 +1,4 @@
-import { type Engine, Format, type Formats, type MinifyOption } from "./types";
+import { type Engine, Format, type Formats, type MinifyOption, type Target } from "./types";
 
 /** What an extraction keeps of the font, resolved from its options. */
 export interface Optimization {
@@ -12,7 +12,42 @@ export interface Optimization {
   readonly nameIds: readonly number[] | undefined;
   /** Tags of the tables to drop, padded to four characters. */
   readonly dropTables: readonly string[];
+  /** Inline the CFF subroutines: smaller after WOFF2 compression, larger as a raw font. */
+  readonly desubroutinize: boolean;
 }
+
+/** What a target sets when the options leave it open; no formats means the engine's own. */
+type Defaults = Omit<Optimization, "formats" | "dropTables"> & {
+  readonly formats?: readonly Formats[];
+};
+
+/** Family, subfamily, full name (three.js TTFLoader reads it) and PostScript name. */
+const TARGET_NAME_IDS = [1, 2, 4, 6];
+
+const TARGETS: Record<Target, Defaults> = {
+  web: {
+    formats: ["woff2"],
+    hinting: true,
+    layoutFeatures: "default",
+    nameIds: TARGET_NAME_IDS,
+    desubroutinize: true,
+  },
+  runtime: {
+    formats: ["ttf"],
+    hinting: false,
+    layoutFeatures: "default",
+    nameIds: TARGET_NAME_IDS,
+    desubroutinize: false,
+  },
+};
+
+/** Without a target the engines keep what they kept before the target existed. */
+const NO_TARGET: Defaults = {
+  hinting: true,
+  layoutFeatures: "all",
+  nameIds: undefined,
+  desubroutinize: false,
+};
 
 const ALL_FORMATS: readonly Formats[] = Object.values(Format);
 
@@ -31,6 +66,7 @@ const paddedTag = (tag: string): string => tag.padEnd(TAG_LENGTH, " ");
 
 /** Options every engine reads the same way; an engine that has no such option leaves it out. */
 interface OptimizationFields {
+  readonly target?: Target;
   readonly formats?: readonly Formats[];
   readonly hinting?: boolean;
   readonly layoutFeatures?: "all" | "default" | readonly string[];
@@ -38,19 +74,24 @@ interface OptimizationFields {
   readonly dropTables?: readonly string[];
 }
 
-/** Resolves the options of an extraction to what it keeps. The options must be valid. */
+/**
+ * Resolves the options of an extraction to what it keeps: explicit options first, then what the
+ * target sets, then the engine's defaults. The options must be valid.
+ */
 export function resolveOptimization(option: MinifyOption): Optimization {
   const fields: OptimizationFields = option;
-  const { layoutFeatures = "all" } = fields;
+  const defaults = fields.target ? TARGETS[fields.target] : NO_TARGET;
+  const layoutFeatures = fields.layoutFeatures ?? defaults.layoutFeatures;
   return {
-    formats: fields.formats ?? DEFAULT_FORMATS[option.engine ?? "icon"],
-    hinting: fields.hinting ?? true,
+    formats: fields.formats ?? defaults.formats ?? DEFAULT_FORMATS[option.engine ?? "icon"],
+    hinting: fields.hinting ?? defaults.hinting,
     layoutFeatures:
       typeof layoutFeatures === "string"
         ? layoutFeatures
         : layoutFeatures.map((tag) => paddedTag(tag)),
-    nameIds: fields.nameIds,
+    nameIds: fields.nameIds ?? defaults.nameIds,
     dropTables: (fields.dropTables ?? []).map((tag) => paddedTag(tag)),
+    desubroutinize: defaults.desubroutinize,
   };
 }
 
@@ -100,7 +141,12 @@ function assertNameIds(nameIds: unknown): void {
  * also those it ignores, so a typo fails where it was made.
  */
 export function assertOptimizationOptions(option: Readonly<Record<string, unknown>>): void {
-  const { hinting, layoutFeatures, nameIds, dropTables } = option;
+  const { target, hinting, layoutFeatures, nameIds, dropTables } = option;
+  if (target !== undefined && !Object.hasOwn(TARGETS, target as string)) {
+    throw new Error(
+      `Invalid target: ${JSON.stringify(target)}. Valid targets: ${Object.keys(TARGETS).join(", ")}`,
+    );
+  }
   if (hinting !== undefined && typeof hinting !== "boolean") {
     throw new TypeError("hinting must be a boolean");
   }
