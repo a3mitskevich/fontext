@@ -12,7 +12,6 @@ import {
   PATH_BOX_TOLERANCE_PX,
   measure,
   mismatchRatio,
-  SVG_UNITS_PER_EM,
 } from "./raster";
 
 /** A check with the drawings behind it, so the report can show what was compared. */
@@ -22,10 +21,10 @@ export interface Check extends CheckResult {
 
 const LOADABLE_FORMATS: LoadableFormat[] = ["ttf", "woff", "woff2", "eot"];
 /**
- * The icon engine truncates advances to whole units of its 1000 unit em, and Firefox rounds
- * advances to whole pixels.
+ * The icon engine truncates advances to whole units of its em, at least 512 units (`MIN_EM` in
+ * src/engines/svg-font.ts), and Firefox rounds advances to whole pixels.
  */
-const ADVANCE_TOLERANCE_PX = 1 + FONT_SIZE / 1000;
+const ADVANCE_TOLERANCE_PX = 1 + FONT_SIZE / 512;
 /** Browsers round ascent and descent to whole pixels. */
 const METRICS_TOLERANCE_PX = 1.5;
 /** A kerned pair moves its glyphs by far more than this at FONT_SIZE. */
@@ -180,7 +179,12 @@ async function formatChecks(
   ];
 }
 
-function svgGlyphCheck(glyphs: Element[], reference: string, sample: Sample): Check[] {
+function svgGlyphCheck(
+  glyphs: Element[],
+  unitsPerEm: number,
+  reference: string,
+  sample: Sample,
+): Check[] {
   const name = `svg glyph ${quoted(sample.text)}`;
   const glyph = glyphs.find((element) => element.getAttribute("unicode") === sample.text);
   if (!glyph) {
@@ -188,11 +192,11 @@ function svgGlyphCheck(glyphs: Element[], reference: string, sample: Sample): Ch
   }
   const referenceSize = FONT_SIZE * sample.referenceScale;
   const referenceAdvance = measure(reference, referenceSize, sample.text).width;
-  const advance = (Number(glyph.getAttribute("horiz-adv-x")) * FONT_SIZE) / SVG_UNITS_PER_EM;
+  const advance = (Number(glyph.getAttribute("horiz-adv-x")) * FONT_SIZE) / unitsPerEm;
   const width = canvasWidth(Math.max(advance, referenceAdvance));
   const comparison = compare(
     drawText(reference, referenceSize, sample.text, width),
-    drawSvgGlyph(glyph.getAttribute("d") ?? "", FONT_SIZE, width),
+    drawSvgGlyph(glyph.getAttribute("d") ?? "", FONT_SIZE / unitsPerEm, width),
   );
   return [
     shapeCheck(`${name} shape`, sample, comparison, PATH_BOX_TOLERANCE_PX),
@@ -217,9 +221,15 @@ async function svgChecks(fontCase: FontCase, reference: string): Promise<Check[]
     return [fail("svg is well-formed XML", error.textContent ?? "parser error")];
   }
   const glyphs = [...document.querySelectorAll("glyph")];
+  const unitsPerEm = Number(document.querySelector("font-face")?.getAttribute("units-per-em"));
+  if (!(unitsPerEm > 0)) {
+    return [fail("svg has units per em", "no font-face element with a positive units-per-em")];
+  }
   return [
     pass("svg is well-formed XML"),
-    ...fontCase.svgSamples.flatMap((sample) => svgGlyphCheck(glyphs, reference, sample)),
+    ...fontCase.svgSamples.flatMap((sample) =>
+      svgGlyphCheck(glyphs, unitsPerEm, reference, sample),
+    ),
   ];
 }
 

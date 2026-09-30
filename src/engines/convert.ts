@@ -20,7 +20,7 @@ export async function extractConvert(
   const ttf = subset?.ttf;
   const binaryFonts = ttf ? await encodeFromTtf(ttf, formats) : {};
   const svgFont = formats.includes("svg")
-    ? { svg: buildSvgFont(fontName, findMetaByCodePoints(font, allCodePoints)) }
+    ? { svg: buildSvgFont(fontName, findMetaByCodePoints(font, allCodePoints), font.unitsPerEm) }
     : {};
   const fonts: FontBuffers = { ...binaryFonts, ...svgFont };
 

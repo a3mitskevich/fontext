@@ -24,6 +24,11 @@ const nameIdsOf = async (nameIds?: readonly number[]): Promise<number[]> =>
     .listNames()
     .map(({ nameId }) => nameId);
 
+const languagesOf = async (nameLanguages?: readonly number[]): Promise<string[]> =>
+  faceOf(await hbSubset(multiLookupFont, { unicodes: [0x61], nameLanguages }))
+    .listNames()
+    .map(({ language }) => language);
+
 describe("hb-subset wrapper", () => {
   it("should keep the glyphs of the code points and .notdef", async () => {
     const subset = await hbSubset(multiLookupFont, { unicodes: [0x63] });
@@ -77,6 +82,21 @@ describe("hb-subset wrapper", () => {
   it("should keep only the given name ids", async () => {
     await expect(nameIdsOf()).resolves.toStrictEqual([1, 2, 4, 6]);
     await expect(nameIdsOf([1])).resolves.toStrictEqual([1]);
+  });
+
+  it("should keep every code point and glyph for *", async () => {
+    const subset = await hbSubset(multiLookupFont, { unicodes: "*", glyphs: "*" });
+    expect(glyphsOf(subset)).toBe(glyphsOf(multiLookupFont));
+    expect(faceOf(subset).collectUnicodes()).toStrictEqual(
+      faceOf(multiLookupFont).collectUnicodes(),
+    );
+  });
+
+  it("should keep the name records of the given languages only", async () => {
+    await expect(languagesOf()).resolves.toStrictEqual(["en", "en", "en", "en"]);
+    await expect(languagesOf([0x4_09])).resolves.toStrictEqual(["en", "en", "en", "en"]);
+    // German: the fixture has no name record in it
+    await expect(languagesOf([0x4_07])).resolves.toStrictEqual([]);
   });
 
   it("should run concurrent calls one after another on the same memory", async () => {

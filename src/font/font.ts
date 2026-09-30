@@ -17,6 +17,8 @@ export interface Font {
   readonly codePoints: readonly number[];
   /** The head.modified date as Unix time in seconds; dates before 1970 give 0. */
   readonly modified: number;
+  /** Units per em from head; HarfBuzz reads a value outside 16-16384 as 1000. */
+  readonly unitsPerEm: number;
   /** The glyph the cmap maps `codePoint` to, without shaping. */
   glyphForCodePoint: (codePoint: number) => number | undefined;
   /** Characters the cmap maps to `glyph`, by ascending code point. */
@@ -138,6 +140,7 @@ export async function openFont(sfnt: Uint8Array): Promise<Font> {
   return {
     codePoints,
     modified: modifiedTime(head),
+    unitsPerEm: face.upem,
     glyphForCodePoint,
     stringsForGlyph: (glyph) => strings.get(glyph) ?? [],
     shape(text) {
