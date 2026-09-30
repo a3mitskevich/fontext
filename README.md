@@ -143,6 +143,9 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
   a name id that is not an integer from 0 to 32767, or a tag that is not 1–4 printable ASCII characters —
   `"Invalid target: ..."`, `"Invalid name id(s): ..."`, `"Invalid tag(s) in dropTables: ..."` and similar; a
   `dropTables` tag of a table every font needs — `"Invalid tag(s) in dropTables: \"head\". The font needs these tables: ..."`
+- The subset engine keeps `ligatures` the source forms, but the `layoutFeatures` left out the feature that forms
+  them — `"Ligatures do not form with these layoutFeatures: \"home\"; they need the GSUB feature(s) rlig, which the
+  subset left out. ..."` (Material Icons forms its ligatures with `rlig`, not `liga`)
 - `transform` throws or rejects — `"transform failed: ..."` with the original error as `cause`; it returns WOFF,
   WOFF2, a collection or no font — `"transform must return an uncompressed TrueType or OpenType font, not WOFF2"` and
   similar
@@ -210,7 +213,8 @@ and these options the output is what it was before they existed.
 - **Layout features**: HarfBuzz's default set (`liga`, `rlig`, `calt`, `kern`, `mark`, script features and so on)
   is what troika, opentype.js and Rive apply, and browsers apply it unless CSS asks for more. Dropping the other
   features takes DejaVu's WOFF2 9 984 → 8 892 bytes. Glyphs only an optional feature such as `dlig` reaches are
-  left out too.
+  left out too. A subset by `ligatures` is rejected when the listed features no longer form a ligature the source
+  forms, naming the feature it needs.
 - **Name ids** 1, 2, 4 and 6 are family, subfamily, full name (three.js `TTFLoader` reads it) and PostScript name; the
   rest saves a few hundred bytes.
 - **CFF desubroutinization** helps WOFF2 (13 860 → 13 392 bytes) but grows a raw OTF (27 376 → 33 872), so only the

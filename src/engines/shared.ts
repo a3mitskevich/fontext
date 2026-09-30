@@ -7,6 +7,7 @@ import { applySafariFix } from "../safari";
 import { openFont } from "../font/font";
 import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
+import { assertLigaturesKept } from "./ligature-check";
 import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
 import { restoreKerning } from "./kerning";
 import { applyTransform } from "./transform";
@@ -105,12 +106,17 @@ async function subsetSfnt(
   const font = await openFont(source);
   const closure =
     codePoints.length > 0 ? await layoutClosure(source, codePoints, output.layoutFeatures) : [];
-  return hbSubset(source, {
+  const subset = await hbSubset(source, {
     ...output,
     unicodes: [...codePoints, ...ligatures.flatMap((text) => codePointsOf(text))],
     glyphs: [...closure, ...ligatures.flatMap((text) => font.layoutGlyphs(text))],
     flags: (output.flags ?? 0) | SubsetFlag.NO_LAYOUT_CLOSURE,
   });
+  // Every feature keeps every ligature; a narrower set may leave one out
+  if (output.layoutFeatures !== "*") {
+    await assertLigaturesKept(font, subset, ligatures);
+  }
+  return subset;
 }
 
 export interface SubsetSettings {

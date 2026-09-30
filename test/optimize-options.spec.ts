@@ -155,6 +155,42 @@ describe("layoutFeatures option (subset engine)", () => {
   });
 });
 
+describe("ligatures with fewer layout features (subset engine)", () => {
+  it("should reject ligatures the kept features no longer form and name the missing feature", async () => {
+    await expect(
+      subsetTtf(ttfOriginalFont, { ligatures: ["home", "search"], layoutFeatures: ["liga"] }),
+    ).rejects.toThrow(
+      'Ligatures do not form with these layoutFeatures: "home", "search"; they need the GSUB feature(s) rlig, which the subset left out. Add them to layoutFeatures, or use "default" or "all"',
+    );
+  });
+
+  it("should name only the ligatures that no longer form", async () => {
+    await expect(
+      subsetTtf(multiLookupFont, { ligatures: ["abc", "a"], layoutFeatures: ["dlig"] }),
+    ).rejects.toThrow(
+      'Ligatures do not form with these layoutFeatures: "abc"; they need the GSUB feature(s) liga, which',
+    );
+  });
+
+  it("should keep ligatures the listed features form", async () => {
+    const ttf = await subsetTtf(ttfOriginalFont, { ligatures: ["home"], layoutFeatures: ["rlig"] });
+    await expect(shaped(ttf, "home")).resolves.toHaveLength(1);
+  });
+
+  it("should shape with features turned off, and reject a feature HarfBuzz can't parse", async () => {
+    const font = await openFont(multiLookupFont);
+    expect(font.shape("abc")).toHaveLength(1);
+    expect(font.shape("abc", ["-liga"])).toHaveLength(3);
+    expect(font.shape("abc", ["-dlig"])).toHaveLength(1);
+    expect(() => font.shape("abc", ["-"])).toThrow('Invalid feature: "-"');
+  });
+
+  it("should keep the letters of a text the source forms no ligature for", async () => {
+    const ttf = await subsetTtf(ttfOriginalFont, { ligatures: ["hme"], layoutFeatures: ["liga"] });
+    await expect(shaped(ttf, "hme")).resolves.toHaveLength(3);
+  });
+});
+
 describe("nameIds and dropTables options", () => {
   it.each<EngineCase>([
     ["subset", { engine: "subset", characters: "abc" }, textFont],

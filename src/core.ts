@@ -77,16 +77,22 @@ export function findMetaByLigatures(font: Font, ligatures: readonly string[]): G
 }
 
 /**
+ * Whether the default layout, changed by `features` ("-rlig"), turns `text` into one glyph
+ * other than .notdef.
+ */
+export function formsLigature(font: Font, text: string, features?: readonly string[]): boolean {
+  const glyphs = font.shape(text, features);
+  return glyphs.length === 1 && glyphs[0].id !== NOTDEF;
+}
+
+/**
  * Rejects the first text the default layout doesn't turn into one glyph other than .notdef, which
  * `findMetaByLigatures()` would extract as the glyphs of its letters. Each text is shaped on its
  * own like in `formsGlyph()`; it gives the glyphs of the joined shaping as long as no lookup
  * reaches across the space between the texts.
  */
 export function assertLigaturesForm(font: Font, ligatures: readonly string[]): void {
-  const unformed = ligatures.find((text) => {
-    const glyphs = font.shape(text);
-    return glyphs.length !== 1 || glyphs[0].id === NOTDEF;
-  });
+  const unformed = ligatures.find((text) => !formsLigature(font, text));
   if (unformed !== undefined) {
     throw new Error(`Font does not contain a ligature for "${unformed}"`);
   }
