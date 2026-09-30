@@ -12,6 +12,7 @@ import { extractIcon } from "./engines/icon";
 import { extractSubset } from "./engines/subset";
 import { extractConvert } from "./engines/convert";
 import { assertOptimizationOptions, resolveOptimization } from "./optimization";
+import { assertSplit } from "./engines/split";
 
 function toBuffer(input: FontInput): Buffer {
   if (Buffer.isBuffer(input)) {
@@ -67,6 +68,7 @@ export default async function extract(
   }
 
   assertOptimizationOptions(option as unknown as Record<string, unknown>);
+  assertSplit("split" in option ? option.split : undefined, engine);
   const optimization = resolveOptimization(option);
   const { formats } = optimization;
 

@@ -1,4 +1,4 @@
-import type { FontTransform } from "../types";
+import type { FontTransform, TransformContext } from "../types";
 import { type ContainerFormat, containerFormat } from "../font/container";
 import { checkGlyphTables } from "../font/sfnt";
 
@@ -42,15 +42,21 @@ function assertSfnt(font: unknown): asserts font is Uint8Array {
 /**
  * Runs the transform hook once on a copy of the final TrueType font and returns a copy of its
  * checked result, or the font itself when there is no hook. A failing hook rejects with its
- * error as the cause.
+ * error as the cause. The context of a chunk is passed on; the whole font gets none, as before
+ * splits existed.
  */
-export async function applyTransform(ttf: Buffer, transform?: FontTransform): Promise<Buffer> {
+export async function applyTransform(
+  ttf: Buffer,
+  transform?: FontTransform,
+  context?: TransformContext,
+): Promise<Buffer> {
   if (!transform) {
     return ttf;
   }
   let result: unknown;
   try {
-    result = await transform(new Uint8Array(ttf));
+    const copy = new Uint8Array(ttf);
+    result = await (context ? transform(copy, context) : transform(copy));
   } catch (error) {
     throw new Error(`transform failed: ${messageOf(error)}`, { cause: error });
   }

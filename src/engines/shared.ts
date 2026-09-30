@@ -123,6 +123,8 @@ export interface SubsetSettings {
   readonly optimization: Optimization;
   readonly safariFix?: boolean;
   readonly transform?: FontTransform;
+  /** The script of the chunk being built, handed to the transform; undefined for the whole font. */
+  readonly script?: string;
 }
 
 /**
@@ -132,7 +134,7 @@ export interface SubsetSettings {
 export async function subsetToTtf(
   content: Buffer,
   selection: SubsetSelection,
-  { optimization, safariFix = false, transform }: SubsetSettings,
+  { optimization, safariFix = false, transform, script }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
   const subset = await subsetSfnt(source, selection, subsetOutputOf(optimization));
@@ -141,7 +143,11 @@ export async function subsetToTtf(
     ? { font: subset, warnings: [] }
     : await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
-  return { ttf: await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform), warnings };
+  const patched = safariFix ? applySafariFix(ttf) : ttf;
+  return {
+    ttf: await applyTransform(patched, transform, script === undefined ? undefined : { script }),
+    warnings,
+  };
 }
 
 export function buildReport(
