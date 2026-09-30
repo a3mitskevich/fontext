@@ -1,7 +1,9 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    // Coding agents keep git worktrees with their own copy of the tests under .claude/
+    exclude: [...configDefaults.exclude, ".claude/**"],
     // Tests encode real fonts; with v8 coverage on shared CI runners some take 3-6 s
     testTimeout: 15_000,
     coverage: {
