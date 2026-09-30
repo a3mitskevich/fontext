@@ -156,6 +156,15 @@ interface FontWarning {
 left out — an Apple or malformed table, format 2/3, cross-stream or vertical subtables, or pairs of glyphs without a
 code point that could not be matched in the subset. A version of the font with kerning in GPOS avoids it.
 
+### Icon engine output
+
+The icon engine builds a new font from the extracted glyphs. Each glyph is scaled so that its vertical advance fills
+the em, which is the source font's units per em: a glyph as tall as the em keeps its coordinates. An em below 512
+units is multiplied up to at least 512, since outlines are rounded to whole units, and an em at which a very wide glyph
+would overflow TrueType coordinates is lowered. Ligatures are `liga` ligatures under the `DFLT` and `latn` scripts. The
+font keeps only the family, subfamily, full and PostScript names (Windows, English) and has no glyph names in its
+`post` table: `meta` gives the name of each glyph.
+
 ## Supported Input Formats
 
 Single TrueType and OpenType fonts (TTF, OTF with CFF outlines), WOFF and WOFF2. Fonts are read with
