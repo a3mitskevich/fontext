@@ -14,7 +14,8 @@ Extract glyphs from fonts and generate optimized, minimal font files.
 Two engines for different use cases:
 
 - **Icon engine** — extract glyphs from ligature-based icon fonts (Material Icons, etc.)
-- **Subset engine** — subset any font by characters or unicode ranges, preserving kerning and OpenType features
+- **Subset engine** — subset any font by characters, unicode ranges or ligatures, preserving kerning and OpenType
+  features
 
 ## Why Fontext?
 
@@ -26,6 +27,8 @@ both:
   engine)
 - **Subset by characters** — pass `"ABCabc0123"` to keep only those characters (subset engine)
 - **Subset by unicode range** — pass `U+0400-U+04FF` for Cyrillic block (both engines)
+- **Subset by ligature** — pass `"home"` to keep that icon of a ligature icon font with every OpenType table (subset
+  engine); only the requested ligatures form, not the others their letters could spell
 - **Multiple output formats** — SVG, TTF, WOFF, WOFF2, EOT
 - **Preserves font features** — subset engine keeps kerning, hinting, GSUB/GPOS via HarfBuzz; pairs of a legacy
   `kern` table are kept only for the glyphs that stay in the font, and `warnings` tells when some of it can't be kept
@@ -93,7 +96,7 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 | Field            | Type        | Default     | Description                                                                 |
 |------------------|-------------|-------------|-----------------------------------------------------------------------------|
 | `fontName`       | `string`    | —           | **Required.** Name for the output font                                      |
-| `ligatures`      | `string[]`  | `[]`        | Ligature strings to extract (e.g. `['home', 'search']`)                     |
+| `ligatures`      | `string[]`  | `[]`        | Ligature strings to extract (e.g. `['home', 'search']`); the subset engine keeps each with its letters, and characters and unicode ranges keep the ligatures they form |
 | `raws`           | `string[]`  | `[]`        | Raw unicode characters — Fontext will resolve their ligatures automatically |
 | `unicodeRanges`  | `string[]`  | `[]`        | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)              |
 | `characters`     | `string`    | —           | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only               |

@@ -1,5 +1,5 @@
 import { type ConvertOption, type ExtractedResult, Format } from "../types";
-import { codePointsToString, createFont, findMetaByCodePoints } from "../glyphs";
+import { createFont, findMetaByCodePoints } from "../glyphs";
 import { buildReport, encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
 import { buildSvgFont } from "./svg-font";
 
@@ -15,7 +15,7 @@ export async function extractConvert(
   const allCodePoints = font.codePoints;
 
   const subset = formats.some((f) => f !== "svg")
-    ? await subsetToTtf(content, codePointsToString(allCodePoints), option.safariFix)
+    ? await subsetToTtf(content, { codePoints: allCodePoints }, option.safariFix)
     : null;
   const ttf = subset?.ttf;
   const binaryFonts = ttf ? await encodeFromTtf(ttf, formats) : {};

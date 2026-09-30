@@ -23,6 +23,11 @@ export interface Font {
   stringsForGlyph: (glyph: number) => readonly string[];
   /** Shapes `text` with the default features of its script and language. */
   shape: (text: string) => ShapedGlyph[];
+  /**
+   * Every glyph `shape(text)` passes through: those of its result and those GSUB turns into
+   * others on the way, e.g. a ligature a later lookup substitutes again. Ascending glyph ids.
+   */
+  layoutGlyphs: (text: string) => number[];
   /** Every ligature of the GSUB ligature lookups, whether a default feature reaches it or not. */
   ligatures: () => readonly LigatureRecord[];
   /** SVG path data of the glyph outline, y axis pointing down. */
@@ -33,6 +38,54 @@ export interface Font {
 
 type HarfBuzz = typeof HarfBuzzModule;
 type Face = InstanceType<HarfBuzz["Face"]>;
+type HbFont = InstanceType<HarfBuzz["Font"]>;
+type HbBuffer = InstanceType<HarfBuzz["Buffer"]>;
+
+interface Tracer {
+  readonly buffer: HbBuffer;
+  glyphs: Set<number> | undefined;
+}
+
+/**
+ * One buffer with a message function for every font: harfbuzzjs puts each message function into
+ * the WebAssembly function table and never takes it out. Shaping is synchronous, so the glyphs
+ * of one call are collected before another one can start.
+ */
+let tracer: Tracer | undefined;
+
+function createTracer(hb: HarfBuzz): Tracer {
+  const created: Tracer = { buffer: new hb.Buffer(), glyphs: undefined };
+  created.buffer.setMessageFunc((buffer) => {
+    if (created.glyphs && buffer.getContentType() === hb.BufferContentType.GLYPHS) {
+      for (const { codepoint } of buffer.getGlyphInfos()) {
+        created.glyphs.add(codepoint);
+      }
+    }
+    // Returning false would skip the lookup the message announces
+    return true;
+  });
+  return created;
+}
+
+/** Glyphs of every stage of shaping: HarfBuzz sends a message before and after each lookup. */
+function traceLayout(hb: HarfBuzz, font: HbFont, text: string): number[] {
+  tracer ??= createTracer(hb);
+  const { buffer } = tracer;
+  const glyphs = new Set<number>();
+  buffer.clearContents();
+  buffer.addText(text);
+  buffer.guessSegmentProperties();
+  tracer.glyphs = glyphs;
+  try {
+    hb.shape(font, buffer);
+  } finally {
+    tracer.glyphs = undefined;
+  }
+  for (const { codepoint } of buffer.getGlyphInfos()) {
+    glyphs.add(codepoint);
+  }
+  return [...glyphs].toSorted((a, b) => a - b);
+}
 
 /** Characters mapped to each glyph, in ascending code point order. */
 function reverseCmap(
@@ -102,6 +155,7 @@ export async function openFont(sfnt: Uint8Array): Promise<Font> {
         text: texts.get(cluster) ?? "",
       }));
     },
+    layoutGlyphs: (text) => traceLayout(hb, font, text),
     ligatures: () => (ligatures ??= readLigatures(tableOf(face, "GSUB"))),
     svgPath: (glyph) => toSvgPath(font.glyphToJson(glyph)),
     advanceWidth: (glyph) => font.glyphHAdvance(glyph),

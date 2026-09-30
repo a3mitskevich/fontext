@@ -2,7 +2,7 @@ import type { FontWarning } from "../types";
 import { openFont } from "../font/font";
 import { type GlyphMatch, hasGposKern, type KernLoss, subsetKern } from "../font/kern";
 import { MalformedFontError } from "../font/reader";
-import { sfntTable, withTable } from "../font/sfnt";
+import { requiredSfntTable, sfntTable, withTable } from "../font/sfnt";
 import { glyphCount } from "../font/tables";
 
 /** A subset font with the legacy kerning it could keep, and warnings about what it could not. */
@@ -55,14 +55,6 @@ export function matchGlyphs(
   return { map: new Map([[0, 0], ...coded, ...renumbered]), unmatched: new Set(unmatched) };
 }
 
-function requiredTable(sfnt: Uint8Array, tag: string): Uint8Array {
-  const table = sfntTable(sfnt, tag);
-  if (!table) {
-    throw new MalformedFontError(`Malformed font: it has no ${tag} table`);
-  }
-  return table;
-}
-
 async function matchSubsetGlyphs(source: Uint8Array, subset: Uint8Array): Promise<GlyphMatch> {
   const [from, to] = await Promise.all([openFont(source), openFont(subset)]);
   const coded = new Map(
@@ -74,8 +66,8 @@ async function matchSubsetGlyphs(source: Uint8Array, subset: Uint8Array): Promis
   );
   return matchGlyphs(
     coded,
-    glyphCount(requiredTable(source, "maxp")),
-    glyphCount(requiredTable(subset, "maxp")),
+    glyphCount(requiredSfntTable(source, "maxp")),
+    glyphCount(requiredSfntTable(subset, "maxp")),
   );
 }
 

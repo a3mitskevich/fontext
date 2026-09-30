@@ -3,7 +3,6 @@ import { toSfnt } from "./font/container";
 import { openFont, type Font } from "./font/font";
 
 export {
-  codePointsToString,
   parseUnicodeRanges,
   findMetaByCodePoints,
   findMetaByLigatures,
