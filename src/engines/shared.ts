@@ -1,10 +1,10 @@
-import subsetFont from "subset-font";
 import ttf2eot from "ttf2eot";
 import ttf2woff from "ttf2woff";
 import { decodeWoff2, encodeWoff2 } from "../woff2";
 import type { FontWarning, Formats, OptimizationReport } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
+import { hbSubset } from "./hb-subset";
 import { restoreKerning } from "./kerning";
 
 type BinaryFormat = Exclude<Formats, "svg">;
@@ -60,13 +60,10 @@ export async function subsetToTtf(
   safariFix = false,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
-  const subset = await subsetFont(
-    Buffer.from(source.buffer, source.byteOffset, source.length),
-    text,
-    {
-      targetFormat: "truetype",
-    },
-  );
+  const subset = await hbSubset(source, {
+    unicodes: [...text].map((char) => char.codePointAt(0) ?? 0),
+    layoutFeatures: "*",
+  });
   const { font, warnings } = await restoreKerning(source, subset);
   const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
   return { ttf: safariFix ? applySafariFix(ttf) : ttf, warnings };

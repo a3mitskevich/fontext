@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It reads fonts with harfbuzzjs (HarfBuzz as WebAssembly) plus a small own layer in `src/font/`, writes its own SVG font and converts it with svg2ttf to build icon fonts, subset-font (HarfBuzz) for subsetting, ttf2woff and wawoff2 for WOFF/WOFF2 encoding and ttf2eot for EOT.
+Fontext is an ESM-only Node.js (>=22.13) library and CLI that extracts glyphs from fonts and produces minimized fonts in SVG, TTF, WOFF, WOFF2 and EOT. It reads fonts with harfbuzzjs (HarfBuzz as WebAssembly) plus a small own layer in `src/font/`, writes its own SVG font and converts it with svg2ttf to build icon fonts, hb-subset from harfbuzzjs (`harfbuzz-subset.wasm`) for subsetting, ttf2woff and wawoff2 for WOFF/WOFF2 encoding and ttf2eot for EOT.
 
 ## Commands
 
@@ -33,7 +33,9 @@ Public entry points:
 
 `src/engines/svg-font.ts` — `buildSvgFont()`, the SVG font of the icon engine and of the `svg` format of convert: every glyph scaled so its vertical advance fills a 1000 unit em (the float operations of svgicons2svgfont with `normalize`, which it replaced, so svg2ttf writes the same TTF), a `<glyph>` element per character and per ligature text (svg2ttf merges elements with the same outline and advance and builds GSUB ligatures from multi-code-point `unicode` values), names and texts escaped for XML. It reads the viewBox and path of `GlyphMeta.svg` and accepts only the absolute M, L, Q, C and Z commands `outline.ts` writes.
 
-`src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType, restore legacy kerning with warnings about what it can't keep, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF via ttf2woff, WOFF2 via wawoff2, EOT via ttf2eot) and `buildReport()`.
+`src/engines/hb-subset.ts` — `hbSubset()`, a Node-only call into `harfbuzz-subset.wasm` (resolved through `createRequire(import.meta.url)`, instantiated once on first use): unicodes, glyph ids, flags, layout features (`*` or a list), extra tables to drop and name ids to keep. Every WebAssembly object is freed on error paths too, and memory views are taken fresh at each use because the memory can grow.
+
+`src/engines/shared.ts` holds what all engines share: `subsetToTtf()` (subset once to TrueType with every layout feature, restore legacy kerning with warnings about what it can't keep, optionally Safari-patched), `encodeFromTtf()` (TTF → WOFF via ttf2woff, WOFF2 via wawoff2, EOT via ttf2eot) and `buildReport()`.
 
 `src/font/` is the font access layer shared by both entries:
 
