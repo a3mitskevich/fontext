@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.1](https://github.com/a3mitskevich/fontext/compare/fontext-v2.0.0...fontext-v2.0.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* reject invalid input and options instead of throwing ([984464e](https://github.com/a3mitskevich/fontext/commit/984464ea0ae81fc4a3a5d2951f901b3a94dfc7e8))
+
 ## [2.0.0](https://github.com/a3mitskevich/fontext/compare/fontext-v1.11.0...fontext-v2.0.0) (2026-09-28)
 
 
