@@ -26,6 +26,10 @@ export const textFont = fs.readFileSync(
 export const multiLookupFont = fs.readFileSync(
   path.resolve(import.meta.dirname, "../assets/font-multi-ligature-lookups.ttf"),
 );
+// Latin, Greek, Cyrillic, Common and Inherited glyphs, see scripts/make-scripts-fixture.mjs
+export const scriptsFont = fs.readFileSync(
+  path.resolve(import.meta.dirname, "../assets/font-scripts.ttf"),
+);
 // CFF outlines, vmtx and ligatures from liga and calt, see scripts/make-cff-fixture.mjs
 export const cffFont = fs.readFileSync(
   path.resolve(import.meta.dirname, "../assets/font-cff-features.otf"),
