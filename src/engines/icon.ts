@@ -12,6 +12,7 @@ import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
 import { hbSubset, SubsetFlag } from "./hb-subset";
 import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
+import type { SourceFont } from "./source";
 import { applyTransform } from "./transform";
 import { buildSvgFont } from "./svg-font";
 
@@ -68,14 +69,14 @@ async function convertByFormats(
 }
 
 export async function extractIcon(
-  content: Buffer,
+  source: SourceFont,
   option: IconOption,
   optimization: Optimization,
 ): Promise<ExtractedResult> {
   const { fontName = "", ligatures = [], raws = [], unicodeRanges = [] } = option;
   const { formats } = optimization;
 
-  const font = await createFont(content);
+  const font = await createFont(source.content);
   assertLigaturesForm(font, ligatures);
   const foundLigatures = resolveLigatures(font, raws);
   const ligatureMeta = findMetaByLigatures(font, [ligatures, foundLigatures].flat());
@@ -105,7 +106,7 @@ export async function extractIcon(
   return {
     ...fonts,
     meta: glyphsMeta,
-    report: buildReport(content.length, fonts, formats),
+    report: buildReport(source.input.length, fonts, formats),
     warnings: [],
   };
 }

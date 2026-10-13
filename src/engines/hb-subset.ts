@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tagNumber } from "../font/sfnt";
+import type { AxisSetting } from "../types";
 
 /** Flags of `hb_subset_input_set_flags`, from hb-subset.h. */
 export const SubsetFlag = {
@@ -30,6 +31,13 @@ export interface SubsetInput {
    * States); `*` keeps every language.
    */
   readonly nameLanguages?: "*" | readonly number[];
+  /**
+   * Keep every glyph, table, name, layout feature and flag-controlled part of the font; other
+   * options apply on top, e.g. the axes to instance the whole font.
+   */
+  readonly keepEverything?: boolean;
+  /** Variation axes to pin (a value) or narrow (`{ min, max }`), by tag, in user units. */
+  readonly axes?: Readonly<Record<string, AxisSetting>>;
 }
 
 // Neither the ES lib nor @types/node declares WebAssembly; this is the one call made here
@@ -74,6 +82,21 @@ interface HbSubsetExports {
   hb_subset_input_get_flags: (input: number) => number;
   hb_subset_input_set_flags: (input: number, flags: number) => void;
   hb_subset_or_fail: (face: number, input: number) => number;
+  hb_subset_input_keep_everything: (input: number) => void;
+  hb_subset_input_pin_axis_location: (
+    input: number,
+    face: number,
+    axisTag: number,
+    value: number,
+  ) => number;
+  hb_subset_input_set_axis_range: (
+    input: number,
+    face: number,
+    axisTag: number,
+    min: number,
+    max: number,
+    defaultValue: number,
+  ) => number;
 }
 
 async function instantiate(): Promise<HbSubsetExports> {
@@ -118,9 +141,40 @@ function replace(hb: HbSubsetExports, set: number, values: "*" | Iterable<number
   fill(hb, set, values);
 }
 
-function configure(hb: HbSubsetExports, input: number, options: SubsetInput): void {
-  fill(hb, hb.hb_subset_input_unicode_set(input), options.unicodes ?? []);
-  fill(hb, hb.hb_subset_input_glyph_set(input), options.glyphs ?? []);
+/**
+ * Pins or narrows each axis. HarfBuzz clamps a value outside the axis and refuses an axis the font
+ * lacks; callers check the settings against the font first, so a refusal is an error here. A
+ * range keeps the default of the font, clamped into it.
+ */
+function setAxes(
+  hb: HbSubsetExports,
+  input: number,
+  face: number,
+  axes: Readonly<Record<string, AxisSetting>>,
+): void {
+  for (const [tag, setting] of Object.entries(axes)) {
+    const axisTag = tagNumber(tag.padEnd(4, " "));
+    const isSet =
+      typeof setting === "number"
+        ? hb.hb_subset_input_pin_axis_location(input, face, axisTag, setting)
+        : hb.hb_subset_input_set_axis_range(input, face, axisTag, setting.min, setting.max, NaN);
+    if (!isSet) {
+      throw new Error(`HarfBuzz could not set the variation axis "${tag}"`);
+    }
+  }
+}
+
+function configure(hb: HbSubsetExports, input: number, face: number, options: SubsetInput): void {
+  if (options.keepEverything) {
+    hb.hb_subset_input_keep_everything(input);
+  }
+  // The sets keep_everything fills are replaced, never added to
+  if (options.unicodes) {
+    replace(hb, hb.hb_subset_input_unicode_set(input), options.unicodes);
+  }
+  if (options.glyphs) {
+    replace(hb, hb.hb_subset_input_glyph_set(input), options.glyphs);
+  }
   if (options.flags) {
     hb.hb_subset_input_set_flags(input, hb.hb_subset_input_get_flags(input) | options.flags);
   }
@@ -144,6 +198,9 @@ function configure(hb: HbSubsetExports, input: number, options: SubsetInput): vo
   }
   if (options.nameLanguages) {
     replace(hb, hb.hb_subset_input_set(input, SETS_NAME_LANG_ID), options.nameLanguages);
+  }
+  if (options.axes) {
+    setAxes(hb, input, face, options.axes);
   }
 }
 
@@ -199,7 +256,7 @@ export async function hbSubset(font: Uint8Array, options: SubsetInput): Promise<
       throw new Error("Cannot subset the font: out of WebAssembly memory");
     }
     try {
-      configure(hb, input, options);
+      configure(hb, input, face, options);
       return subsetFace(hb, face, input);
     } finally {
       hb.hb_subset_input_destroy(input);

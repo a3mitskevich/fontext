@@ -7,6 +7,7 @@ import {
   parseUnicodeRanges,
   findMetaByCodePoints,
   findMetaByLigatures,
+  type VariationAxis,
 } from "../src/browser";
 
 const fontPath = path.resolve(import.meta.dirname, "../assets/font.ttf");
@@ -25,6 +26,15 @@ describe("browser entry point", () => {
       const font = await createFont(fontUint8.buffer);
       expect(font).toBeDefined();
       expect(font.codePoints.length).toBeGreaterThan(0);
+    });
+
+    it("should read the variation axes of a variable font", async () => {
+      const variable = fs.readFileSync(
+        path.resolve(import.meta.dirname, "../assets/font-variable.ttf"),
+      );
+      const font = await createFont(new Uint8Array(variable));
+      const axes: readonly VariationAxis[] = font.axes;
+      expect(axes.map(({ tag }) => tag)).toStrictEqual(["wght", "wdth"]);
     });
   });
 

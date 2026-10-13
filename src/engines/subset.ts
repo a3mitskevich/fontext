@@ -2,6 +2,7 @@ import type { ExtractedResult, SubsetOption } from "../types";
 import type { Optimization } from "../optimization";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
 import { buildReport, encodeFromTtf, type SubsetSelection, subsetToTtf } from "./shared";
+import type { SourceFont } from "./source";
 import { type BuiltFont, buildChunks, type ChunkPlan, planChunks } from "./split";
 
 /** Code points of the characters and unicode ranges; ligatures are kept apart from them. */
@@ -13,7 +14,7 @@ function collectCodePoints(option: SubsetOption): number[] {
 
 /** Subsets the source to the selection in every requested format. */
 async function buildSubset(
-  content: Buffer,
+  source: SourceFont,
   selection: SubsetSelection,
   option: SubsetOption,
   optimization: Optimization,
@@ -21,7 +22,7 @@ async function buildSubset(
 ): Promise<BuiltFont> {
   const { formats } = optimization;
   const { safariFix, transform } = option;
-  const { ttf, warnings } = await subsetToTtf(content, selection, {
+  const { ttf, warnings } = await subsetToTtf(source.content, selection, {
     optimization,
     safariFix,
     transform,
@@ -33,7 +34,7 @@ async function buildSubset(
     result: {
       ...fonts,
       meta: findMetaByCodePoints(subsetted, subsetted.codePoints),
-      report: buildReport(content.length, fonts, formats),
+      report: buildReport(source.input.length, fonts, formats),
       warnings,
     },
     codePoints: subsetted.codePoints,
@@ -52,7 +53,7 @@ async function planSplit(content: Buffer, selection: SubsetSelection): Promise<C
 }
 
 export async function extractSubset(
-  content: Buffer,
+  source: SourceFont,
   option: SubsetOption,
   optimization: Optimization,
 ): Promise<ExtractedResult> {
@@ -70,13 +71,13 @@ export async function extractSubset(
 
   const selection: SubsetSelection = { codePoints, ligatures };
   // Planned first, so a ligature of two scripts rejects before anything is subset
-  const plans = option.split ? await planSplit(content, selection) : undefined;
-  const { result } = await buildSubset(content, selection, option, optimization);
+  const plans = option.split ? await planSplit(source.content, selection) : undefined;
+  const { result } = await buildSubset(source, selection, option, optimization);
   if (!plans) {
     return result;
   }
   const chunks = await buildChunks(plans, (plan) =>
-    buildSubset(content, plan.selection, option, optimization, plan.script),
+    buildSubset(source, plan.selection, option, optimization, plan.script),
   );
   return { ...result, chunks };
 }

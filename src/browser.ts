@@ -11,7 +11,7 @@ import { openFont, type Font } from "./font/font";
 import { resolveLigatures } from "./core";
 
 export { type GlyphMeta, type Formats, Format } from "./types";
-export { type Font, type ShapedGlyph, type LigatureRecord } from "./font/font";
+export { type Font, type ShapedGlyph, type LigatureRecord, type VariationAxis } from "./font/font";
 export { parseUnicodeRanges, findMetaByCodePoints, findMetaByLigatures } from "./core";
 
 function rejectWoff2(): Promise<never> {

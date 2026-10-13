@@ -17,6 +17,8 @@ export {
   type Engine,
   type FontInput,
   type LayoutFeatures,
+  type Axes,
+  type AxisSetting,
   type NameLanguages,
   type FontTransform,
   type Target,

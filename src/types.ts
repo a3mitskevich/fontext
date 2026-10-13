@@ -77,6 +77,15 @@ export type Target = "web" | "runtime";
 /** Layout features to keep: every one, HarfBuzz's default set or these tags. */
 export type LayoutFeatures = "all" | "default" | string[];
 
+/**
+ * A setting of a variation axis, in the units of the axis (wght 100-900, wdth in percent): a
+ * value pins the axis, `{ min, max }` narrows its range.
+ */
+export type AxisSetting = number | { min: number; max: number };
+
+/** Variation axis settings by axis tag, e.g. `{ wght: 700, wdth: { min: 75, max: 100 } }`. */
+export type Axes = Record<string, AxisSetting>;
+
 /** Languages of the name records to keep: every one or these language ids, e.g. 0x409. */
 export type NameLanguages = "all" | number[];
 
@@ -109,6 +118,12 @@ interface BaseOption {
   silent?: boolean;
   /** Where the font goes: browsers ("web") or runtimes that load TTF directly ("runtime"). */
   target?: Target;
+  /**
+   * Instance a variable font first: a value pins an axis, `{ min, max }` narrows it (not in the
+   * icon engine, whose font is static). Unknown axes, values outside the font's range and static
+   * fonts are rejected.
+   */
+  axes?: Axes;
   /** Name ids to keep. */
   nameIds?: number[];
   /**
