@@ -60,7 +60,7 @@
 
 ## Phase 10 — Dual Engine
 
-- [x] **10.1** Subset engine — HarfBuzz-based font subsetting via `subset-font`, preserving kerning/hinting/OpenType
+- [x] **10.1** Subset engine — HarfBuzz-based font subsetting (first via `subset-font`, now hb-subset from harfbuzzjs directly), preserving kerning/hinting/OpenType
 - [x] **10.2** Engine router — `extract.ts` routes to icon or subset engine based on `option.engine`
 - [x] **10.3** `characters` option — subset by character string (e.g. `"ABCabc0123"`)
 - [x] **10.4** CLI `--engine` and `--characters` flags
@@ -142,5 +142,19 @@
 - [ ] **20.4** `fontext/vite` plugin — build-time icon font generation with a virtual CSS module and HMR
 - [ ] **20.5** Detect used icons by scanning sources for ligature names and code points
 - [ ] **20.6** CSS/SCSS output — `@font-face` with `unicode-range`, icon classes, TS union of icon names
-- [ ] **20.7** Variable fonts — pin or limit axes via subset-font `variationAxes`
+- [x] **20.7** Variable fonts — pin or limit axes (see 21.4)
 - [ ] **20.8** SVG sprite and per-glyph SVG export from `meta`
+
+## Phase 21 — Output control
+
+- [x] **21.1** Tables — `keepTables` brings back `gasp`, `meta` and `PCLT`, tags in both `keepTables` and `dropTables` rejected
+- [x] **21.2** Hinting — `hinting: false` drops `gasp` too; `desubroutinize` option for CFF, measured: 2-8% smaller compressed, up to 45% larger raw
+- [x] **21.3** Metadata — `nameLanguages`, `glyphNames` (post format 2), post format 3 by default
+- [x] **21.4** Variable fonts — `axes` pins or narrows axes in every engine, the input instanced once; static fonts, unknown axes and values outside the axis rejected; `Font.axes`
+- [x] **21.5** `rename` — family and style names after the pinned weight or given, RIBBI and typographic names, `fsSelection` / `macStyle`
+- [x] **21.6** Presets `web-font` and `outline-render` instead of the unreleased `target`; a preset sets no formats
+- [x] **21.7** `report.tables` — table sizes of the input and the output and the dropped tags
+- [x] **21.8** `findMissingCodePoints()` in Node and `fontext/browser`; `missing-characters` warning of the subset engine
+- [x] **21.9** CLI flags and `.fontextrc.json` keys for all of the above; browser checks of instances against a hand-built reference
+- [ ] **21.10** Rename the names inside CFF outlines too (Top DICT FullName / FamilyName, Name INDEX)
+- [ ] **21.11** `keepTables` for glyph-indexed tables (`SVG `, `morx`, `kerx`, `EBDT`) when convert keeps every glyph id
