@@ -114,6 +114,7 @@ describe("resolveOptimization", () => {
       dropTables: ["MATH", "DSIG"],
       keepTables: ["gasp", "meta"],
       glyphNames: true,
+      desubroutinize: true,
     };
     expect(resolveOptimization(option)).toStrictEqual({
       formats: ["woff"],
@@ -123,7 +124,7 @@ describe("resolveOptimization", () => {
       nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
       keepTables: ["gasp", "meta"],
-      desubroutinize: false,
+      desubroutinize: true,
       glyphNames: true,
     });
   });
@@ -159,6 +160,11 @@ describe("optimization option validation", () => {
     ["a target named after an object property", { target: "toString" }, "Invalid target"],
     ["hinting that is not a boolean", { hinting: "no" }, "hinting must be a boolean"],
     ["glyphNames that is not a boolean", { glyphNames: 1 }, "glyphNames must be a boolean"],
+    [
+      "desubroutinize that is not a boolean",
+      { desubroutinize: "yes" },
+      "desubroutinize must be a boolean",
+    ],
     [
       "nameLanguages that are neither all nor an array",
       { nameLanguages: "en" },

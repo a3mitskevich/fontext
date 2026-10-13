@@ -118,6 +118,7 @@ interface OptimizationFields {
   readonly dropTables?: readonly string[];
   readonly keepTables?: readonly string[];
   readonly glyphNames?: boolean;
+  readonly desubroutinize?: boolean;
 }
 
 /**
@@ -139,7 +140,7 @@ export function resolveOptimization(option: MinifyOption): Optimization {
     nameLanguages: fields.nameLanguages,
     dropTables: (fields.dropTables ?? []).map((tag) => paddedTag(tag)),
     keepTables: (fields.keepTables ?? []).map((tag) => paddedTag(tag)),
-    desubroutinize: defaults.desubroutinize,
+    desubroutinize: fields.desubroutinize ?? defaults.desubroutinize,
     glyphNames: fields.glyphNames ?? false,
   };
 }
@@ -241,6 +242,7 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
     dropTables,
     keepTables,
     glyphNames,
+    desubroutinize,
     transform,
   } = option;
   if (target !== undefined && !Object.hasOwn(TARGETS, target as string)) {
@@ -270,6 +272,9 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   }
   if (glyphNames !== undefined && typeof glyphNames !== "boolean") {
     throw new TypeError("glyphNames must be a boolean");
+  }
+  if (desubroutinize !== undefined && typeof desubroutinize !== "boolean") {
+    throw new TypeError("desubroutinize must be a boolean");
   }
   if (transform !== undefined && typeof transform !== "function") {
     throw new TypeError("transform must be a function");

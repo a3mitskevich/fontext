@@ -149,6 +149,11 @@ interface SourceLayoutOption {
    * tables HarfBuzz drops refer to glyph ids it can't renumber; legacy kern is restored anyway.
    */
   keepTables?: string[];
+  /**
+   * Inline the subroutines of CFF outlines: about 2-8% smaller after WOFF2, WOFF or HTTP
+   * compression, up to half again as large as a raw font. TrueType outlines don't change.
+   */
+  desubroutinize?: boolean;
 }
 
 /**
