@@ -14,6 +14,8 @@ export {
   type TransformContext,
   type FontWarning,
   type OptimizationReport,
+  type TablesReport,
+  type TableSizes,
   type Engine,
   type FontInput,
   type LayoutFeatures,

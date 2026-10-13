@@ -11,7 +11,8 @@ import {
 import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
 import { hbSubset, SubsetFlag } from "./hb-subset";
-import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
+import { buildReport } from "./report";
+import { encodeFromTtf, type FontBuffers } from "./shared";
 import type { SourceFont } from "./source";
 import { applyTransform } from "./transform";
 import { buildSvgFont } from "./svg-font";
@@ -52,20 +53,26 @@ interface IconSettings {
   readonly timestamp: number;
 }
 
+/** The fonts of every format, and the TTF the binary formats were encoded from. */
+interface IconFonts {
+  readonly fonts: FontBuffers;
+  readonly ttf?: Buffer;
+}
+
 async function convertByFormats(
   svgFont: Buffer,
   { optimization, safariFix = false, transform, timestamp }: IconSettings,
-): Promise<FontBuffers> {
+): Promise<IconFonts> {
   const { formats } = optimization;
   const svg = formats.includes("svg") ? { svg: svgFont } : {};
   if (formats.every((format) => format === "svg")) {
-    return svg;
+    return { fonts: svg };
   }
 
   const ttf = await repack(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer, optimization);
   const final = await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform);
   const binaryFonts = await encodeFromTtf(final, formats);
-  return { ...svg, ...binaryFonts };
+  return { fonts: { ...svg, ...binaryFonts }, ttf: final };
 }
 
 export async function extractIcon(
@@ -94,7 +101,7 @@ export async function extractIcon(
   assertGlyphsSelected(glyphsMeta, unicodeRanges);
 
   const svgFont = buildSvgFont(fontName, glyphsMeta, font.unitsPerEm);
-  const fonts = await convertByFormats(svgFont, {
+  const { fonts, ttf } = await convertByFormats(svgFont, {
     optimization,
     safariFix: option.safariFix,
     transform: option.transform,
@@ -106,7 +113,7 @@ export async function extractIcon(
   return {
     ...fonts,
     meta: glyphsMeta,
-    report: buildReport(source.input.length, fonts, formats),
+    report: buildReport(source, fonts, formats, ttf),
     warnings: [],
   };
 }

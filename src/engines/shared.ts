@@ -1,7 +1,7 @@
 import ttf2eot from "ttf2eot";
 import ttf2woff from "ttf2woff";
 import { decodeWoff2, encodeWoff2 } from "../woff2";
-import type { FontTransform, FontWarning, Formats, OptimizationReport } from "../types";
+import type { FontTransform, FontWarning, Formats } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
 import { openFont } from "../font/font";
@@ -170,20 +170,4 @@ export async function subsetToTtf(
     ttf: await applyTransform(patched, transform, script === undefined ? undefined : { script }),
     warnings,
   };
-}
-
-export function buildReport(
-  originalSize: number,
-  fonts: FontBuffers,
-  formats: readonly Formats[],
-): OptimizationReport {
-  const entries = formats.flatMap((format) => {
-    const buffer = fonts[format];
-    if (!buffer) {
-      return [];
-    }
-    const saving = originalSize > 0 ? ((originalSize - buffer.length) / originalSize) * 100 : 0;
-    return [[format, { size: buffer.length, saving: Math.round(saving * 10) / 10 }] as const];
-  });
-  return { originalSize, formats: Object.fromEntries(entries) };
 }

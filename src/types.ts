@@ -11,9 +11,24 @@ export type Formats = (typeof Format)[keyof typeof Format];
 /** Raw bytes of a TTF, OTF, WOFF or WOFF2 font. */
 export type FontInput = Buffer | Uint8Array | ArrayBuffer;
 
+/** Tables of a font and their lengths in bytes, by tag without trailing spaces ("cvt", "CFF"). */
+export type TableSizes = Record<string, number>;
+
+/** The tables of the input and of the output, and those of the input the output lacks. */
+export interface TablesReport {
+  /** The input after WOFF or WOFF2 decompression, before instancing. */
+  input: TableSizes;
+  /** The TTF every binary format was encoded from, after the transform hook. */
+  output: TableSizes;
+  /** Tags of the input the output has no table for, in alphabetical order. */
+  dropped: string[];
+}
+
 export interface OptimizationReport {
   originalSize: number;
   formats: Partial<Record<Formats, { size: number; saving: number }>>;
+  /** The tables of the input and the output; none when only SVG was built. */
+  tables?: TablesReport;
 }
 
 /**

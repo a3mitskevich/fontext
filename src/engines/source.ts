@@ -1,7 +1,8 @@
-import type { Axes } from "../types";
+import type { Axes, TableSizes } from "../types";
 import { toSfnt } from "../font/container";
 import { decodeWoff2 } from "../woff2";
 import { instanceFont } from "./instance";
+import { tableSizes } from "./report";
 
 /** The font an engine reads, and the input the report compares the output with. */
 export interface SourceFont {
@@ -9,6 +10,8 @@ export interface SourceFont {
   readonly content: Buffer;
   /** The input as given. */
   readonly input: Buffer;
+  /** The tables of the input, decompressed, before instancing. */
+  readonly inputTables: TableSizes;
 }
 
 const toBuffer = (data: Uint8Array): Buffer =>
@@ -18,5 +21,9 @@ const toBuffer = (data: Uint8Array): Buffer =>
 export async function loadSource(input: Buffer, axes: Axes | undefined): Promise<SourceFont> {
   const sfnt = await toSfnt(input, decodeWoff2);
   const isInstanced = axes !== undefined && Object.keys(axes).length > 0;
-  return { input, content: toBuffer(isInstanced ? await instanceFont(sfnt, axes) : sfnt) };
+  return {
+    input,
+    inputTables: tableSizes(sfnt),
+    content: toBuffer(isInstanced ? await instanceFont(sfnt, axes) : sfnt),
+  };
 }

@@ -1,7 +1,8 @@
 import type { ExtractedResult, SubsetOption } from "../types";
 import type { Optimization } from "../optimization";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
-import { buildReport, encodeFromTtf, type SubsetSelection, subsetToTtf } from "./shared";
+import { buildReport } from "./report";
+import { encodeFromTtf, type SubsetSelection, subsetToTtf } from "./shared";
 import type { SourceFont } from "./source";
 import { type BuiltFont, buildChunks, type ChunkPlan, planChunks } from "./split";
 
@@ -34,7 +35,7 @@ async function buildSubset(
     result: {
       ...fonts,
       meta: findMetaByCodePoints(subsetted, subsetted.codePoints),
-      report: buildReport(source.input.length, fonts, formats),
+      report: buildReport(source, fonts, formats, ttf),
       warnings,
     },
     codePoints: subsetted.codePoints,

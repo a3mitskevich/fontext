@@ -2,7 +2,8 @@ import type { ConvertOption, ExtractedResult } from "../types";
 import type { Optimization } from "../optimization";
 import type { Font } from "../font/font";
 import { createFont, findMetaByCodePoints } from "../glyphs";
-import { buildReport, encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
+import { buildReport } from "./report";
+import { encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
 import type { SourceFont } from "./source";
 import { type BuiltFont, buildChunks, planChunks } from "./split";
 import { buildSvgFont } from "./svg-font";
@@ -49,7 +50,7 @@ async function buildConvert(
     result: {
       ...fonts,
       meta: findMetaByCodePoints(outputFont, outputCodePoints),
-      report: buildReport(source.input.length, fonts, formats),
+      report: buildReport(source, fonts, formats, ttf),
       warnings: subset?.warnings ?? [],
     },
     codePoints: outputCodePoints,
