@@ -76,15 +76,21 @@ type SubsetOutput = Pick<SubsetInput, "flags" | "layoutFeatures" | "nameIds" | "
 
 const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
 
+/** NO_HINTING leaves gasp, which only tells rasterizers how to grid-fit and smooth. */
+const GASP = "gasp";
+
 /** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
 function subsetOutputOf(optimization: Optimization): SubsetOutput {
-  const { hinting, layoutFeatures, nameIds, dropTables, desubroutinize } = optimization;
+  const { hinting, layoutFeatures, nameIds, dropTables, desubroutinize, glyphNames } = optimization;
   return {
-    flags: (hinting ? 0 : SubsetFlag.NO_HINTING) | (desubroutinize ? SubsetFlag.DESUBROUTINIZE : 0),
+    flags:
+      (hinting ? 0 : SubsetFlag.NO_HINTING) |
+      (desubroutinize ? SubsetFlag.DESUBROUTINIZE : 0) |
+      (glyphNames ? SubsetFlag.GLYPH_NAMES : 0),
     layoutFeatures:
       typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
     nameIds,
-    dropTables,
+    dropTables: hinting || dropTables.includes(GASP) ? dropTables : [...dropTables, GASP],
   };
 }
 

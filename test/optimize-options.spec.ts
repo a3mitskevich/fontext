@@ -84,6 +84,9 @@ describe("hinting option (subset engine)", () => {
       expect.arrayContaining(["fpgm", "prep", "cvt ", "hdmx", "VDMX"]),
     );
     expect(tablesOf(unhinted).filter((tag) => HINTING_TABLES.includes(tag))).toStrictEqual([]);
+    // HarfBuzz keeps gasp without hinting; fontext drops it too
+    expect(tablesOf(hinted)).toContain("gasp");
+    expect(tablesOf(unhinted)).not.toContain("gasp");
 
     expect(glyfSize(unhinted)).toBeLessThan(glyfSize(hinted) / 2);
     expect(pathsOf(unhinted)).toStrictEqual(pathsOf(hinted));

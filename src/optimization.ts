@@ -14,10 +14,12 @@ export interface Optimization {
   readonly dropTables: readonly string[];
   /** Inline the CFF subroutines: smaller after WOFF2 compression, larger as a raw font. */
   readonly desubroutinize: boolean;
+  /** Keep the glyph names in post. */
+  readonly glyphNames: boolean;
 }
 
 /** What a target sets when the options leave it open; no formats means the engine's own. */
-type Defaults = Omit<Optimization, "formats" | "dropTables"> & {
+type Defaults = Omit<Optimization, "formats" | "dropTables" | "glyphNames"> & {
   readonly formats?: readonly Formats[];
 };
 
@@ -92,6 +94,7 @@ interface OptimizationFields {
   readonly layoutFeatures?: "all" | "default" | readonly string[];
   readonly nameIds?: readonly number[];
   readonly dropTables?: readonly string[];
+  readonly glyphNames?: boolean;
 }
 
 /**
@@ -112,6 +115,7 @@ export function resolveOptimization(option: MinifyOption): Optimization {
     nameIds: fields.nameIds ?? defaults.nameIds,
     dropTables: (fields.dropTables ?? []).map((tag) => paddedTag(tag)),
     desubroutinize: defaults.desubroutinize,
+    glyphNames: fields.glyphNames ?? false,
   };
 }
 
@@ -170,7 +174,7 @@ function assertNameIds(nameIds: unknown): void {
  * also those it ignores, so a typo fails where it was made.
  */
 export function assertOptimizationOptions(option: Readonly<Record<string, unknown>>): void {
-  const { target, hinting, layoutFeatures, nameIds, dropTables, transform } = option;
+  const { target, hinting, layoutFeatures, nameIds, dropTables, glyphNames, transform } = option;
   if (target !== undefined && !Object.hasOwn(TARGETS, target as string)) {
     throw new Error(
       `Invalid target: ${JSON.stringify(target)}. Valid targets: ${Object.keys(TARGETS).join(", ")}`,
@@ -188,6 +192,9 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   if (dropTables !== undefined) {
     assertTags("dropTables", dropTables);
     assertDroppable(dropTables as string[]);
+  }
+  if (glyphNames !== undefined && typeof glyphNames !== "boolean") {
+    throw new TypeError("glyphNames must be a boolean");
   }
   if (transform !== undefined && typeof transform !== "function") {
     throw new TypeError("transform must be a function");

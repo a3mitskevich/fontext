@@ -23,6 +23,7 @@ describe("resolveOptimization", () => {
         nameIds: undefined,
         dropTables: [],
         desubroutinize: false,
+        glyphNames: false,
       });
     },
   );
@@ -39,6 +40,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 2, 4, 6],
       dropTables: [],
       desubroutinize: true,
+      glyphNames: false,
     });
   });
 
@@ -54,6 +56,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 2, 4, 6],
       dropTables: [],
       desubroutinize: false,
+      glyphNames: false,
     });
   });
 
@@ -74,6 +77,7 @@ describe("resolveOptimization", () => {
       nameIds: [4],
       dropTables: ["DSIG"],
       desubroutinize: false,
+      glyphNames: false,
     });
     const web: SubsetOption = {
       ...subset,
@@ -86,6 +90,7 @@ describe("resolveOptimization", () => {
       hinting: false,
       layoutFeatures: ["liga"],
       desubroutinize: true,
+      glyphNames: false,
     });
   });
 
@@ -97,6 +102,7 @@ describe("resolveOptimization", () => {
       layoutFeatures: "default",
       nameIds: [1, 4],
       dropTables: ["MATH", "DSIG"],
+      glyphNames: true,
     };
     expect(resolveOptimization(option)).toStrictEqual({
       formats: ["woff"],
@@ -105,6 +111,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 4],
       dropTables: ["MATH", "DSIG"],
       desubroutinize: false,
+      glyphNames: true,
     });
   });
 
@@ -135,6 +142,7 @@ describe("optimization option validation", () => {
     ["a target that is not a string", { target: 1 }, "Invalid target: 1"],
     ["a target named after an object property", { target: "toString" }, "Invalid target"],
     ["hinting that is not a boolean", { hinting: "no" }, "hinting must be a boolean"],
+    ["glyphNames that is not a boolean", { glyphNames: 1 }, "glyphNames must be a boolean"],
     [
       "an unknown layoutFeatures keyword",
       { layoutFeatures: "none" },

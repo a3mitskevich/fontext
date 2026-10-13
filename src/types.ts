@@ -108,6 +108,11 @@ interface BaseOption {
   target?: Target;
   /** Name ids to keep. */
   nameIds?: number[];
+  /**
+   * Keep the glyph names, a `post` table of format 2 (PDF text extraction reads them). By default
+   * `post` has format 3, without names.
+   */
+  glyphNames?: boolean;
   /** Tables to drop, tags of 1-4 printable ASCII characters; shorter tags are padded with spaces. */
   dropTables?: string[];
   /**
@@ -125,8 +130,8 @@ interface BaseOption {
  */
 interface SourceLayoutOption {
   /**
-   * Keep TrueType hinting: fpgm, prep, cvt, glyph instructions, hdmx and VDMX. HarfBuzz drops
-   * LTSH either way.
+   * Keep TrueType hinting: fpgm, prep, cvt, gasp, glyph instructions, hdmx and VDMX. HarfBuzz
+   * drops LTSH either way.
    */
   hinting?: boolean;
   /** Layout features to keep: every one ("all"), HarfBuzz's default set ("default") or these tags. */

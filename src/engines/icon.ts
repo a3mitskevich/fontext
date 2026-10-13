@@ -26,8 +26,8 @@ const NAME_LANGUAGES = [0x4_09];
 /**
  * Rewrites the TTF of svg2ttf with hb-subset, keeping every glyph, code point and layout feature.
  * svg2ttf writes cmap subtables for several platforms, glyph names in post and Mac and Windows
- * name records; HarfBuzz writes the cmap compactly, post without glyph names (the names are in
- * `meta`) and only the Windows records of the kept names. The head dates stay those of svg2ttf.
+ * name records; HarfBuzz writes the cmap compactly, post without glyph names unless asked to keep
+ * them (the names are in `meta`) and only the Windows records of the kept names. The head dates stay those of svg2ttf.
  * The name ids and dropped tables of the optimization apply; its hinting and layout features
  * don't: svg2ttf writes no hinting, and its `liga` feature is what forms the ligatures.
  */
@@ -35,7 +35,7 @@ async function repack(ttf: Uint8Array, optimization: Optimization): Promise<Buff
   const packed = await hbSubset(ttf, {
     unicodes: "*",
     glyphs: "*",
-    flags: SubsetFlag.NO_HINTING,
+    flags: SubsetFlag.NO_HINTING | (optimization.glyphNames ? SubsetFlag.GLYPH_NAMES : 0),
     layoutFeatures: "*",
     nameIds: optimization.nameIds ?? NAME_IDS,
     nameLanguages: NAME_LANGUAGES,
