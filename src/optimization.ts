@@ -21,6 +21,8 @@ export interface Optimization {
   readonly nameLanguages: "all" | readonly number[] | undefined;
   /** Tags of the tables to drop, padded to four characters. */
   readonly dropTables: readonly string[];
+  /** Tags of the tables to keep that HarfBuzz or the hinting option drop, padded. */
+  readonly keepTables: readonly string[];
   /** Inline the CFF subroutines: smaller after WOFF2 compression, larger as a raw font. */
   readonly desubroutinize: boolean;
   /** Keep the glyph names in post. */
@@ -28,7 +30,10 @@ export interface Optimization {
 }
 
 /** What a target sets when the options leave it open; no formats means the engine's own. */
-type Defaults = Omit<Optimization, "formats" | "dropTables" | "glyphNames" | "nameLanguages"> & {
+type Defaults = Omit<
+  Optimization,
+  "formats" | "dropTables" | "keepTables" | "glyphNames" | "nameLanguages"
+> & {
   readonly formats?: readonly Formats[];
 };
 
@@ -96,6 +101,12 @@ export const REQUIRED_TABLES: readonly string[] = [
   "CFF2",
 ];
 
+/**
+ * Tables keepTables brings back: gasp, which hinting: false drops, and tables HarfBuzz drops whose
+ * data refers to no glyph id, so a copy from the source stays valid for the subset.
+ */
+export const KEEPABLE_TABLES: readonly string[] = ["gasp", "meta", "PCLT"];
+
 /** Options every engine reads the same way; an engine that has no such option leaves it out. */
 interface OptimizationFields {
   readonly target?: Target;
@@ -105,6 +116,7 @@ interface OptimizationFields {
   readonly nameIds?: readonly number[];
   readonly nameLanguages?: NameLanguages;
   readonly dropTables?: readonly string[];
+  readonly keepTables?: readonly string[];
   readonly glyphNames?: boolean;
 }
 
@@ -126,6 +138,7 @@ export function resolveOptimization(option: MinifyOption): Optimization {
     nameIds: fields.nameIds ?? defaults.nameIds,
     nameLanguages: fields.nameLanguages,
     dropTables: (fields.dropTables ?? []).map((tag) => paddedTag(tag)),
+    keepTables: (fields.keepTables ?? []).map((tag) => paddedTag(tag)),
     desubroutinize: defaults.desubroutinize,
     glyphNames: fields.glyphNames ?? false,
   };
@@ -152,6 +165,22 @@ function assertDroppable(tags: readonly string[]): void {
     throw new Error(
       `Invalid tag(s) in dropTables: ${quoted(required)}. The font needs these tables: ${REQUIRED_TABLES.map((tag) => tag.trim()).join(", ")}`,
     );
+  }
+}
+
+function assertKeepable(keepTables: readonly string[], dropTables: unknown): void {
+  const unkeepable = keepTables.filter((tag) => !KEEPABLE_TABLES.includes(paddedTag(tag)));
+  if (unkeepable.length > 0) {
+    throw new Error(
+      `Invalid tag(s) in keepTables: ${quoted(unkeepable)}. keepTables brings back tables HarfBuzz drops whose data refers to no glyph id, and gasp: ${KEEPABLE_TABLES.join(", ")}. The other hinting tables follow the hinting option`,
+    );
+  }
+  const dropped = new Set(
+    Array.isArray(dropTables) ? dropTables.map((tag) => paddedTag(String(tag))) : [],
+  );
+  const both = keepTables.filter((tag) => dropped.has(paddedTag(tag)));
+  if (both.length > 0) {
+    throw new Error(`keepTables and dropTables both name: ${quoted(both)}`);
   }
 }
 
@@ -210,6 +239,7 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
     nameIds,
     nameLanguages,
     dropTables,
+    keepTables,
     glyphNames,
     transform,
   } = option;
@@ -233,6 +263,10 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   if (dropTables !== undefined) {
     assertTags("dropTables", dropTables);
     assertDroppable(dropTables as string[]);
+  }
+  if (keepTables !== undefined) {
+    assertTags("keepTables", keepTables);
+    assertKeepable(keepTables as string[], dropTables);
   }
   if (glyphNames !== undefined && typeof glyphNames !== "boolean") {
     throw new TypeError("glyphNames must be a boolean");

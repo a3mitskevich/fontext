@@ -144,6 +144,11 @@ interface SourceLayoutOption {
    * only English (United States), 0x409.
    */
   nameLanguages?: NameLanguages;
+  /**
+   * Tables to keep that HarfBuzz or `hinting: false` would drop: gasp, meta and PCLT. Other
+   * tables HarfBuzz drops refer to glyph ids it can't renumber; legacy kern is restored anyway.
+   */
+  keepTables?: string[];
 }
 
 /**

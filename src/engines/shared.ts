@@ -9,6 +9,7 @@ import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
 import { assertLigaturesKept } from "./ligature-check";
 import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
+import { keepSourceTables } from "./keep-tables";
 import { restoreKerning } from "./kerning";
 import { applyTransform } from "./transform";
 
@@ -82,17 +83,16 @@ const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
 /** NO_HINTING leaves gasp, which only tells rasterizers how to grid-fit and smooth. */
 const GASP = "gasp";
 
+/** The tables to drop: those of the options, and gasp without hinting unless it is kept. */
+function dropTablesOf({ hinting, dropTables, keepTables }: Optimization): readonly string[] {
+  const dropsGasp = !hinting && !keepTables.includes(GASP) && !dropTables.includes(GASP);
+  return dropsGasp ? [...dropTables, GASP] : dropTables;
+}
+
 /** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
 function subsetOutputOf(optimization: Optimization): SubsetOutput {
-  const {
-    hinting,
-    layoutFeatures,
-    nameIds,
-    nameLanguages,
-    dropTables,
-    desubroutinize,
-    glyphNames,
-  } = optimization;
+  const { hinting, layoutFeatures, nameIds, nameLanguages, desubroutinize, glyphNames } =
+    optimization;
   return {
     flags:
       (hinting ? 0 : SubsetFlag.NO_HINTING) |
@@ -102,7 +102,7 @@ function subsetOutputOf(optimization: Optimization): SubsetOutput {
       typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
     nameIds,
     nameLanguages: nameLanguages === "all" ? "*" : nameLanguages,
-    dropTables: hinting || dropTables.includes(GASP) ? dropTables : [...dropTables, GASP],
+    dropTables: dropTablesOf(optimization),
   };
 }
 
@@ -155,7 +155,11 @@ export async function subsetToTtf(
   { optimization, safariFix = false, transform, script }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
-  const subset = await subsetSfnt(source, selection, subsetOutputOf(optimization));
+  const subset = keepSourceTables(
+    source,
+    await subsetSfnt(source, selection, subsetOutputOf(optimization)),
+    optimization.keepTables,
+  );
   // HarfBuzz drops the legacy kern table; it is put back unless the options drop it
   const { font, warnings } = optimization.dropTables.includes("kern")
     ? { font: subset, warnings: [] }

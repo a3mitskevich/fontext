@@ -23,6 +23,7 @@ describe("resolveOptimization", () => {
         nameIds: undefined,
         nameLanguages: undefined,
         dropTables: [],
+        keepTables: [],
         desubroutinize: false,
         glyphNames: false,
       });
@@ -41,6 +42,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 2, 4, 6],
       nameLanguages: undefined,
       dropTables: [],
+      keepTables: [],
       desubroutinize: true,
       glyphNames: false,
     });
@@ -58,6 +60,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 2, 4, 6],
       nameLanguages: undefined,
       dropTables: [],
+      keepTables: [],
       desubroutinize: false,
       glyphNames: false,
     });
@@ -81,6 +84,7 @@ describe("resolveOptimization", () => {
       nameIds: [4],
       nameLanguages: undefined,
       dropTables: ["DSIG"],
+      keepTables: [],
       desubroutinize: false,
       glyphNames: false,
     });
@@ -108,6 +112,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 4],
       nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
+      keepTables: ["gasp", "meta"],
       glyphNames: true,
     };
     expect(resolveOptimization(option)).toStrictEqual({
@@ -117,6 +122,7 @@ describe("resolveOptimization", () => {
       nameIds: [1, 4],
       nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
+      keepTables: ["gasp", "meta"],
       desubroutinize: false,
       glyphNames: true,
     });
@@ -128,6 +134,9 @@ describe("resolveOptimization", () => {
       layoutFeatures: ["liga", "ss1"],
       dropTables: ["cvt", "CFF", "a"],
     });
+    expect(
+      resolveOptimization({ ...convert, keepTables: ["PCLT", "gasp"] }).keepTables,
+    ).toStrictEqual(["PCLT", "gasp"]);
     expect(layoutFeatures).toStrictEqual(["liga", "ss1 "]);
     expect(dropTables).toStrictEqual(["cvt ", "CFF ", "a   "]);
   });
@@ -199,6 +208,17 @@ describe("optimization option validation", () => {
       { dropTables: ["CFF"] },
       'dropTables: "CFF". The font needs',
     ],
+    ["keepTables that are not an array", { keepTables: "meta" }, "keepTables must be an array"],
+    [
+      "a table whose data refers to glyph ids",
+      { keepTables: ["meta", "LTSH", "DSIG", "fpgm"] },
+      'Invalid tag(s) in keepTables: "LTSH", "DSIG", "fpgm". keepTables brings back tables HarfBuzz drops whose data refers to no glyph id, and gasp: gasp, meta, PCLT. The other hinting tables follow the hinting option',
+    ],
+    [
+      "a table both kept and dropped",
+      { keepTables: ["meta", "gasp"], dropTables: ["gasp", "DSIG"] },
+      'keepTables and dropTables both name: "gasp"',
+    ],
   ])("should reject %s", (_, option, message) => {
     expect(() => assertOptimizationOptions(option)).toThrow(message);
   });
@@ -210,6 +230,7 @@ describe("optimization option validation", () => {
         layoutFeatures: ["liga", "ss1", "cv01"],
         nameIds: [0, 32_767],
         nameLanguages: [0, 0x4_09, 0xff_ff],
+        keepTables: ["gasp", "meta", "PCLT"],
         dropTables: [],
       }),
     ).not.toThrow();
