@@ -144,8 +144,8 @@ function configure(hb: HbSubsetExports, input: number, options: SubsetInput): vo
   }
 }
 
-/** Copies the font into WebAssembly memory and subsets the face made of it. */
-function subsetFace(hb: HbSubsetExports, font: Uint8Array, input: number): Uint8Array {
+/** Copies the font into WebAssembly memory and runs `use` on the face made of it. */
+function withFace<T>(hb: HbSubsetExports, font: Uint8Array, use: (face: number) => T): T {
   const data = hb.malloc(font.byteLength);
   if (data === 0) {
     throw new Error("Cannot subset the font: out of WebAssembly memory");
@@ -156,42 +156,50 @@ function subsetFace(hb: HbSubsetExports, font: Uint8Array, input: number): Uint8
   const face = hb.hb_face_create(blob, 0);
   hb.hb_blob_destroy(blob);
   try {
-    const subset = hb.hb_subset_or_fail(face, input);
-    if (subset === 0) {
-      throw new Error("HarfBuzz could not subset the font, it may be malformed");
-    }
-    const result = hb.hb_face_reference_blob(subset);
-    try {
-      const length = hb.hb_blob_get_length(result);
-      if (length === 0) {
-        throw new Error("HarfBuzz could not subset the font, it may be malformed");
-      }
-      const offset = hb.hb_blob_get_data(result, 0);
-      return new Uint8Array(hb.memory.buffer).slice(offset, offset + length);
-    } finally {
-      hb.hb_blob_destroy(result);
-      hb.hb_face_destroy(subset);
-    }
+    return use(face);
   } finally {
     hb.hb_face_destroy(face);
     hb.free(data);
   }
 }
 
+/** Subsets the face and copies the result out of WebAssembly memory. */
+function subsetFace(hb: HbSubsetExports, face: number, input: number): Uint8Array {
+  const subset = hb.hb_subset_or_fail(face, input);
+  if (subset === 0) {
+    throw new Error("HarfBuzz could not subset the font, it may be malformed");
+  }
+  const result = hb.hb_face_reference_blob(subset);
+  try {
+    const length = hb.hb_blob_get_length(result);
+    if (length === 0) {
+      throw new Error("HarfBuzz could not subset the font, it may be malformed");
+    }
+    const offset = hb.hb_blob_get_data(result, 0);
+    return new Uint8Array(hb.memory.buffer).slice(offset, offset + length);
+  } finally {
+    hb.hb_blob_destroy(result);
+    hb.hb_face_destroy(subset);
+  }
+}
+
 /**
  * Subsets an uncompressed sfnt font with hb-subset from harfbuzzjs. The call runs synchronously
- * once the module is loaded, so concurrent calls never share its memory mid-subset.
+ * once the module is loaded, so concurrent calls never share its memory mid-subset. The face is
+ * made before the input is configured: the variation axis settings need it.
  */
 export async function hbSubset(font: Uint8Array, options: SubsetInput): Promise<Uint8Array> {
   const hb = await loadHbSubset();
-  const input = hb.hb_subset_input_create_or_fail();
-  if (input === 0) {
-    throw new Error("Cannot subset the font: out of WebAssembly memory");
-  }
-  try {
-    configure(hb, input, options);
-    return subsetFace(hb, font, input);
-  } finally {
-    hb.hb_subset_input_destroy(input);
-  }
+  return withFace(hb, font, (face) => {
+    const input = hb.hb_subset_input_create_or_fail();
+    if (input === 0) {
+      throw new Error("Cannot subset the font: out of WebAssembly memory");
+    }
+    try {
+      configure(hb, input, options);
+      return subsetFace(hb, face, input);
+    } finally {
+      hb.hb_subset_input_destroy(input);
+    }
+  });
 }
