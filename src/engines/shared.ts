@@ -11,6 +11,7 @@ import { assertLigaturesKept } from "./ligature-check";
 import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
 import { keepSourceTables } from "./keep-tables";
 import { restoreKerning } from "./kerning";
+import { renameFont } from "./rename";
 import { applyTransform } from "./transform";
 
 type BinaryFormat = Exclude<Formats, "svg">;
@@ -164,7 +165,9 @@ export async function subsetToTtf(
   const { font, warnings } = optimization.dropTables.includes("kern")
     ? { font: subset, warnings: [] }
     : await restoreKerning(source, subset);
-  const ttf = Buffer.from(font.buffer, font.byteOffset, font.byteLength);
+  const { rename, axes } = optimization;
+  const renamed = rename ? renameFont(font, source, rename, axes) : font;
+  const ttf = Buffer.from(renamed.buffer, renamed.byteOffset, renamed.byteLength);
   const patched = safariFix ? applySafariFix(ttf) : ttf;
   return {
     ttf: await applyTransform(patched, transform, script === undefined ? undefined : { script }),

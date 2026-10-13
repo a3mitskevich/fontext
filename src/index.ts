@@ -22,6 +22,7 @@ export {
   type LayoutFeatures,
   type Axes,
   type AxisSetting,
+  type Rename,
   type NameLanguages,
   type FontTransform,
   type Preset,

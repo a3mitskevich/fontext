@@ -14,6 +14,7 @@ import { hbSubset, SubsetFlag } from "./hb-subset";
 import { buildReport } from "./report";
 import { encodeFromTtf, type FontBuffers } from "./shared";
 import type { SourceFont } from "./source";
+import { renameFont } from "./rename";
 import { applyTransform } from "./transform";
 import { buildSvgFont } from "./svg-font";
 
@@ -69,7 +70,11 @@ async function convertByFormats(
     return { fonts: svg };
   }
 
-  const ttf = await repack(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer, optimization);
+  const built = svg2ttf(svgFont.toString(), { ts: timestamp }).buffer;
+  const packed = await repack(built, optimization);
+  // Names come from svg2ttf's font, its family the font name: nameIds may filter the repacked one
+  const { rename, axes } = optimization;
+  const ttf = rename ? Buffer.from(renameFont(packed, built, rename, axes)) : packed;
   const final = await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform);
   const binaryFonts = await encodeFromTtf(final, formats);
   return { fonts: { ...svg, ...binaryFonts }, ttf: final };

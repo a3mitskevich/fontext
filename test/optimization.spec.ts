@@ -26,6 +26,8 @@ describe("resolveOptimization", () => {
         keepTables: [],
         desubroutinize: false,
         glyphNames: false,
+        rename: undefined,
+        axes: {},
       });
     },
   );
@@ -45,6 +47,8 @@ describe("resolveOptimization", () => {
       keepTables: [],
       desubroutinize: true,
       glyphNames: false,
+      rename: undefined,
+      axes: {},
     });
   });
 
@@ -63,6 +67,8 @@ describe("resolveOptimization", () => {
       keepTables: [],
       desubroutinize: false,
       glyphNames: false,
+      rename: undefined,
+      axes: {},
     });
   });
 
@@ -87,6 +93,8 @@ describe("resolveOptimization", () => {
       keepTables: [],
       desubroutinize: false,
       glyphNames: false,
+      rename: undefined,
+      axes: {},
     });
     const web: SubsetOption = {
       ...subset,
@@ -101,6 +109,8 @@ describe("resolveOptimization", () => {
       layoutFeatures: ["liga"],
       desubroutinize: false,
       glyphNames: false,
+      rename: undefined,
+      axes: {},
     });
   });
 
@@ -127,6 +137,8 @@ describe("resolveOptimization", () => {
       keepTables: ["gasp", "meta"],
       desubroutinize: true,
       glyphNames: true,
+      rename: undefined,
+      axes: {},
     });
   });
 

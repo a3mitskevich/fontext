@@ -104,6 +104,13 @@ export type AxisSetting = number | { min: number; max: number };
 /** Variation axis settings by axis tag, e.g. `{ wght: 700, wdth: { min: 75, max: 100 } }`. */
 export type Axes = Record<string, AxisSetting>;
 
+/**
+ * New names for the output font: its family and style, as in "Inter" and "SemiBold". `true`, or
+ * a part left out, takes the family of the source and the style of the pinned wght axis (700:
+ * Bold), else the style of the source.
+ */
+export type Rename = true | { family?: string; style?: string };
+
 /** Languages of the name records to keep: every one or these language ids, e.g. 0x409. */
 export type NameLanguages = "all" | number[];
 
@@ -142,6 +149,12 @@ interface BaseOption {
    * fonts are rejected.
    */
   axes?: Axes;
+  /**
+   * Rewrite the family and style names, e.g. after pinning wght, which leaves the names of the
+   * default instance: name ids 1, 2, 4 and 6 (3, 16 and 17 when needed) in Windows English, and
+   * the bold and italic bits of OS/2 and head. Names inside CFF outlines stay.
+   */
+  rename?: Rename;
   /** Name ids to keep. */
   nameIds?: number[];
   /**

@@ -1,10 +1,13 @@
+import { assertRenameOption } from "./engines/rename";
 import {
+  type Axes,
   type Engine,
   Format,
   type Formats,
   type MinifyOption,
   type NameLanguages,
   type Preset,
+  type Rename,
 } from "./types";
 
 /** What an extraction keeps of the font, resolved from its options. */
@@ -27,12 +30,16 @@ export interface Optimization {
   readonly desubroutinize: boolean;
   /** Keep the glyph names in post. */
   readonly glyphNames: boolean;
+  /** New family and style names. */
+  readonly rename: Rename | undefined;
+  /** The axes the source was instanced at, for the style names. */
+  readonly axes: Axes;
 }
 
 /** What a preset sets when the options leave it open. */
 type Defaults = Omit<
   Optimization,
-  "formats" | "dropTables" | "keepTables" | "glyphNames" | "nameLanguages"
+  "formats" | "dropTables" | "keepTables" | "glyphNames" | "nameLanguages" | "rename" | "axes"
 >;
 
 /** Family, subfamily, full name (three.js TTFLoader reads it) and PostScript name. */
@@ -119,6 +126,8 @@ interface OptimizationFields {
   readonly keepTables?: readonly string[];
   readonly glyphNames?: boolean;
   readonly desubroutinize?: boolean;
+  readonly rename?: Rename;
+  readonly axes?: Axes;
 }
 
 /**
@@ -142,6 +151,8 @@ export function resolveOptimization(option: MinifyOption): Optimization {
     keepTables: (fields.keepTables ?? []).map((tag) => paddedTag(tag)),
     desubroutinize: fields.desubroutinize ?? defaults.desubroutinize,
     glyphNames: fields.glyphNames ?? false,
+    rename: fields.rename,
+    axes: fields.axes ?? {},
   };
 }
 
@@ -243,6 +254,8 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
     keepTables,
     glyphNames,
     desubroutinize,
+    rename,
+    axes,
     transform,
   } = option;
   if (preset !== undefined && !Object.hasOwn(PRESETS, preset as string)) {
@@ -276,6 +289,7 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   if (desubroutinize !== undefined && typeof desubroutinize !== "boolean") {
     throw new TypeError("desubroutinize must be a boolean");
   }
+  assertRenameOption(rename, axes as Axes | undefined);
   if (transform !== undefined && typeof transform !== "function") {
     throw new TypeError("transform must be a function");
   }
