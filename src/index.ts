@@ -1,6 +1,7 @@
 import type extract from "./extract";
 
 export { default, default as extract } from "./extract";
+export { findMissingCodePoints } from "./glyphs";
 export {
   Format,
   type Formats,

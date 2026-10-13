@@ -4,6 +4,7 @@ import path from "path";
 import {
   createFont,
   findLigaturesByRaws,
+  findMissingCodePoints,
   parseUnicodeRanges,
   findMetaByCodePoints,
   findMetaByLigatures,
@@ -35,6 +36,28 @@ describe("browser entry point", () => {
       const font = await createFont(new Uint8Array(variable));
       const axes: readonly VariationAxis[] = font.axes;
       expect(axes.map(({ tag }) => tag)).toStrictEqual(["wght", "wdth"]);
+    });
+  });
+
+  describe("findMissingCodePoints", () => {
+    it("should list the code points the font does not map, each once", async () => {
+      await expect(findMissingCodePoints(fontUint8, "\uE88A\nA\nb")).resolves.toStrictEqual([
+        // Material Icons maps the lowercase letters its ligatures are made of
+        0x0a, 0x41,
+      ]);
+      await expect(findMissingCodePoints(fontUint8.buffer, "\uE88A")).resolves.toStrictEqual([]);
+    });
+
+    it("should reject WOFF2 and text that is not a string", async () => {
+      const woff2 = new Uint8Array(
+        fs.readFileSync(path.resolve(import.meta.dirname, "../assets/font.woff2")),
+      );
+      await expect(findMissingCodePoints(woff2, "a")).rejects.toThrow(
+        "WOFF2 input is not supported",
+      );
+      await expect(findMissingCodePoints(fontUint8, 1 as unknown as string)).rejects.toThrow(
+        "text must be a string",
+      );
     });
   });
 

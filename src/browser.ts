@@ -8,7 +8,7 @@
 
 import { toSfnt } from "./font/container";
 import { openFont, type Font } from "./font/font";
-import { resolveLigatures } from "./core";
+import { missingCodePoints, resolveLigatures } from "./core";
 
 export { type GlyphMeta, type Formats, Format } from "./types";
 export { type Font, type ShapedGlyph, type LigatureRecord, type VariationAxis } from "./font/font";
@@ -26,6 +26,20 @@ function rejectWoff2(): Promise<never> {
 export async function createFont(data: Uint8Array | ArrayBuffer): Promise<Font> {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   return openFont(await toSfnt(bytes, rejectWoff2));
+}
+
+/**
+ * Code points of the text the font has no glyph for, each once, in the order they occur: what a
+ * subset of the text would lack. Control characters such as a line feed are listed too.
+ */
+export async function findMissingCodePoints(
+  data: Uint8Array | ArrayBuffer,
+  text: string,
+): Promise<number[]> {
+  if (typeof text !== "string") {
+    throw new TypeError("text must be a string");
+  }
+  return missingCodePoints(await createFont(data), text);
 }
 
 export async function findLigaturesByRaws(

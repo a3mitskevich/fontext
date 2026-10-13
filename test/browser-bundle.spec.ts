@@ -39,7 +39,12 @@ describe("browser entry bundled with Vite", () => {
 
     expect(Buffer.from(wasm.source)).toStrictEqual(harfbuzzWasm);
     expect(entryChunk?.exports).toEqual(
-      expect.arrayContaining(["createFont", "findLigaturesByRaws", "findMetaByLigatures"]),
+      expect.arrayContaining([
+        "createFont",
+        "findLigaturesByRaws",
+        "findMetaByLigatures",
+        "findMissingCodePoints",
+      ]),
     );
     expect(harfbuzzChunk).toBeDefined();
     expect(entryChunk?.imports).not.toContain(harfbuzzChunk?.fileName);

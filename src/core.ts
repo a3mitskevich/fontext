@@ -113,6 +113,17 @@ export function assertGlyphsSelected(
   }
 }
 
+/**
+ * Code points of the text the cmap maps to no glyph, each once, in the order they occur. Control
+ * characters such as a line feed count like any other: a font rarely maps them.
+ */
+export function missingCodePoints(font: Font, text: string): number[] {
+  const codePoints = new Set([...text].map((char) => char.codePointAt(0) ?? 0));
+  return [...codePoints].filter(
+    (codePoint) => (font.glyphForCodePoint(codePoint) ?? NOTDEF) === NOTDEF,
+  );
+}
+
 /** Text of the first character mapped to each glyph; "" for glyphs outside the cmap. */
 const firstString = (font: Font, glyph: number): string => font.stringsForGlyph(glyph)[0] ?? "";
 

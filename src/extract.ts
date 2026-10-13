@@ -1,4 +1,3 @@
-import { types } from "util";
 import {
   type ConvertOption,
   type ExtractedResult,
@@ -15,19 +14,7 @@ import { assertOptimizationOptions, resolveOptimization } from "./optimization";
 import { assertSplit } from "./engines/split";
 import { assertAxesOption } from "./engines/instance";
 import { loadSource } from "./engines/source";
-
-function toBuffer(input: FontInput): Buffer {
-  if (Buffer.isBuffer(input)) {
-    return input;
-  }
-  if (ArrayBuffer.isView(input)) {
-    return Buffer.from(input.buffer, input.byteOffset, input.byteLength);
-  }
-  if (types.isAnyArrayBuffer(input)) {
-    return Buffer.from(input);
-  }
-  throw new TypeError("Font input must be a Buffer, Uint8Array or ArrayBuffer");
-}
+import { toBuffer } from "./input";
 
 // Removed in 2.0.0; untyped callers and config files would otherwise lose the space silently
 export const WITH_WHITESPACE_REMOVED =
