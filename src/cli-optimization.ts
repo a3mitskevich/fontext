@@ -1,8 +1,8 @@
-import type { LayoutFeatures, Target } from "./types";
+import type { LayoutFeatures, Preset } from "./types";
 
 /** The optimization flags of the command line, as `parseArgs` returns them. */
 export interface OptimizationFlags {
-  readonly target?: string;
+  readonly preset?: string;
   readonly hinting?: boolean;
   readonly "layout-features"?: string;
   readonly "name-ids"?: string;
@@ -11,7 +11,7 @@ export interface OptimizationFlags {
 
 /** The optimization keys of `.fontextrc.json` and its batch entries. */
 export interface OptimizationConfig {
-  readonly target?: string;
+  readonly preset?: string;
   readonly hinting?: boolean;
   readonly layoutFeatures?: LayoutFeatures;
   readonly nameIds?: number[];
@@ -20,7 +20,7 @@ export interface OptimizationConfig {
 
 /** The optimization options handed to `extract()`; `extract()` validates them. */
 export interface OptimizationOptions {
-  target?: Target;
+  preset?: Preset;
   hinting?: boolean;
   layoutFeatures?: LayoutFeatures;
   nameIds?: number[];
@@ -55,7 +55,7 @@ function fromFlags(flags: OptimizationFlags): OptimizationConfig {
   const nameIds = flags["name-ids"];
   const dropTables = flags["drop-tables"];
   return {
-    ...(flags.target === undefined ? {} : { target: flags.target }),
+    ...(flags.preset === undefined ? {} : { preset: flags.preset }),
     ...(flags.hinting === undefined ? {} : { hinting: flags.hinting }),
     ...(layoutFeatures === undefined
       ? {}
@@ -74,10 +74,10 @@ export function resolveOptimizationOptions(
   flags: OptimizationFlags,
   useFlags: boolean,
 ): OptimizationOptions {
-  const { target, hinting, layoutFeatures, nameIds, dropTables } = {
+  const { preset, hinting, layoutFeatures, nameIds, dropTables } = {
     ...entry,
     ...(useFlags ? fromFlags(flags) : {}),
   };
-  // An invalid target reaches extract(), which rejects it with the valid ones
-  return { target: target as Target | undefined, hinting, layoutFeatures, nameIds, dropTables };
+  // An invalid preset reaches extract(), which rejects it with the valid ones
+  return { preset: preset as Preset | undefined, hinting, layoutFeatures, nameIds, dropTables };
 }

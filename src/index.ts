@@ -21,6 +21,6 @@ export {
   type AxisSetting,
   type NameLanguages,
   type FontTransform,
-  type Target,
+  type Preset,
 } from "./types";
 export type Extract = typeof extract;

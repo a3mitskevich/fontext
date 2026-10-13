@@ -4,7 +4,7 @@ import {
   type Formats,
   type MinifyOption,
   type NameLanguages,
-  type Target,
+  type Preset,
 } from "./types";
 
 /** What an extraction keeps of the font, resolved from its options. */
@@ -29,36 +29,36 @@ export interface Optimization {
   readonly glyphNames: boolean;
 }
 
-/** What a target sets when the options leave it open; no formats means the engine's own. */
+/** What a preset sets when the options leave it open. */
 type Defaults = Omit<
   Optimization,
   "formats" | "dropTables" | "keepTables" | "glyphNames" | "nameLanguages"
-> & {
-  readonly formats?: readonly Formats[];
-};
+>;
 
 /** Family, subfamily, full name (three.js TTFLoader reads it) and PostScript name. */
-const TARGET_NAME_IDS = [1, 2, 4, 6];
+const PRESET_NAME_IDS = [1, 2, 4, 6];
 
-const TARGETS: Record<Target, Defaults> = {
-  web: {
-    formats: ["woff2"],
+/**
+ * Desubroutinized CFF is 2-8% smaller after WOFF2, WOFF or HTTP compression and up to 45% larger
+ * raw; outline renderers often load the raw font.
+ */
+const PRESETS: Record<Preset, Defaults> = {
+  "web-font": {
     hinting: true,
     layoutFeatures: "default",
-    nameIds: TARGET_NAME_IDS,
+    nameIds: PRESET_NAME_IDS,
     desubroutinize: true,
   },
-  runtime: {
-    formats: ["ttf"],
+  "outline-render": {
     hinting: false,
     layoutFeatures: "default",
-    nameIds: TARGET_NAME_IDS,
+    nameIds: PRESET_NAME_IDS,
     desubroutinize: false,
   },
 };
 
-/** Without a target the engines keep what they kept before the target existed. */
-const NO_TARGET: Defaults = {
+/** Without a preset the engines keep what they kept before presets existed. */
+const NO_PRESET: Defaults = {
   hinting: true,
   layoutFeatures: "all",
   nameIds: undefined,
@@ -109,7 +109,7 @@ export const KEEPABLE_TABLES: readonly string[] = ["gasp", "meta", "PCLT"];
 
 /** Options every engine reads the same way; an engine that has no such option leaves it out. */
 interface OptimizationFields {
-  readonly target?: Target;
+  readonly preset?: Preset;
   readonly formats?: readonly Formats[];
   readonly hinting?: boolean;
   readonly layoutFeatures?: "all" | "default" | readonly string[];
@@ -123,14 +123,14 @@ interface OptimizationFields {
 
 /**
  * Resolves the options of an extraction to what it keeps: explicit options first, then what the
- * target sets, then the engine's defaults. The options must be valid.
+ * preset sets, then the engine's defaults. The options must be valid.
  */
 export function resolveOptimization(option: MinifyOption): Optimization {
   const fields: OptimizationFields = option;
-  const defaults = fields.target ? TARGETS[fields.target] : NO_TARGET;
+  const defaults = fields.preset ? PRESETS[fields.preset] : NO_PRESET;
   const layoutFeatures = fields.layoutFeatures ?? defaults.layoutFeatures;
   return {
-    formats: fields.formats ?? defaults.formats ?? DEFAULT_FORMATS[option.engine ?? "icon"],
+    formats: fields.formats ?? DEFAULT_FORMATS[option.engine ?? "icon"],
     hinting: fields.hinting ?? defaults.hinting,
     layoutFeatures:
       typeof layoutFeatures === "string"
@@ -234,7 +234,7 @@ function assertNameLanguages(nameLanguages: unknown): void {
  */
 export function assertOptimizationOptions(option: Readonly<Record<string, unknown>>): void {
   const {
-    target,
+    preset,
     hinting,
     layoutFeatures,
     nameIds,
@@ -245,9 +245,9 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
     desubroutinize,
     transform,
   } = option;
-  if (target !== undefined && !Object.hasOwn(TARGETS, target as string)) {
+  if (preset !== undefined && !Object.hasOwn(PRESETS, preset as string)) {
     throw new Error(
-      `Invalid target: ${JSON.stringify(target)}. Valid targets: ${Object.keys(TARGETS).join(", ")}`,
+      `Invalid preset: ${JSON.stringify(preset)}. Valid presets: ${Object.keys(PRESETS).join(", ")}`,
     );
   }
   if (hinting !== undefined && typeof hinting !== "boolean") {

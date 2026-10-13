@@ -31,12 +31,12 @@ describe("resolveOptimization", () => {
   );
 
   it.each([
-    ["icon", icon],
-    ["subset", subset],
-    ["convert", convert],
-  ] as const)("should resolve the web target (%s engine)", (_, option) => {
-    expect(resolveOptimization({ ...option, target: "web" })).toStrictEqual({
-      formats: ["woff2"],
+    ["icon", icon, ALL_FORMATS],
+    ["subset", subset, ["ttf", "woff", "woff2"]],
+    ["convert", convert, ALL_FORMATS],
+  ] as const)("should resolve the web-font preset (%s engine)", (_, option, formats) => {
+    expect(resolveOptimization({ ...option, preset: "web-font" })).toStrictEqual({
+      formats,
       hinting: true,
       layoutFeatures: "default",
       nameIds: [1, 2, 4, 6],
@@ -49,12 +49,12 @@ describe("resolveOptimization", () => {
   });
 
   it.each([
-    ["icon", icon],
-    ["subset", subset],
-    ["convert", convert],
-  ] as const)("should resolve the runtime target (%s engine)", (_, option) => {
-    expect(resolveOptimization({ ...option, target: "runtime" })).toStrictEqual({
-      formats: ["ttf"],
+    ["icon", icon, ALL_FORMATS],
+    ["subset", subset, ["ttf", "woff", "woff2"]],
+    ["convert", convert, ALL_FORMATS],
+  ] as const)("should resolve the outline-render preset (%s engine)", (_, option, formats) => {
+    expect(resolveOptimization({ ...option, preset: "outline-render" })).toStrictEqual({
+      formats,
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 2, 4, 6],
@@ -66,10 +66,10 @@ describe("resolveOptimization", () => {
     });
   });
 
-  it("should let explicit options override the target", () => {
-    const runtime: SubsetOption = {
+  it("should let explicit options override the preset", () => {
+    const outlines: SubsetOption = {
       ...subset,
-      target: "runtime",
+      preset: "outline-render",
       formats: ["ttf", "woff2"],
       hinting: true,
       layoutFeatures: "all",
@@ -77,7 +77,7 @@ describe("resolveOptimization", () => {
       nameLanguages: undefined,
       dropTables: ["DSIG"],
     };
-    expect(resolveOptimization(runtime)).toStrictEqual({
+    expect(resolveOptimization(outlines)).toStrictEqual({
       formats: ["ttf", "woff2"],
       hinting: true,
       layoutFeatures: "all",
@@ -90,15 +90,16 @@ describe("resolveOptimization", () => {
     });
     const web: SubsetOption = {
       ...subset,
-      target: "web",
+      preset: "web-font",
       hinting: false,
       layoutFeatures: ["liga"],
+      desubroutinize: false,
     };
     expect(resolveOptimization(web)).toMatchObject({
-      formats: ["woff2"],
+      formats: ["ttf", "woff", "woff2"],
       hinting: false,
       layoutFeatures: ["liga"],
-      desubroutinize: true,
+      desubroutinize: false,
       glyphNames: false,
     });
   });
@@ -152,12 +153,12 @@ describe("resolveOptimization", () => {
 describe("optimization option validation", () => {
   it.each([
     [
-      "an unknown target",
-      { target: "print" },
-      'Invalid target: "print". Valid targets: web, runtime',
+      "an unknown preset",
+      { preset: "web" },
+      'Invalid preset: "web". Valid presets: web-font, outline-render',
     ],
-    ["a target that is not a string", { target: 1 }, "Invalid target: 1"],
-    ["a target named after an object property", { target: "toString" }, "Invalid target"],
+    ["a preset that is not a string", { preset: 1 }, "Invalid preset: 1"],
+    ["a preset named after an object property", { preset: "toString" }, "Invalid preset"],
     ["hinting that is not a boolean", { hinting: "no" }, "hinting must be a boolean"],
     ["glyphNames that is not a boolean", { glyphNames: 1 }, "glyphNames must be a boolean"],
     [

@@ -49,11 +49,11 @@ const nameIdsOf = (font: Uint8Array): number[] => [
 ];
 
 describe("split: scripts with optimization options", () => {
-  it("should apply the target and the explicit options to every chunk", async () => {
+  it("should apply the preset and the explicit options to every chunk", async () => {
     const result = await extract(scriptsFont, {
       ...SUBSET,
-      formats: undefined,
-      target: "runtime",
+      formats: ["ttf"],
+      preset: "outline-render",
       nameIds: [1, 6],
       dropTables: ["kern"],
       layoutFeatures: ["kern"],

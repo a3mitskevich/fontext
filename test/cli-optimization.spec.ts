@@ -58,10 +58,10 @@ describe("CLI optimization option parsing", () => {
   });
 
   it("should put the flags over the config in single mode", () => {
-    const entry = { target: "web", hinting: true, nameIds: [1], dropTables: ["DSIG"] };
-    const flags = { target: "runtime", hinting: false, "layout-features": "default" };
+    const entry = { preset: "web-font", hinting: true, nameIds: [1], dropTables: ["DSIG"] };
+    const flags = { preset: "outline-render", hinting: false, "layout-features": "default" };
     expect(resolveOptimizationOptions(entry, flags, true)).toStrictEqual({
-      target: "runtime",
+      preset: "outline-render",
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1],
@@ -73,7 +73,7 @@ describe("CLI optimization option parsing", () => {
     const entry = { layoutFeatures: ["liga"], nameIds: [1, 4] };
     const flags = { "name-ids": "2", "drop-tables": "MATH" };
     expect(resolveOptimizationOptions(entry, flags, false)).toStrictEqual({
-      target: undefined,
+      preset: undefined,
       hinting: undefined,
       layoutFeatures: ["liga"],
       nameIds: [1, 4],
@@ -83,14 +83,14 @@ describe("CLI optimization option parsing", () => {
 
   it("should parse every flag", () => {
     const flags = {
-      target: "web",
+      preset: "web-font",
       hinting: true,
       "layout-features": "liga,kern",
       "name-ids": "1,2,4",
       "drop-tables": "MATH, DSIG",
     };
     expect(resolveOptimizationOptions({}, flags, true)).toStrictEqual({
-      target: "web",
+      preset: "web-font",
       hinting: true,
       layoutFeatures: ["liga", "kern"],
       nameIds: [1, 2, 4],
@@ -114,7 +114,7 @@ describe("CLI optimization flags", () => {
     const { stdout, status } = runCli(["--help"]);
     expect(status).toBe(0);
     for (const flag of [
-      "--target",
+      "--preset",
       "--no-hinting",
       "--layout-features",
       "--name-ids",
@@ -124,22 +124,11 @@ describe("CLI optimization flags", () => {
     }
   });
 
-  it.each([
-    ["web", ["text.woff2"]],
-    ["runtime", ["text.ttf"]],
-  ])("should write the formats of --target %s", (target, files) => {
-    const outDir = path.join(tmpDir, `target-${target}`);
-    const { status, stderr } = runCli(subsetArgs(outDir, "--target", target));
-    expect(stderr).toBe("");
-    expect(status).toBe(0);
-    expect(outputs(outDir)).toStrictEqual(files);
-  });
-
-  it("should drop hinting for --target runtime unless --hinting is given", () => {
-    const dropped = path.join(tmpDir, "runtime-dropped");
-    const kept = path.join(tmpDir, "runtime-kept");
-    expect(runCli(subsetArgs(dropped, "--target", "runtime")).status).toBe(0);
-    expect(runCli(subsetArgs(kept, "--target", "runtime", "--hinting")).status).toBe(0);
+  it("should drop hinting for --preset outline-render unless --hinting is given", () => {
+    const dropped = path.join(tmpDir, "outlines-dropped");
+    const kept = path.join(tmpDir, "outlines-kept");
+    expect(runCli(subsetArgs(dropped, "--preset", "outline-render")).status).toBe(0);
+    expect(runCli(subsetArgs(kept, "--preset", "outline-render", "--hinting")).status).toBe(0);
     expect(sfntTable(writtenTtf(dropped, "text"), "fpgm")).toBeUndefined();
     expect(sfntTable(writtenTtf(kept, "text"), "fpgm")).toBeDefined();
   });
@@ -169,7 +158,7 @@ describe("CLI optimization flags", () => {
   });
 
   it.each([
-    [["--target", "print"], 'Invalid target: "print"'],
+    [["--preset", "web"], 'Invalid preset: "web". Valid presets: web-font, outline-render'],
     [["--name-ids", "1,x"], 'Invalid name id(s): "x"'],
     [["--drop-tables", "GSUBX"], 'Invalid tag(s) in dropTables: "GSUBX"'],
     [["--layout-features", "liga,ligature"], 'Invalid tag(s) in layoutFeatures: "ligature"'],
@@ -208,7 +197,8 @@ describe("CLI optimization flags", () => {
       path.join(projectDir, ".fontextrc.json"),
       JSON.stringify({
         output: outDir,
-        target: "runtime",
+        formats: ["ttf"],
+        preset: "outline-render",
         nameIds: [1, 2, 4],
         batch: [
           { input: TEXT_FONT, fontName: "text", engine: "subset", characters: "abc" },
@@ -217,8 +207,7 @@ describe("CLI optimization flags", () => {
             fontName: "text-web",
             engine: "subset",
             characters: "abc",
-            target: "web",
-            formats: ["ttf"],
+            preset: "web-font",
             hinting: false,
             dropTables: ["gasp"],
           },

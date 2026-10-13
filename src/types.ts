@@ -67,12 +67,14 @@ export interface GlyphMeta {
 export type Engine = "icon" | "subset" | "convert";
 
 /**
- * Where the font goes. `web`: browsers, WOFF2 by default, CFF desubroutinized. `runtime`:
- * runtimes that load TTF directly and draw the outlines themselves (three.js, troika, Rive), TTF
- * by default, hinting dropped. Both keep HarfBuzz's default layout features and name ids 1, 2, 4
- * and 6. Explicit options override what the target sets.
+ * A named set of optimization options; explicit options override what it sets. `web-font`:
+ * fonts the system rasterizes, e.g. in browsers, sent compressed: hinting kept, CFF
+ * desubroutinized. `outline-render`: fonts whose outlines the runtime draws itself, as vector
+ * paths, SDF or PDF, with HarfBuzz shaping: hinting and gasp dropped, CFF subroutines kept, so the
+ * raw font stays small. Both keep HarfBuzz's default layout features and name ids 1, 2, 4 and 6.
+ * Neither sets the formats.
  */
-export type Target = "web" | "runtime";
+export type Preset = "web-font" | "outline-render";
 
 /** Layout features to keep: every one, HarfBuzz's default set or these tags. */
 export type LayoutFeatures = "all" | "default" | string[];
@@ -116,8 +118,8 @@ interface BaseOption {
   formats?: Formats[];
   safariFix?: boolean;
   silent?: boolean;
-  /** Where the font goes: browsers ("web") or runtimes that load TTF directly ("runtime"). */
-  target?: Target;
+  /** A named set of the optimization options, see `Preset`; explicit options override it. */
+  preset?: Preset;
   /**
    * Instance a variable font first: a value pins an axis, `{ min, max }` narrows it (not in the
    * icon engine, whose font is static). Unknown axes, values outside the font's range and static
