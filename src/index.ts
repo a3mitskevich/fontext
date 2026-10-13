@@ -17,6 +17,7 @@ export {
   type Engine,
   type FontInput,
   type LayoutFeatures,
+  type NameLanguages,
   type FontTransform,
   type Target,
 } from "./types";

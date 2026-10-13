@@ -25,8 +25,11 @@ export interface SubsetInput {
   readonly dropTables?: readonly string[];
   /** Name ids to keep instead of the default 0-6. */
   readonly nameIds?: readonly number[];
-  /** Language ids of the Windows and Unicode name records to keep instead of the default 0x409. */
-  readonly nameLanguages?: readonly number[];
+  /**
+   * Language ids of the name records to keep instead of the default 0x409 (English, United
+   * States); `*` keeps every language.
+   */
+  readonly nameLanguages?: "*" | readonly number[];
 }
 
 // Neither the ES lib nor @types/node declares WebAssembly; this is the one call made here

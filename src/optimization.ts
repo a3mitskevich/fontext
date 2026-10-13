@@ -1,4 +1,11 @@
-import { type Engine, Format, type Formats, type MinifyOption, type Target } from "./types";
+import {
+  type Engine,
+  Format,
+  type Formats,
+  type MinifyOption,
+  type NameLanguages,
+  type Target,
+} from "./types";
 
 /** What an extraction keeps of the font, resolved from its options. */
 export interface Optimization {
@@ -10,6 +17,8 @@ export interface Optimization {
   readonly layoutFeatures: "all" | "default" | readonly string[];
   /** Name ids to keep; undefined keeps the engine's own set. */
   readonly nameIds: readonly number[] | undefined;
+  /** Languages of the name records to keep; undefined keeps HarfBuzz's English (0x409). */
+  readonly nameLanguages: "all" | readonly number[] | undefined;
   /** Tags of the tables to drop, padded to four characters. */
   readonly dropTables: readonly string[];
   /** Inline the CFF subroutines: smaller after WOFF2 compression, larger as a raw font. */
@@ -19,7 +28,7 @@ export interface Optimization {
 }
 
 /** What a target sets when the options leave it open; no formats means the engine's own. */
-type Defaults = Omit<Optimization, "formats" | "dropTables" | "glyphNames"> & {
+type Defaults = Omit<Optimization, "formats" | "dropTables" | "glyphNames" | "nameLanguages"> & {
   readonly formats?: readonly Formats[];
 };
 
@@ -61,6 +70,7 @@ const DEFAULT_FORMATS: Record<Engine, readonly Formats[]> = {
 
 const TAG_LENGTH = 4;
 const MAX_NAME_ID = 32_767;
+const MAX_LANGUAGE_ID = 0xff_ff;
 const PRINTABLE_TAG = /^[\x20-\x7e]{1,4}$/u;
 
 /** A tag padded with spaces to four characters, the way OpenType stores "cvt " or "CFF ". */
@@ -93,6 +103,7 @@ interface OptimizationFields {
   readonly hinting?: boolean;
   readonly layoutFeatures?: "all" | "default" | readonly string[];
   readonly nameIds?: readonly number[];
+  readonly nameLanguages?: NameLanguages;
   readonly dropTables?: readonly string[];
   readonly glyphNames?: boolean;
 }
@@ -113,6 +124,7 @@ export function resolveOptimization(option: MinifyOption): Optimization {
         ? layoutFeatures
         : layoutFeatures.map((tag) => paddedTag(tag)),
     nameIds: fields.nameIds ?? defaults.nameIds,
+    nameLanguages: fields.nameLanguages,
     dropTables: (fields.dropTables ?? []).map((tag) => paddedTag(tag)),
     desubroutinize: defaults.desubroutinize,
     glyphNames: fields.glyphNames ?? false,
@@ -169,12 +181,38 @@ function assertNameIds(nameIds: unknown): void {
   }
 }
 
+function assertNameLanguages(nameLanguages: unknown): void {
+  if (nameLanguages === "all") {
+    return;
+  }
+  if (!Array.isArray(nameLanguages)) {
+    throw new TypeError('nameLanguages must be "all" or an array of language ids');
+  }
+  const invalid = nameLanguages.filter(
+    (id) => !Number.isInteger(id) || (id as number) < 0 || (id as number) > MAX_LANGUAGE_ID,
+  );
+  if (invalid.length > 0) {
+    throw new Error(
+      `Invalid name language(s): ${quoted(invalid)}. A language id is an integer from 0 to ${MAX_LANGUAGE_ID}, e.g. 0x409 (1033) for English (United States)`,
+    );
+  }
+}
+
 /**
  * Throws on optimization options of the wrong type or out of range. Every engine checks them,
  * also those it ignores, so a typo fails where it was made.
  */
 export function assertOptimizationOptions(option: Readonly<Record<string, unknown>>): void {
-  const { target, hinting, layoutFeatures, nameIds, dropTables, glyphNames, transform } = option;
+  const {
+    target,
+    hinting,
+    layoutFeatures,
+    nameIds,
+    nameLanguages,
+    dropTables,
+    glyphNames,
+    transform,
+  } = option;
   if (target !== undefined && !Object.hasOwn(TARGETS, target as string)) {
     throw new Error(
       `Invalid target: ${JSON.stringify(target)}. Valid targets: ${Object.keys(TARGETS).join(", ")}`,
@@ -188,6 +226,9 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   }
   if (nameIds !== undefined) {
     assertNameIds(nameIds);
+  }
+  if (nameLanguages !== undefined) {
+    assertNameLanguages(nameLanguages);
   }
   if (dropTables !== undefined) {
     assertTags("dropTables", dropTables);

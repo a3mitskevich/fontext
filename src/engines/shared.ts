@@ -72,7 +72,10 @@ export interface SubsetSelection {
 const codePointsOf = (text: string): number[] => [...text].map((char) => char.codePointAt(0) ?? 0);
 
 /** How hb-subset writes the font: what the optimization keeps besides the glyphs. */
-type SubsetOutput = Pick<SubsetInput, "flags" | "layoutFeatures" | "nameIds" | "dropTables">;
+type SubsetOutput = Pick<
+  SubsetInput,
+  "flags" | "layoutFeatures" | "nameIds" | "nameLanguages" | "dropTables"
+>;
 
 const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
 
@@ -81,7 +84,15 @@ const GASP = "gasp";
 
 /** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
 function subsetOutputOf(optimization: Optimization): SubsetOutput {
-  const { hinting, layoutFeatures, nameIds, dropTables, desubroutinize, glyphNames } = optimization;
+  const {
+    hinting,
+    layoutFeatures,
+    nameIds,
+    nameLanguages,
+    dropTables,
+    desubroutinize,
+    glyphNames,
+  } = optimization;
   return {
     flags:
       (hinting ? 0 : SubsetFlag.NO_HINTING) |
@@ -90,6 +101,7 @@ function subsetOutputOf(optimization: Optimization): SubsetOutput {
     layoutFeatures:
       typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
     nameIds,
+    nameLanguages: nameLanguages === "all" ? "*" : nameLanguages,
     dropTables: hinting || dropTables.includes(GASP) ? dropTables : [...dropTables, GASP],
   };
 }

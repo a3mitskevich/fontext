@@ -77,6 +77,9 @@ export type Target = "web" | "runtime";
 /** Layout features to keep: every one, HarfBuzz's default set or these tags. */
 export type LayoutFeatures = "all" | "default" | string[];
 
+/** Languages of the name records to keep: every one or these language ids, e.g. 0x409. */
+export type NameLanguages = "all" | number[];
+
 /**
  * How to split the output into several fonts. `scripts`: a font per Unicode script, for CSS
  * `unicode-range` and runtimes that pick a fallback font per missing glyph.
@@ -136,6 +139,11 @@ interface SourceLayoutOption {
   hinting?: boolean;
   /** Layout features to keep: every one ("all"), HarfBuzz's default set ("default") or these tags. */
   layoutFeatures?: LayoutFeatures;
+  /**
+   * Languages of the name records to keep: every one ("all") or these language ids. By default
+   * only English (United States), 0x409.
+   */
+  nameLanguages?: NameLanguages;
 }
 
 /**

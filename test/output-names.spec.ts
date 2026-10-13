@@ -3,7 +3,7 @@ import * as hb from "harfbuzzjs";
 import type { MinifyOption } from "../src";
 import { requiredSfntTable } from "../src/font/sfnt";
 import { glyphCount } from "../src/font/tables";
-import { extract, textFont, ttfOriginalFont } from "./setup";
+import { extract, textFont, ttfOriginalFont, variableFont } from "./setup";
 
 const POST_WITH_NAMES = 0x2_00_00;
 const POST_WITHOUT_NAMES = 0x3_00_00;
@@ -75,5 +75,56 @@ describe("glyphNames option", () => {
     const source = fontOf(textFont);
     expect(charNamesOf(font, "abc")).toStrictEqual(charNamesOf(source, "abc"));
     expect(charNamesOf(font, "abc")).toStrictEqual(["a", "b", "c"]);
+  });
+});
+
+/** The languages of the name records of each name id, as HarfBuzz lists them ("en", "ru"). */
+function languagesByNameId(font: Uint8Array): Record<number, string[]> {
+  const records = new hb.Face(new hb.Blob(font), 0).listNames();
+  const nameIds = [...new Set(records.map(({ nameId }) => nameId))];
+  return Object.fromEntries(
+    nameIds.map((nameId) => [
+      nameId,
+      records
+        .filter((record) => record.nameId === nameId)
+        .map(({ language }) => language)
+        .toSorted(),
+    ]),
+  );
+}
+
+const SOURCE_ENGINES: EngineCase[] = [
+  ["subset", { engine: "subset", characters: "Afi" }, variableFont],
+  ["convert", { engine: "convert" }, variableFont],
+];
+
+describe("nameLanguages option", () => {
+  it("should find English and Russian names in the source", () => {
+    expect(languagesByNameId(variableFont)).toMatchObject({ 1: ["en", "ru"], 2: ["en", "ru"] });
+  });
+
+  it.each(SOURCE_ENGINES)(
+    "should keep only English names by default (%s engine)",
+    async (_, option, font) => {
+      const ttf = await ttfOf(font, option);
+      expect(languagesByNameId(ttf)).toMatchObject({ 1: ["en"], 2: ["en"] });
+    },
+  );
+
+  it.each(SOURCE_ENGINES)(
+    "should keep the names of every language (%s engine)",
+    async (_, option, font) => {
+      const ttf = await ttfOf(font, { ...option, nameLanguages: "all" });
+      expect(languagesByNameId(ttf)).toMatchObject({ 1: ["en", "ru"], 2: ["en", "ru"] });
+    },
+  );
+
+  it("should keep the names of the listed languages", async () => {
+    const ttf = await ttfOf(variableFont, {
+      engine: "subset",
+      characters: "Afi",
+      nameLanguages: [0x4_19],
+    });
+    expect(languagesByNameId(ttf)).toStrictEqual({ 1: ["ru"], 2: ["ru"] });
   });
 });

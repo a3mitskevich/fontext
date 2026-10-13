@@ -21,6 +21,7 @@ describe("resolveOptimization", () => {
         hinting: true,
         layoutFeatures: "all",
         nameIds: undefined,
+        nameLanguages: undefined,
         dropTables: [],
         desubroutinize: false,
         glyphNames: false,
@@ -38,6 +39,7 @@ describe("resolveOptimization", () => {
       hinting: true,
       layoutFeatures: "default",
       nameIds: [1, 2, 4, 6],
+      nameLanguages: undefined,
       dropTables: [],
       desubroutinize: true,
       glyphNames: false,
@@ -54,6 +56,7 @@ describe("resolveOptimization", () => {
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 2, 4, 6],
+      nameLanguages: undefined,
       dropTables: [],
       desubroutinize: false,
       glyphNames: false,
@@ -68,6 +71,7 @@ describe("resolveOptimization", () => {
       hinting: true,
       layoutFeatures: "all",
       nameIds: [4],
+      nameLanguages: undefined,
       dropTables: ["DSIG"],
     };
     expect(resolveOptimization(runtime)).toStrictEqual({
@@ -75,6 +79,7 @@ describe("resolveOptimization", () => {
       hinting: true,
       layoutFeatures: "all",
       nameIds: [4],
+      nameLanguages: undefined,
       dropTables: ["DSIG"],
       desubroutinize: false,
       glyphNames: false,
@@ -101,6 +106,7 @@ describe("resolveOptimization", () => {
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 4],
+      nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
       glyphNames: true,
     };
@@ -109,6 +115,7 @@ describe("resolveOptimization", () => {
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 4],
+      nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
       desubroutinize: false,
       glyphNames: true,
@@ -143,6 +150,16 @@ describe("optimization option validation", () => {
     ["a target named after an object property", { target: "toString" }, "Invalid target"],
     ["hinting that is not a boolean", { hinting: "no" }, "hinting must be a boolean"],
     ["glyphNames that is not a boolean", { glyphNames: 1 }, "glyphNames must be a boolean"],
+    [
+      "nameLanguages that are neither all nor an array",
+      { nameLanguages: "en" },
+      'nameLanguages must be "all" or an array of language ids',
+    ],
+    [
+      "name languages out of range or fractional",
+      { nameLanguages: [0x4_09, -1, 65_536, 1.5, "ru"] },
+      'Invalid name language(s): -1, 65536, 1.5, "ru". A language id is an integer from 0 to 65535',
+    ],
     [
       "an unknown layoutFeatures keyword",
       { layoutFeatures: "none" },
@@ -192,6 +209,7 @@ describe("optimization option validation", () => {
         hinting: false,
         layoutFeatures: ["liga", "ss1", "cv01"],
         nameIds: [0, 32_767],
+        nameLanguages: [0, 0x4_09, 0xff_ff],
         dropTables: [],
       }),
     ).not.toThrow();
