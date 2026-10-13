@@ -51,7 +51,15 @@ ${c.bold}Optimization:${c.reset}
       ${c.cyan}--no-hinting${c.reset}          Drop TrueType hinting ${c.dim}(--hinting keeps it; subset and convert engines)${c.reset}
       ${c.cyan}--layout-features${c.reset} <v>  Layout features to keep: ${c.dim}all${c.reset} | ${c.dim}default${c.reset} | ${c.dim}tag,tag${c.reset} ${c.dim}(subset and convert engines)${c.reset}
       ${c.cyan}--name-ids${c.reset} <list>      Name ids to keep ${c.dim}(e.g. 1,2,4)${c.reset}
+      ${c.cyan}--name-languages${c.reset} <v>   Name record languages to keep: ${c.dim}all${c.reset} | ${c.dim}0x409,0x419${c.reset} ${c.dim}(default: 0x409)${c.reset}
       ${c.cyan}--drop-tables${c.reset} <list>   Tables to drop ${c.dim}(e.g. MATH,DSIG)${c.reset}
+      ${c.cyan}--keep-tables${c.reset} <list>   Tables to keep that would be dropped: ${c.dim}gasp, meta, PCLT${c.reset}
+      ${c.cyan}--glyph-names${c.reset}         Keep glyph names in post ${c.dim}(dropped by default)${c.reset}
+      ${c.cyan}--desubroutinize${c.reset}      Inline CFF subroutines ${c.dim}(--no-desubroutinize keeps them)${c.reset}
+      ${c.cyan}--axes${c.reset} <list>          Pin or narrow variation axes ${c.dim}(e.g. wght=700,wdth=75:100)${c.reset}
+      ${c.cyan}--rename${c.reset}               Name the font after the pinned weight ${c.dim}(e.g. Bold for wght=700)${c.reset}
+      ${c.cyan}--rename-family${c.reset} <name> New family name
+      ${c.cyan}--rename-style${c.reset} <name>  New style name
       ${c.cyan}--split${c.reset} scripts       Also write a font per Unicode script: ${c.dim}<font-name>.<script>.<format>${c.reset}
                               ${c.dim}Each keeps digits, punctuation and marks (subset and convert engines)${c.reset}
 
@@ -77,7 +85,9 @@ ${c.bold}Config file:${c.reset}
   ${c.dim}  "ligatures": ["home","search"], "formats": ["woff2","ttf"] }${c.reset}
 
   ${c.dim}Optimization keys: "preset", "hinting", "layoutFeatures" ("all", "default" or tags),${c.reset}
-  ${c.dim}"nameIds", "dropTables", "split"; also in batch entries.${c.reset}
+  ${c.dim}"nameIds", "nameLanguages", "dropTables", "keepTables", "glyphNames", "desubroutinize",${c.reset}
+  ${c.dim}"axes" ({ "wght": 700, "wdth": { "min": 75, "max": 100 } }), "rename" (true or${c.reset}
+  ${c.dim}{ "family", "style" }), "split"; also in batch entries.${c.reset}
 
   ${c.dim}Batch mode — process multiple fonts:${c.reset}
   ${c.dim}{ "output": "./fonts", "formats": ["woff2"],${c.reset}
@@ -319,7 +329,15 @@ async function main(): Promise<void> {
       hinting: { type: "boolean" },
       "layout-features": { type: "string" },
       "name-ids": { type: "string" },
+      "name-languages": { type: "string" },
       "drop-tables": { type: "string" },
+      "keep-tables": { type: "string" },
+      "glyph-names": { type: "boolean" },
+      desubroutinize: { type: "boolean" },
+      axes: { type: "string" },
+      rename: { type: "boolean" },
+      "rename-family": { type: "string" },
+      "rename-style": { type: "string" },
       split: { type: "string" },
       "dry-run": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
@@ -330,7 +348,7 @@ async function main(): Promise<void> {
       version: { type: "boolean", short: "v", default: false },
     },
     strict: true,
-    // --no-hinting
+    // --no-hinting, --no-glyph-names, --no-desubroutinize
     allowNegative: true,
   });
 
@@ -483,6 +501,7 @@ async function main(): Promise<void> {
         fontName,
         glyphs: result.meta.length,
         originalSize: result.report.originalSize,
+        ...(result.report.tables ? { tables: result.report.tables } : {}),
         files: fontFiles.map((file) => fileSummary(file)),
         meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
         warnings: result.warnings,
@@ -509,6 +528,11 @@ async function main(): Promise<void> {
       console.log(
         `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
       );
+    }
+
+    const dropped = result.report.tables?.dropped ?? [];
+    if (dropped.length > 0) {
+      console.log(`  ${c.dim}dropped tables: ${dropped.join(", ")}${c.reset}`);
     }
 
     console.log();
