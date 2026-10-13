@@ -13,7 +13,6 @@ import { extractConvert } from "./engines/convert";
 import { assertOptimizationOptions, resolveOptimization } from "./optimization";
 import { assertSplit } from "./engines/split";
 import { assertAxesOption } from "./engines/instance";
-import { loadSource } from "./engines/source";
 import { toBuffer } from "./input";
 
 // Removed in 2.0.0; untyped callers and config files would otherwise lose the space silently
@@ -56,9 +55,10 @@ export default async function extract(
     }
   }
 
+  // Axes first: rename names the style after them
+  assertAxesOption(option.axes, engine);
   assertOptimizationOptions(option as unknown as Record<string, unknown>);
   assertSplit("split" in option ? option.split : undefined, engine);
-  assertAxesOption(option.axes, engine);
   const optimization = resolveOptimization(option);
   const { formats } = optimization;
 
@@ -74,15 +74,14 @@ export default async function extract(
     );
   }
 
-  const source = await loadSource(content, option.axes);
-
+  // Each engine reads the font with loadSource() after the checks it makes without it
   if (engine === "convert") {
-    return await extractConvert(source, option as ConvertOption, optimization);
+    return await extractConvert(content, option as ConvertOption, optimization);
   }
 
   if (engine === "subset") {
-    return await extractSubset(source, option as SubsetOption, optimization);
+    return await extractSubset(content, option as SubsetOption, optimization);
   }
 
-  return await extractIcon(source, option as IconOption, optimization);
+  return await extractIcon(content, option as IconOption, optimization);
 }

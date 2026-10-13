@@ -4,7 +4,7 @@ import type { Font } from "../font/font";
 import { createFont, findMetaByCodePoints } from "../glyphs";
 import { buildReport } from "./report";
 import { encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
-import type { SourceFont } from "./source";
+import { loadSource, type SourceFont } from "./source";
 import { type BuiltFont, buildChunks, planChunks } from "./split";
 import { buildSvgFont } from "./svg-font";
 
@@ -58,10 +58,11 @@ async function buildConvert(
 }
 
 export async function extractConvert(
-  source: SourceFont,
+  content: Buffer,
   option: ConvertOption,
   optimization: Optimization,
 ): Promise<ExtractedResult> {
+  const source = await loadSource(content, option.axes);
   const font = await createFont(source.content);
   const convertSource: ConvertSource = { source, font, option, optimization };
 

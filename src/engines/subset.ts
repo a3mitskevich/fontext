@@ -5,7 +5,7 @@ import { missingCodePoints } from "../core";
 import { missingCharactersWarning } from "./missing-characters";
 import { buildReport } from "./report";
 import { encodeFromTtf, type SubsetSelection, subsetToTtf } from "./shared";
-import type { SourceFont } from "./source";
+import { loadSource, type SourceFont } from "./source";
 import { type BuiltFont, buildChunks, type ChunkPlan, planChunks } from "./split";
 
 /** Code points of the characters and unicode ranges; ligatures are kept apart from them. */
@@ -67,7 +67,7 @@ async function missingCharacters(
 }
 
 export async function extractSubset(
-  source: SourceFont,
+  content: Buffer,
   option: SubsetOption,
   optimization: Optimization,
 ): Promise<ExtractedResult> {
@@ -83,6 +83,7 @@ export async function extractSubset(
     throw new Error("Subset engine does not support SVG format. Use icon engine for SVG output.");
   }
 
+  const source = await loadSource(content, option.axes);
   const selection: SubsetSelection = { codePoints, ligatures };
   // Planned first, so a ligature of two scripts rejects before anything is subset
   const plans = option.split ? await planSplit(source.content, selection) : undefined;

@@ -13,7 +13,7 @@ import { applySafariFix } from "../safari";
 import { hbSubset, SubsetFlag } from "./hb-subset";
 import { buildReport } from "./report";
 import { encodeFromTtf, type FontBuffers } from "./shared";
-import type { SourceFont } from "./source";
+import { loadSource } from "./source";
 import { renameFont } from "./rename";
 import { applyTransform } from "./transform";
 import { buildSvgFont } from "./svg-font";
@@ -81,13 +81,14 @@ async function convertByFormats(
 }
 
 export async function extractIcon(
-  source: SourceFont,
+  content: Buffer,
   option: IconOption,
   optimization: Optimization,
 ): Promise<ExtractedResult> {
   const { fontName = "", ligatures = [], raws = [], unicodeRanges = [] } = option;
   const { formats } = optimization;
 
+  const source = await loadSource(content, option.axes);
   const font = await createFont(source.content);
   assertLigaturesForm(font, ligatures);
   const foundLigatures = resolveLigatures(font, raws);
