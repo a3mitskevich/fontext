@@ -53,3 +53,20 @@ describe("CLI legacy kern warning", () => {
     expect(stderr).toBe("");
   });
 });
+
+describe("CLI missing characters warning", () => {
+  it("should print the characters the font does not map", () => {
+    const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "fontext-cli-missing-"));
+    const input = path.resolve(import.meta.dirname, "../assets/font-variable.ttf");
+    try {
+      const args = ["-i", input, "-n", "missing", "--engine", "subset", "-c", "AЖ"];
+      const { stderr, status } = runCli([...args, "-f", "ttf", "-o", outDir]);
+      expect(status).toBe(0);
+      expect(stderr).toContain(
+        'missing: The font does not map 1 character of the selection: U+0416 "Ж"',
+      );
+    } finally {
+      fs.rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+});

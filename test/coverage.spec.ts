@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import ttf2woff from "ttf2woff";
-import type { FontInput } from "../src";
+import type { FontInput, SubsetOption } from "../src";
 import { encodeWoff2 } from "../src/woff2";
-import { importFontext, textFont, variableFont } from "./setup";
+import { extract, importFontext, textFont, variableFont } from "./setup";
 
 async function findMissingCodePoints(data: FontInput, text: string): Promise<number[]> {
   const fontext = await importFontext();
@@ -51,5 +51,59 @@ describe("findMissingCodePoints", () => {
     await expect(findMissingCodePoints("font.ttf" as unknown as Buffer, "a")).rejects.toThrow(
       "Font input must be a Buffer, Uint8Array or ArrayBuffer",
     );
+  });
+});
+
+const subset = (characters: string, option: Partial<SubsetOption> = {}) =>
+  extract(variableFont, {
+    fontName: "test",
+    engine: "subset",
+    characters,
+    formats: ["ttf"],
+    ...option,
+  });
+
+describe("missing-characters warning (subset engine)", () => {
+  it("should warn about the characters the font does not map", async () => {
+    const { warnings } = await subset("AЖ\n😀Ж");
+    expect(warnings).toStrictEqual([
+      {
+        code: "missing-characters",
+        message:
+          'The font does not map 3 characters of the selection: U+0416 "Ж", U+000A, U+1F600 "😀"',
+      },
+    ]);
+  });
+
+  it("should not warn about joiners and variation selectors, which shaping hides", async () => {
+    const { warnings } = await subset("A\u200D\uFE0F\u200B");
+    expect(warnings).toStrictEqual([]);
+  });
+
+  it("should not warn without characters", async () => {
+    const { warnings } = await subset("", { ligatures: ["fi"] });
+    expect(warnings).toStrictEqual([]);
+  });
+
+  it("should not warn when the font maps every character", async () => {
+    await expect(subset("AVfi")).resolves.toMatchObject({ warnings: [] });
+  });
+
+  it("should not warn about unicode ranges, which cover what the font has", async () => {
+    const { warnings } = await subset("", { unicodeRanges: ["U+0041-U+005A"] });
+    expect(warnings).toStrictEqual([]);
+  });
+
+  it("should name 20 characters and count the rest", async () => {
+    const { warnings } = await subset("АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧ");
+    const [{ message }] = warnings;
+    expect(message).toMatch(/^The font does not map 24 characters of the selection: U\+0410 "А",/u);
+    expect(message).toMatch(/U\+0423 "У" and 4 more$/u);
+  });
+
+  it("should warn once with a split, not in every chunk", async () => {
+    const { warnings, chunks = [] } = await subset("AЖ", { split: "scripts" });
+    expect(warnings.map(({ code }) => code)).toStrictEqual(["missing-characters"]);
+    expect(chunks.flatMap((chunk) => chunk.warnings)).toStrictEqual([]);
   });
 });

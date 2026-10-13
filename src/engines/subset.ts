@@ -1,6 +1,8 @@
-import type { ExtractedResult, SubsetOption } from "../types";
+import type { ExtractedResult, FontWarning, SubsetOption } from "../types";
 import type { Optimization } from "../optimization";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
+import { missingCodePoints } from "../core";
+import { missingCharactersWarning } from "./missing-characters";
 import { buildReport } from "./report";
 import { encodeFromTtf, type SubsetSelection, subsetToTtf } from "./shared";
 import type { SourceFont } from "./source";
@@ -53,6 +55,17 @@ async function planSplit(content: Buffer, selection: SubsetSelection): Promise<C
   return planChunks({ ...selection, codePoints });
 }
 
+/** The warning about characters the source has no glyph for; the font is read only for some. */
+async function missingCharacters(
+  source: SourceFont,
+  characters: string | undefined,
+): Promise<FontWarning | undefined> {
+  if (!characters) {
+    return undefined;
+  }
+  return missingCharactersWarning(missingCodePoints(await createFont(source.content), characters));
+}
+
 export async function extractSubset(
   source: SourceFont,
   option: SubsetOption,
@@ -73,7 +86,11 @@ export async function extractSubset(
   const selection: SubsetSelection = { codePoints, ligatures };
   // Planned first, so a ligature of two scripts rejects before anything is subset
   const plans = option.split ? await planSplit(source.content, selection) : undefined;
-  const { result } = await buildSubset(source, selection, option, optimization);
+  const built = await buildSubset(source, selection, option, optimization);
+  const missing = await missingCharacters(source, option.characters);
+  const result = missing
+    ? { ...built.result, warnings: [missing, ...built.result.warnings] }
+    : built.result;
   if (!plans) {
     return result;
   }

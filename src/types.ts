@@ -33,10 +33,11 @@ export interface OptimizationReport {
 
 /**
  * Something of the source font the output could not keep. `legacy-kern`: the font kerns only in
- * the legacy kern table, and part of that kerning was left out.
+ * the legacy kern table, and part of that kerning was left out. `missing-characters`: the font
+ * has no glyph for some `characters` of the subset engine.
  */
 export interface FontWarning {
-  code: "legacy-kern";
+  code: "legacy-kern" | "missing-characters";
   message: string;
 }
 
