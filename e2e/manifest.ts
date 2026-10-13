@@ -58,6 +58,7 @@ export interface BrowserCall {
     | { name: "findMetaByLigatures"; ligatures: string[] }
     | { name: "findMetaByCodePoints"; codePoints: number[] }
     | { name: "findLigaturesByRaws"; raws: string[] }
+    | { name: "findMissingCodePoints"; text: string }
     | { name: "createFont" };
   expected: CallResult;
 }

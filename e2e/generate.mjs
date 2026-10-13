@@ -13,7 +13,9 @@ import {
   findLigaturesByRaws,
   findMetaByCodePoints,
   findMetaByLigatures,
+  findMissingCodePoints,
 } from "../dist/browser.js";
+import { buildVariableFont } from "../scripts/make-variable-fixture.mjs";
 import { BROWSER_CALLS, BROWSER_INPUTS, FONT_CASES, sample } from "./cases.mjs";
 
 const ASSETS = new URL("../assets/", import.meta.url);
@@ -39,6 +41,7 @@ const SOURCES = {
     file: "font-multi-ligature-lookups.ttf",
     bytes: asset("font-multi-ligature-lookups.ttf"),
   },
+  variable: { file: "font-variable.ttf", bytes: asset("font-variable.ttf") },
 };
 
 function tableOffsets(font) {
@@ -104,6 +107,22 @@ function writeOutputs(caseId, result) {
   return outputs;
 }
 
+/**
+ * The font the browser draws the expected glyphs with: the source, or for a variable font case
+ * the static font at its `referenceLocation`, with the deltas applied by the fixture generator.
+ */
+function referenceOf(definition, source) {
+  if (!definition.referenceLocation) {
+    return `generated/reference/${source.file}`;
+  }
+  const file = `reference/${definition.id}.ttf`;
+  writeFileSync(
+    new URL(file, OUTPUT),
+    buildVariableFont({ location: definition.referenceLocation }),
+  );
+  return `generated/${file}`;
+}
+
 async function buildFontCase(definition) {
   const engine = definition.engine ?? "icon";
   const source = SOURCES[definition.source];
@@ -124,7 +143,7 @@ async function buildFontCase(definition) {
     title: definition.title,
     engine,
     option: JSON.stringify({ input: definition.source, ...option }),
-    reference: `generated/reference/${source.file}`,
+    reference: referenceOf(definition, source),
     outputs: writeOutputs(definition.id, result),
     samples,
     svgSamples: result.svg ? svgSamples : [],
@@ -136,6 +155,9 @@ async function callBrowserEntry(bytes, call) {
   try {
     if (call.name === "findLigaturesByRaws") {
       return { value: await findLigaturesByRaws(bytes, call.raws) };
+    }
+    if (call.name === "findMissingCodePoints") {
+      return { value: await findMissingCodePoints(bytes, call.text) };
     }
     const font = await createFont(bytes);
     if (call.name === "findMetaByLigatures") {

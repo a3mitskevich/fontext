@@ -17,6 +17,9 @@ async function invoke(
     if (call.name === "findLigaturesByRaws") {
       return { value: await entry.findLigaturesByRaws(data, call.raws) };
     }
+    if (call.name === "findMissingCodePoints") {
+      return { value: await entry.findMissingCodePoints(data, call.text) };
+    }
     const font = await entry.createFont(data);
     if (call.name === "findMetaByLigatures") {
       return { value: entry.findMetaByLigatures(font, call.ligatures) };
