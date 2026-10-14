@@ -223,6 +223,12 @@ interface SourceLayoutOption {
    * compression, up to half again as large as a raw font. TrueType outlines don't change.
    */
   desubroutinize?: boolean;
+  /**
+   * Keep the outline of .notdef, the box a renderer without fallback fonts draws for a character
+   * the font lacks. HarfBuzz empties it in TrueType outlines by default (CFF keeps it); the
+   * outline-render preset keeps it.
+   */
+  notdefOutline?: boolean;
 }
 
 /**

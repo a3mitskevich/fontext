@@ -92,13 +92,21 @@ function dropTablesOf({ hinting, dropTables, keepTables }: Optimization): readon
 
 /** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
 function subsetOutputOf(optimization: Optimization): SubsetOutput {
-  const { hinting, layoutFeatures, nameIds, nameLanguages, desubroutinize, glyphNames } =
-    optimization;
+  const {
+    hinting,
+    layoutFeatures,
+    nameIds,
+    nameLanguages,
+    desubroutinize,
+    glyphNames,
+    notdefOutline,
+  } = optimization;
   return {
     flags:
       (hinting ? 0 : SubsetFlag.NO_HINTING) |
       (desubroutinize ? SubsetFlag.DESUBROUTINIZE : 0) |
-      (glyphNames ? SubsetFlag.GLYPH_NAMES : 0),
+      (glyphNames ? SubsetFlag.GLYPH_NAMES : 0) |
+      (notdefOutline ? SubsetFlag.NOTDEF_OUTLINE : 0),
     layoutFeatures:
       typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
     nameIds,

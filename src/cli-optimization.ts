@@ -11,6 +11,7 @@ export interface OptimizationFlags {
   readonly "keep-tables"?: string;
   readonly "glyph-names"?: boolean;
   readonly desubroutinize?: boolean;
+  readonly "notdef-outline"?: boolean;
   readonly axes?: string;
   readonly rename?: boolean;
   readonly "rename-family"?: string;
@@ -28,6 +29,7 @@ export interface OptimizationConfig {
   readonly keepTables?: string[];
   readonly glyphNames?: boolean;
   readonly desubroutinize?: boolean;
+  readonly notdefOutline?: boolean;
   readonly axes?: Axes;
   readonly rename?: Rename;
 }
@@ -43,6 +45,7 @@ export interface OptimizationOptions {
   keepTables?: string[];
   glyphNames?: boolean;
   desubroutinize?: boolean;
+  notdefOutline?: boolean;
   axes?: Axes;
   rename?: Rename;
 }
@@ -144,6 +147,7 @@ function fromFlags(flags: OptimizationFlags): OptimizationConfig {
     keepTables: parsed(flags["keep-tables"], parseList),
     glyphNames: flags["glyph-names"],
     desubroutinize: flags.desubroutinize,
+    notdefOutline: flags["notdef-outline"],
     axes: parsed(flags.axes, parseAxes),
     rename: renameOf(flags),
   };
@@ -169,6 +173,7 @@ export function resolveOptimizationOptions(
     keepTables,
     glyphNames,
     desubroutinize,
+    notdefOutline,
     axes,
     rename,
   } = { ...entry, ...(useFlags ? fromFlags(flags) : {}) };
@@ -185,6 +190,7 @@ export function resolveOptimizationOptions(
     keepTables,
     glyphNames,
     desubroutinize,
+    notdefOutline,
     axes,
     rename: isRenameOff ? undefined : rename,
   };

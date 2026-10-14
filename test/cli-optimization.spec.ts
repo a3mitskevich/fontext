@@ -52,6 +52,7 @@ const NO_OPTIONS = {
   keepTables: undefined,
   glyphNames: undefined,
   desubroutinize: undefined,
+  notdefOutline: undefined,
   axes: undefined,
   rename: undefined,
 };
@@ -107,6 +108,7 @@ describe("CLI optimization option parsing", () => {
       "keep-tables": "meta",
       "glyph-names": true,
       desubroutinize: false,
+      "notdef-outline": true,
       axes: "wght=700",
       rename: true,
     };
@@ -120,6 +122,7 @@ describe("CLI optimization option parsing", () => {
       keepTables: ["meta"],
       glyphNames: true,
       desubroutinize: false,
+      notdefOutline: true,
       axes: { wght: 700 },
       rename: true,
     });

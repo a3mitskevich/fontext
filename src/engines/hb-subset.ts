@@ -7,6 +7,7 @@ export const SubsetFlag = {
   NO_HINTING: 0x1,
   RETAIN_GIDS: 0x2,
   DESUBROUTINIZE: 0x4,
+  NOTDEF_OUTLINE: 0x40,
   GLYPH_NAMES: 0x80,
   NO_LAYOUT_CLOSURE: 0x2_00,
 } as const;

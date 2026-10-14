@@ -56,6 +56,7 @@ ${c.bold}Optimization:${c.reset}
       ${c.cyan}--keep-tables${c.reset} <list>   Tables to keep that would be dropped: ${c.dim}gasp, meta, PCLT${c.reset}
       ${c.cyan}--glyph-names${c.reset}         Keep glyph names in post ${c.dim}(dropped by default)${c.reset}
       ${c.cyan}--desubroutinize${c.reset}      Inline CFF subroutines ${c.dim}(--no-desubroutinize keeps them)${c.reset}
+      ${c.cyan}--notdef-outline${c.reset}      Keep the box of .notdef drawn for missing characters
       ${c.cyan}--axes${c.reset} <list>          Pin or narrow variation axes ${c.dim}(e.g. wght=700,wdth=75:100; *=default pins the rest)${c.reset}
       ${c.cyan}--rename${c.reset}               Name the font after the pinned weight ${c.dim}(e.g. Bold for wght=700)${c.reset}
       ${c.cyan}--rename-family${c.reset} <name> New family name
@@ -86,8 +87,8 @@ ${c.bold}Config file:${c.reset}
 
   ${c.dim}Optimization keys: "preset", "hinting", "layoutFeatures" ("all", "default" or tags),${c.reset}
   ${c.dim}"nameIds", "nameLanguages", "dropTables", "keepTables", "glyphNames", "desubroutinize",${c.reset}
-  ${c.dim}"axes" ({ "wght": 700, "wdth": { "min": 75, "max": 100 } }), "rename" (true or${c.reset}
-  ${c.dim}{ "family", "style" }), "split"; also in batch entries.${c.reset}
+  ${c.dim}"notdefOutline", "axes" ({ "wght": 700, "wdth": { "min": 75, "max": 100 } }), "rename"${c.reset}
+  ${c.dim}(true or { "family", "style" }), "split"; also in batch entries.${c.reset}
 
   ${c.dim}Batch mode — process multiple fonts:${c.reset}
   ${c.dim}{ "output": "./fonts", "formats": ["woff2"],${c.reset}
@@ -342,6 +343,7 @@ async function main(): Promise<void> {
       "keep-tables": { type: "string" },
       "glyph-names": { type: "boolean" },
       desubroutinize: { type: "boolean" },
+      "notdef-outline": { type: "boolean" },
       axes: { type: "string" },
       rename: { type: "boolean" },
       "rename-family": { type: "string" },
@@ -356,7 +358,7 @@ async function main(): Promise<void> {
       version: { type: "boolean", short: "v", default: false },
     },
     strict: true,
-    // --no-hinting, --no-glyph-names, --no-desubroutinize
+    // --no-hinting, --no-glyph-names, --no-desubroutinize, --no-notdef-outline
     allowNegative: true,
   });
 

@@ -26,6 +26,7 @@ describe("resolveOptimization", () => {
         keepTables: [],
         desubroutinize: false,
         glyphNames: false,
+        notdefOutline: false,
         rename: undefined,
       });
     },
@@ -46,6 +47,7 @@ describe("resolveOptimization", () => {
       keepTables: [],
       desubroutinize: true,
       glyphNames: false,
+      notdefOutline: false,
       rename: undefined,
     });
   });
@@ -65,6 +67,7 @@ describe("resolveOptimization", () => {
       keepTables: [],
       desubroutinize: false,
       glyphNames: false,
+      notdefOutline: true,
       rename: undefined,
     });
   });
@@ -79,6 +82,7 @@ describe("resolveOptimization", () => {
       nameIds: [4],
       nameLanguages: undefined,
       dropTables: ["DSIG"],
+      notdefOutline: false,
     };
     expect(resolveOptimization(outlines)).toStrictEqual({
       formats: ["ttf", "woff2"],
@@ -90,6 +94,7 @@ describe("resolveOptimization", () => {
       keepTables: [],
       desubroutinize: false,
       glyphNames: false,
+      notdefOutline: false,
       rename: undefined,
     });
     const web: SubsetOption = {
@@ -121,6 +126,7 @@ describe("resolveOptimization", () => {
       keepTables: ["gasp", "meta"],
       glyphNames: true,
       desubroutinize: true,
+      notdefOutline: true,
     };
     expect(resolveOptimization(option)).toStrictEqual({
       formats: ["woff"],
@@ -132,6 +138,7 @@ describe("resolveOptimization", () => {
       keepTables: ["gasp", "meta"],
       desubroutinize: true,
       glyphNames: true,
+      notdefOutline: true,
       rename: undefined,
     });
   });
@@ -171,6 +178,11 @@ describe("optimization option validation", () => {
       "desubroutinize that is not a boolean",
       { desubroutinize: "yes" },
       "desubroutinize must be a boolean",
+    ],
+    [
+      "notdefOutline that is not a boolean",
+      { notdefOutline: 1 },
+      "notdefOutline must be a boolean",
     ],
     [
       "nameLanguages that are neither all nor an array",

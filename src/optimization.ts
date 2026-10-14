@@ -30,6 +30,8 @@ export interface Optimization {
   readonly desubroutinize: boolean;
   /** Keep the glyph names in post. */
   readonly glyphNames: boolean;
+  /** Keep the outline of .notdef, the glyph drawn for characters the font lacks. */
+  readonly notdefOutline: boolean;
   /** New family and style names. */
   readonly rename: Rename | undefined;
 }
@@ -53,12 +55,15 @@ const PRESETS: Record<Preset, Defaults> = {
     layoutFeatures: "default",
     nameIds: PRESET_NAME_IDS,
     desubroutinize: true,
+    notdefOutline: false,
   },
   "outline-render": {
     hinting: false,
     layoutFeatures: "default",
     nameIds: PRESET_NAME_IDS,
     desubroutinize: false,
+    // A renderer without fallback fonts draws the box of .notdef for a missing character
+    notdefOutline: true,
   },
 };
 
@@ -68,6 +73,7 @@ const NO_PRESET: Defaults = {
   layoutFeatures: "all",
   nameIds: undefined,
   desubroutinize: false,
+  notdefOutline: false,
 };
 
 const ALL_FORMATS: readonly Formats[] = Object.values(Format);
@@ -124,6 +130,7 @@ interface OptimizationFields {
   readonly keepTables?: readonly string[];
   readonly glyphNames?: boolean;
   readonly desubroutinize?: boolean;
+  readonly notdefOutline?: boolean;
   readonly rename?: Rename;
 }
 
@@ -147,6 +154,7 @@ export function resolveOptimization(option: MinifyOption): Optimization {
     dropTables: (fields.dropTables ?? []).map((tag) => paddedTag(tag)),
     keepTables: (fields.keepTables ?? []).map((tag) => paddedTag(tag)),
     desubroutinize: fields.desubroutinize ?? defaults.desubroutinize,
+    notdefOutline: fields.notdefOutline ?? defaults.notdefOutline,
     glyphNames: fields.glyphNames ?? false,
     rename: fields.rename,
   };
@@ -250,6 +258,7 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
     keepTables,
     glyphNames,
     desubroutinize,
+    notdefOutline,
     rename,
     axes,
     transform,
@@ -259,8 +268,10 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
       `Invalid preset: ${JSON.stringify(preset)}. Valid presets: ${Object.keys(PRESETS).join(", ")}`,
     );
   }
-  if (hinting !== undefined && typeof hinting !== "boolean") {
-    throw new TypeError("hinting must be a boolean");
+  const flags = Object.entries({ hinting, glyphNames, desubroutinize, notdefOutline });
+  const notBoolean = flags.find(([, value]) => value !== undefined && typeof value !== "boolean");
+  if (notBoolean) {
+    throw new TypeError(`${notBoolean[0]} must be a boolean`);
   }
   if (layoutFeatures !== undefined) {
     assertLayoutFeatures(layoutFeatures);
@@ -278,12 +289,6 @@ export function assertOptimizationOptions(option: Readonly<Record<string, unknow
   if (keepTables !== undefined) {
     assertTags("keepTables", keepTables);
     assertKeepable(keepTables as string[], dropTables);
-  }
-  if (glyphNames !== undefined && typeof glyphNames !== "boolean") {
-    throw new TypeError("glyphNames must be a boolean");
-  }
-  if (desubroutinize !== undefined && typeof desubroutinize !== "boolean") {
-    throw new TypeError("desubroutinize must be a boolean");
   }
   assertRenameOption(rename, axes as Axes | undefined);
   if (transform !== undefined && typeof transform !== "function") {

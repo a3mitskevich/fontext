@@ -76,13 +76,14 @@ npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf
 | `--keep-tables`                     | Tables to keep that would be dropped: `gasp,meta,PCLT`         |
 | `--glyph-names`                     | Keep glyph names in `post`                                     |
 | `--desubroutinize`                  | Inline CFF subroutines (`--no-desubroutinize` keeps them)      |
+| `--notdef-outline`                  | Keep the box of `.notdef` drawn for missing characters         |
 | `--axes`                            | Pin or narrow variation axes: `wght=700,wdth=75:100,*=default` |
 | `--rename`                          | Name the font after its pinned weight (`Bold` for `wght=700`)  |
 | `--rename-family`, `--rename-style` | New family and style names                                     |
 | `--split scripts`                   | Also write a font per script: `<font-name>.<script>.<format>`  |
 
 `.fontextrc.json` and its batch entries take the same options as `preset`, `hinting`, `layoutFeatures`,
-`nameIds`, `nameLanguages`, `dropTables`, `keepTables`, `glyphNames`, `desubroutinize`, `axes`
+`nameIds`, `nameLanguages`, `dropTables`, `keepTables`, `glyphNames`, `desubroutinize`, `notdefOutline`, `axes`
 (`{ "wght": 700, "wdth": { "min": 75, "max": 100 } }`), `rename` (`true` or `{ "family", "style" }`) and `split`.
 The output lists the tables the font lost and the axes of a variable font; `--json` has the whole table and axes
 report. `fontext --help` lists every flag.
@@ -138,6 +139,7 @@ fs.writeFileSync("my-icons.woff2", result.woff2);
 | `keepTables`     | `string[]`       | `[]`                   | Tables to keep that would be dropped: `gasp`, `meta`, `PCLT` — subset and convert engines                                                                              |
 | `glyphNames`     | `boolean`        | `false`                | Keep the glyph names (`post` format 2)                                                                                                                                 |
 | `desubroutinize` | `boolean`        | `false`                | Inline CFF subroutines — subset and convert engines                                                                                                                    |
+| `notdefOutline`  | `boolean`        | `false`                | Keep the TrueType outline of `.notdef`, the box drawn for missing characters — subset and convert engines                                                              |
 | `axes`           | `Axes`           | —                      | Pin (`{ wght: 700 }`, `"default"`, `"*": "default"` for the rest) or narrow (`{ wght: { min: 600, max: 700 } }`) variation axes, see [Variable fonts](#variable-fonts) |
 | `rename`         | `Rename`         | —                      | `true` or `{ family?, style? }`: rewrite the family and style names, see [Variable fonts](#variable-fonts)                                                             |
 | `transform`      | `FontTransform`  | —                      | `(ttf: Uint8Array, context?: { script }) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding                                                 |
@@ -162,7 +164,7 @@ fs.writeFileSync("my-icons.woff2", result.woff2);
   unknown name or a typo would otherwise give the glyphs of its letters) — `"Font does not contain a ligature for \"...\""`
 - The icon engine selection matches no glyph, e.g. unicode ranges the font maps none of —
   `"No glyphs match the selection: the font maps none of unicodeRanges ..."`
-- An unknown `preset`, a `hinting`, `glyphNames` or `desubroutinize` that is not a boolean, a `layoutFeatures`
+- An unknown `preset`, a `hinting`, `glyphNames`, `desubroutinize` or `notdefOutline` that is not a boolean, a `layoutFeatures`
   keyword other than `all` / `default`, a name id that is not an integer from 0 to 32767, a name language that is
   not an integer from 0 to 65535, or a tag that is not 1–4 printable ASCII characters — `"Invalid preset: ..."`,
   `"Invalid name id(s): ..."`, `"Invalid tag(s) in dropTables: ..."` and similar; a `dropTables` tag of a table
@@ -261,11 +263,11 @@ SDF or PDF, with HarfBuzz shaping: canvas and WebGL text (three.js `TTFLoader`, 
 animation runtimes such as Rive, PDF generators. Outline renderers use no hinting. `preset` picks defaults for
 either:
 
-| `preset`           | Hinting             | Layout features  | Name ids               | CFF             |
-| ------------------ | ------------------- | ---------------- | ---------------------- | --------------- |
-| none               | kept                | all              | 0–6 (icon: 1, 2, 4, 6) | kept as is      |
-| `'web-font'`       | kept                | HarfBuzz default | 1, 2, 4, 6             | desubroutinized |
-| `'outline-render'` | dropped, `gasp` too | HarfBuzz default | 1, 2, 4, 6             | kept as is      |
+| `preset`           | Hinting             | Layout features  | Name ids               | CFF             | `.notdef` outline |
+| ------------------ | ------------------- | ---------------- | ---------------------- | --------------- | ----------------- |
+| none               | kept                | all              | 0–6 (icon: 1, 2, 4, 6) | kept as is      | emptied           |
+| `'web-font'`       | kept                | HarfBuzz default | 1, 2, 4, 6             | desubroutinized | emptied           |
+| `'outline-render'` | dropped, `gasp` too | HarfBuzz default | 1, 2, 4, 6             | kept as is      | kept              |
 
 A preset doesn't choose the formats: pair it with `formats`, e.g. `['woff2']` for the web and `['ttf']` for most
 outline renderers (troika reads no WOFF2, Rive only TTF and OTF). Explicit options override the preset. Without a
@@ -300,6 +302,11 @@ and the layout tables that shape text, `GSUB`, `GPOS` and `GDEF`.
   So `web-font` desubroutinizes and `outline-render` doesn't; `desubroutinize` overrides either. TrueType outlines
   don't change.
 
+- **`.notdef`** is the glyph drawn for a character the font lacks. HarfBuzz empties its TrueType outline, which is
+  fine in a browser (it draws the character with a fallback font) but leaves a blank where a runtime without fallback
+  fonts would draw the source's box. `notdefOutline: true` keeps it; `outline-render` does. CFF keeps it either
+  way.
+
 - **Tables HarfBuzz drops**: `DSIG` (a signature can't match a changed font), `JSTF`, `LTSH`, `PCLT`, `kern` (fontext
   puts its pairs back) and tables it doesn't know, such as `meta`. `keepTables` copies `meta` and `PCLT` from the
   source, whose data refers to no glyph id, and keeps `gasp` without hinting. Other tables HarfBuzz drops refer to
@@ -314,7 +321,7 @@ with spaces, so `"cvt"` is the `cvt ` table. `dropTables` rejects the tables eve
 Per engine: the subset and convert engines take every option. The icon engine takes `preset`, `nameIds`,
 `dropTables`, `glyphNames`, `axes`, `rename` and `transform`; its font comes from SVG outlines, so it has no hinting,
 one `liga` feature that forms the icons and English names only: `hinting`, `layoutFeatures`, `nameLanguages`,
-`keepTables` and `desubroutinize` are checked but ignored. The `svg` format is not affected by any of these options
+`keepTables`, `desubroutinize` and `notdefOutline` are checked but ignored. The `svg` format is not affected by any of these options
 except `axes`.
 
 `transform` receives the final font once (and once more per chunk with `split`) — after the legacy `kern` table is
