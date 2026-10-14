@@ -24,11 +24,29 @@ export interface TablesReport {
   dropped: string[];
 }
 
+/** A variation axis of the output, its values in the units of the axis. */
+export interface AxisReport {
+  tag: string;
+  min: number;
+  default: number;
+  max: number;
+}
+
+/** What became of the variation axes of a variable input. */
+export interface AxesReport {
+  /** Axes the output no longer varies along, by tag: the value it was instanced at. */
+  pinned: Record<string, number>;
+  /** Axes the output still varies along, in the order of its fvar. */
+  variable: AxisReport[];
+}
+
 export interface OptimizationReport {
   originalSize: number;
   formats: Partial<Record<Formats, { size: number; saving: number }>>;
   /** The tables of the input and the output; none when only SVG was built. */
   tables?: TablesReport;
+  /** The axes of a variable input in the output; none for a static input or only SVG. */
+  axes?: AxesReport;
 }
 
 /**

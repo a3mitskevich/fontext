@@ -1,5 +1,6 @@
 import type { Axes, TableSizes } from "../types";
 import { toSfnt } from "../font/container";
+import { openFont, type VariationAxis } from "../font/font";
 import { decodeWoff2 } from "../woff2";
 import { instanceFont } from "./instance";
 import { tableSizes } from "./report";
@@ -12,6 +13,10 @@ export interface SourceFont {
   readonly input: Buffer;
   /** The tables of the input, decompressed, before instancing. */
   readonly inputTables: TableSizes;
+  /** The variation axes of the input; none for a static font. */
+  readonly inputAxes: readonly VariationAxis[];
+  /** The axis settings the content was instanced at; empty when it was not. */
+  readonly axes: Axes;
 }
 
 const toBuffer = (data: Uint8Array): Buffer =>
@@ -20,10 +25,13 @@ const toBuffer = (data: Uint8Array): Buffer =>
 /** Reads the input once: WOFF and WOFF2 are decompressed, a variable font instanced. */
 export async function loadSource(input: Buffer, axes: Axes | undefined): Promise<SourceFont> {
   const sfnt = await toSfnt(input, decodeWoff2);
+  const { axes: inputAxes } = await openFont(sfnt);
   const isInstanced = axes !== undefined && Object.keys(axes).length > 0;
   return {
     input,
     inputTables: tableSizes(sfnt),
-    content: toBuffer(isInstanced ? await instanceFont(sfnt, axes) : sfnt),
+    inputAxes,
+    axes: isInstanced ? axes : {},
+    content: toBuffer(isInstanced ? await instanceFont(sfnt, inputAxes, axes) : sfnt),
   };
 }

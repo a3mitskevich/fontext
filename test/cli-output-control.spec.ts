@@ -86,6 +86,7 @@ describe("CLI flags for axes, names and tables", () => {
     expect(stderr).toBe("");
     expect(status).toBe(0);
     expect(stdout).toContain("dropped tables: DSIG, fvar, gvar");
+    expect(stdout).toContain("axes: wght=700 pinned, wdth=75 pinned");
     const ttf = writtenTtf(outDir, "variable");
     const face = new hb.Face(new hb.Blob(ttf), 0);
     expect(face.getName(2, "en")).toBe("Bold");
@@ -100,6 +101,17 @@ describe("CLI flags for axes, names and tables", () => {
     const result = JSON.parse(stdout);
     expect(result.tables.input.fpgm).toBeGreaterThan(0);
     expect(result.tables.dropped).toContain("fpgm");
+  });
+
+  it("should write the axes of the report to --json", () => {
+    const outDir = path.join(tmpDir, "json-axes");
+    const args = ["-i", VARIABLE_FONT, "-n", "variable", "--engine", "subset", "-c", "AV"];
+    const { status, stdout } = runCli([...args, "-o", outDir, "--axes", "wght=700", "--json"]);
+    expect(status).toBe(0);
+    expect(JSON.parse(stdout).axes).toStrictEqual({
+      pinned: { wght: 700 },
+      variable: [{ tag: "wdth", min: 75, default: 100, max: 100 }],
+    });
   });
 
   it.each([

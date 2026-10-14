@@ -1,5 +1,5 @@
 import type { Axes, Engine } from "../types";
-import { openFont, type VariationAxis } from "../font/font";
+import type { VariationAxis } from "../font/font";
 import { hbSubset } from "./hb-subset";
 
 const PRINTABLE_TAG = /^[\x20-\x7e]{1,4}$/u;
@@ -60,7 +60,7 @@ export function assertAxesOption(axes: unknown, engine: Engine): void {
 
 // HarfBuzz reports the Fixed values of fvar as float32, e.g. 0.3 as 0.30000001192
 const FLOAT32_DIGITS = 7;
-const axisValue = (value: number): number => Number(value.toPrecision(FLOAT32_DIGITS));
+export const axisValue = (value: number): number => Number(value.toPrecision(FLOAT32_DIGITS));
 
 const describeAxis = ({ tag, min, max }: VariationAxis): string =>
   `${tag.trim()} ${axisValue(min)}-${axisValue(max)}`;
@@ -93,9 +93,13 @@ function assertFontAxes(fontAxes: readonly VariationAxis[], axes: Axes): void {
 /**
  * The font with its axes pinned or narrowed, every glyph, table and name kept, so the engines
  * read it like the source: outlines, metrics, shaping and legacy kerning at the location.
+ * `fontAxes` are the axes of the font.
  */
-export async function instanceFont(sfnt: Uint8Array, axes: Axes): Promise<Uint8Array> {
-  const font = await openFont(sfnt);
-  assertFontAxes(font.axes, axes);
+export function instanceFont(
+  sfnt: Uint8Array,
+  fontAxes: readonly VariationAxis[],
+  axes: Axes,
+): Promise<Uint8Array> {
+  assertFontAxes(fontAxes, axes);
   return hbSubset(sfnt, { keepEverything: true, axes });
 }

@@ -50,7 +50,7 @@ async function buildConvert(
     result: {
       ...fonts,
       meta: findMetaByCodePoints(outputFont, outputCodePoints),
-      report: buildReport(source, fonts, formats, ttf),
+      report: buildReport(source, fonts, formats, ttf && { ttf, axes: outputFont.axes }),
       warnings: subset?.warnings ?? [],
     },
     codePoints: outputCodePoints,

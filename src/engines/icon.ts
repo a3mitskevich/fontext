@@ -119,7 +119,8 @@ export async function extractIcon(
   return {
     ...fonts,
     meta: glyphsMeta,
-    report: buildReport(source, fonts, formats, ttf),
+    // The icon font is static: every axis of the source is pinned
+    report: buildReport(source, fonts, formats, ttf && { ttf, axes: [] }),
     warnings: [],
   };
 }

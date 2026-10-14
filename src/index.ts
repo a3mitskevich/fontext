@@ -17,6 +17,8 @@ export {
   type OptimizationReport,
   type TablesReport,
   type TableSizes,
+  type AxesReport,
+  type AxisReport,
   type Engine,
   type FontInput,
   type LayoutFeatures,

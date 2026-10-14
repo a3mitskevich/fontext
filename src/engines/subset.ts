@@ -37,7 +37,7 @@ async function buildSubset(
     result: {
       ...fonts,
       meta: findMetaByCodePoints(subsetted, subsetted.codePoints),
-      report: buildReport(source, fonts, formats, ttf),
+      report: buildReport(source, fonts, formats, { ttf, axes: subsetted.axes }),
       warnings,
     },
     codePoints: subsetted.codePoints,

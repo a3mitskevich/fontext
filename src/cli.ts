@@ -6,7 +6,7 @@ import { parseArgs } from "node:util";
 import extract, { WITH_WHITESPACE_REMOVED } from "./extract";
 import { type OptimizationConfig, resolveOptimizationOptions } from "./cli-optimization";
 import { chunkOutputs, chunkSummary, fileSummary, outputFiles, resolveSplit } from "./cli-split";
-import { Format, type Formats } from "./types";
+import { type AxesReport, Format, type Formats } from "./types";
 
 const VALID_FORMATS = Object.values(Format);
 
@@ -133,6 +133,14 @@ function savingColor(saving: number): string {
     return c.yellow;
   }
   return c.red;
+}
+
+/** "wght=700 pinned, opsz 14-32 variable": the axes report in one line. */
+function describeAxes({ pinned, variable }: AxesReport): string {
+  return [
+    ...Object.entries(pinned).map(([tag, value]) => `${tag}=${value} pinned`),
+    ...variable.map(({ tag, min, max }) => `${tag} ${min}-${max} variable`),
+  ].join(", ");
 }
 
 const SAVING_BAR_WIDTH = 20;
@@ -502,6 +510,7 @@ async function main(): Promise<void> {
         glyphs: result.meta.length,
         originalSize: result.report.originalSize,
         ...(result.report.tables ? { tables: result.report.tables } : {}),
+        ...(result.report.axes ? { axes: result.report.axes } : {}),
         files: fontFiles.map((file) => fileSummary(file)),
         meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
         warnings: result.warnings,
@@ -533,6 +542,10 @@ async function main(): Promise<void> {
     const dropped = result.report.tables?.dropped ?? [];
     if (dropped.length > 0) {
       console.log(`  ${c.dim}dropped tables: ${dropped.join(", ")}${c.reset}`);
+    }
+    const { axes } = result.report;
+    if (axes) {
+      console.log(`  ${c.dim}axes: ${describeAxes(axes)}${c.reset}`);
     }
 
     console.log();

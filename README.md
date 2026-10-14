@@ -58,89 +58,90 @@ Requires Node.js 22.13 or later. The package is ESM only; CommonJS code can stil
 npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
 ```
 
-| Flag                    | Description                                             |
-|-------------------------|---------------------------------------------------------|
-| `-i, --input`           | Path to the font file (required)                        |
-| `-n, --font-name`       | Name for the output font (required)                     |
-| `-l, --ligatures`       | Comma-separated ligature names                          |
-| `-r, --raws`            | Comma-separated raw unicode characters                  |
-| `-u, --unicode-ranges`  | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)   |
-| `-f, --formats`         | Output formats: `svg,ttf,woff,woff2,eot` (default: all) |
-| `-o, --output`          | Output directory (default: `.`)                         |
-| `--preset`              | `web-font` or `outline-render`                          |
-| `--no-hinting`          | Drop TrueType hinting and `gasp` (`--hinting` keeps them) |
-| `--layout-features`     | `all`, `default` or tags: `liga,kern`                    |
-| `--name-ids`            | Name ids to keep: `1,2,4`                                |
-| `--name-languages`      | Name record languages to keep: `all` or `0x409,0x419`    |
-| `--drop-tables`         | Tables to drop: `MATH,DSIG`                              |
-| `--keep-tables`         | Tables to keep that would be dropped: `gasp,meta,PCLT`   |
-| `--glyph-names`         | Keep glyph names in `post`                               |
-| `--desubroutinize`      | Inline CFF subroutines (`--no-desubroutinize` keeps them) |
-| `--axes`                | Pin or narrow variation axes: `wght=700,wdth=75:100`     |
-| `--rename`              | Name the font after its pinned weight (`Bold` for `wght=700`) |
-| `--rename-family`, `--rename-style` | New family and style names                  |
-| `--split scripts`       | Also write a font per script: `<font-name>.<script>.<format>` |
+| Flag                                | Description                                                   |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `-i, --input`                       | Path to the font file (required)                              |
+| `-n, --font-name`                   | Name for the output font (required)                           |
+| `-l, --ligatures`                   | Comma-separated ligature names                                |
+| `-r, --raws`                        | Comma-separated raw unicode characters                        |
+| `-u, --unicode-ranges`              | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)         |
+| `-f, --formats`                     | Output formats: `svg,ttf,woff,woff2,eot` (default: all)       |
+| `-o, --output`                      | Output directory (default: `.`)                               |
+| `--preset`                          | `web-font` or `outline-render`                                |
+| `--no-hinting`                      | Drop TrueType hinting and `gasp` (`--hinting` keeps them)     |
+| `--layout-features`                 | `all`, `default` or tags: `liga,kern`                         |
+| `--name-ids`                        | Name ids to keep: `1,2,4`                                     |
+| `--name-languages`                  | Name record languages to keep: `all` or `0x409,0x419`         |
+| `--drop-tables`                     | Tables to drop: `MATH,DSIG`                                   |
+| `--keep-tables`                     | Tables to keep that would be dropped: `gasp,meta,PCLT`        |
+| `--glyph-names`                     | Keep glyph names in `post`                                    |
+| `--desubroutinize`                  | Inline CFF subroutines (`--no-desubroutinize` keeps them)     |
+| `--axes`                            | Pin or narrow variation axes: `wght=700,wdth=75:100`          |
+| `--rename`                          | Name the font after its pinned weight (`Bold` for `wght=700`) |
+| `--rename-family`, `--rename-style` | New family and style names                                    |
+| `--split scripts`                   | Also write a font per script: `<font-name>.<script>.<format>` |
 
 `.fontextrc.json` and its batch entries take the same options as `preset`, `hinting`, `layoutFeatures`,
 `nameIds`, `nameLanguages`, `dropTables`, `keepTables`, `glyphNames`, `desubroutinize`, `axes`
 (`{ "wght": 700, "wdth": { "min": 75, "max": 100 } }`), `rename` (`true` or `{ "family", "style" }`) and `split`.
-The output lists the tables the font lost; `--json` has the whole table report. `fontext --help` lists every flag.
+The output lists the tables the font lost and the axes of a variable font; `--json` has the whole table and axes
+report. `fontext --help` lists every flag.
 
 ## Quick Start
 
 ```javascript
-import {extract} from 'fontext';
-import fs from 'fs';
+import { extract } from "fontext";
+import fs from "fs";
 
-const font = fs.readFileSync('material-icons.woff2');
+const font = fs.readFileSync("material-icons.woff2");
 
 const result = await extract(font, {
-    fontName: 'my-icons',
-    ligatures: ['home', 'search', 'menu'],
-    formats: ['woff2', 'ttf'],
+  fontName: "my-icons",
+  ligatures: ["home", "search", "menu"],
+  formats: ["woff2", "ttf"],
 });
 
 // result.woff2 — Buffer with optimized WOFF2 font
 // result.ttf  — Buffer with optimized TTF font
 // result.meta — glyph metadata (name, unicode, svg)
 
-fs.writeFileSync('my-icons.woff2', result.woff2);
+fs.writeFileSync("my-icons.woff2", result.woff2);
 ```
 
 ## API
 
 ### `extract(content, options): Promise<ExtractedResult>`
 
-| Parameter | Type           | Description                                                         |
-|-----------|----------------|---------------------------------------------------------------------|
-| `content` | `Buffer \| Uint8Array \| ArrayBuffer` | Font file contents: TTF, OTF, WOFF or WOFF2                        |
-| `options` | `MinifyOption` | Extraction configuration (see below)                                |
+| Parameter | Type                                  | Description                                 |
+| --------- | ------------------------------------- | ------------------------------------------- |
+| `content` | `Buffer \| Uint8Array \| ArrayBuffer` | Font file contents: TTF, OTF, WOFF or WOFF2 |
+| `options` | `MinifyOption`                        | Extraction configuration (see below)        |
 
 ### `MinifyOption`
 
-| Field            | Type        | Default     | Description                                                                 |
-|------------------|-------------|-------------|-----------------------------------------------------------------------------|
-| `fontName`       | `string`    | —           | **Required.** Name for the output font                                      |
-| `ligatures`      | `string[]`  | `[]`        | Ligature strings to extract (e.g. `['home', 'search']`); the subset engine keeps each with its letters, and characters and unicode ranges keep the ligatures they form |
-| `raws`           | `string[]`  | `[]`        | Raw unicode characters — Fontext will resolve their ligatures automatically |
-| `unicodeRanges`  | `string[]`  | `[]`        | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)              |
-| `characters`     | `string`    | —           | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only               |
-| `engine`         | `Engine`    | `'icon'`    | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning), `'convert'` to change format only |
-| `formats`        | `Formats[]` | all formats | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`; the subset engine defaults to TTF, WOFF and WOFF2 |
-| `safariFix`      | `boolean`   | `false`     | Patch OS/2 and hhea metrics for Safari                                      |
-| `preset`         | `Preset`    | —           | `'web-font'` or `'outline-render'`, see [Presets and optimization options](#presets-and-optimization-options) |
-| `hinting`        | `boolean`   | `true`      | Keep TrueType hinting and `gasp` — subset and convert engines             |
-| `layoutFeatures` | `LayoutFeatures` | `'all'` | `'all'`, `'default'` (HarfBuzz's default set) or feature tags — subset and convert engines |
-| `nameIds`        | `number[]`  | 0–6 (icon: 1, 2, 4, 6) | Name ids to keep                                                 |
-| `nameLanguages`  | `NameLanguages` | `[0x409]` | `'all'` or the language ids of the name records to keep — subset and convert engines |
-| `dropTables`     | `string[]`  | `[]`        | Tags of tables to drop                                                      |
-| `keepTables`     | `string[]`  | `[]`        | Tables to keep that would be dropped: `gasp`, `meta`, `PCLT` — subset and convert engines |
-| `glyphNames`     | `boolean`   | `false`     | Keep the glyph names (`post` format 2)                                     |
-| `desubroutinize` | `boolean`   | `false`     | Inline CFF subroutines — subset and convert engines                         |
-| `axes`           | `Axes`      | —           | Pin (`{ wght: 700 }`) or narrow (`{ wght: { min: 600, max: 700 } }`) variation axes, see [Variable fonts](#variable-fonts) |
-| `rename`         | `Rename`    | —           | `true` or `{ family?, style? }`: rewrite the family and style names, see [Variable fonts](#variable-fonts) |
-| `transform`      | `FontTransform` | —       | `(ttf: Uint8Array, context?: { script }) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding |
-| `split`          | `Split`     | —           | `'scripts'`: also a font per Unicode script in `chunks`, see [Splitting by script](#splitting-by-script) — subset and convert engines |
+| Field            | Type             | Default                | Description                                                                                                                                                            |
+| ---------------- | ---------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fontName`       | `string`         | —                      | **Required.** Name for the output font                                                                                                                                 |
+| `ligatures`      | `string[]`       | `[]`                   | Ligature strings to extract (e.g. `['home', 'search']`); the subset engine keeps each with its letters, and characters and unicode ranges keep the ligatures they form |
+| `raws`           | `string[]`       | `[]`                   | Raw unicode characters — Fontext will resolve their ligatures automatically                                                                                            |
+| `unicodeRanges`  | `string[]`       | `[]`                   | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)                                                                                                         |
+| `characters`     | `string`         | —                      | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only                                                                                                          |
+| `engine`         | `Engine`         | `'icon'`               | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning), `'convert'` to change format only                                                          |
+| `formats`        | `Formats[]`      | all formats            | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`; the subset engine defaults to TTF, WOFF and WOFF2                                                      |
+| `safariFix`      | `boolean`        | `false`                | Patch OS/2 and hhea metrics for Safari                                                                                                                                 |
+| `preset`         | `Preset`         | —                      | `'web-font'` or `'outline-render'`, see [Presets and optimization options](#presets-and-optimization-options)                                                          |
+| `hinting`        | `boolean`        | `true`                 | Keep TrueType hinting and `gasp` — subset and convert engines                                                                                                          |
+| `layoutFeatures` | `LayoutFeatures` | `'all'`                | `'all'`, `'default'` (HarfBuzz's default set) or feature tags — subset and convert engines                                                                             |
+| `nameIds`        | `number[]`       | 0–6 (icon: 1, 2, 4, 6) | Name ids to keep                                                                                                                                                       |
+| `nameLanguages`  | `NameLanguages`  | `[0x409]`              | `'all'` or the language ids of the name records to keep — subset and convert engines                                                                                   |
+| `dropTables`     | `string[]`       | `[]`                   | Tags of tables to drop                                                                                                                                                 |
+| `keepTables`     | `string[]`       | `[]`                   | Tables to keep that would be dropped: `gasp`, `meta`, `PCLT` — subset and convert engines                                                                              |
+| `glyphNames`     | `boolean`        | `false`                | Keep the glyph names (`post` format 2)                                                                                                                                 |
+| `desubroutinize` | `boolean`        | `false`                | Inline CFF subroutines — subset and convert engines                                                                                                                    |
+| `axes`           | `Axes`           | —                      | Pin (`{ wght: 700 }`) or narrow (`{ wght: { min: 600, max: 700 } }`) variation axes, see [Variable fonts](#variable-fonts)                                             |
+| `rename`         | `Rename`         | —                      | `true` or `{ family?, style? }`: rewrite the family and style names, see [Variable fonts](#variable-fonts)                                                             |
+| `transform`      | `FontTransform`  | —                      | `(ttf: Uint8Array, context?: { script }) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding                                                 |
+| `split`          | `Split`          | —                      | `'scripts'`: also a font per Unicode script in `chunks`, see [Splitting by script](#splitting-by-script) — subset and convert engines                                  |
 
 > At least one of `ligatures`, `raws`, `unicodeRanges`, or `characters` must be provided.
 
@@ -171,18 +172,18 @@ fs.writeFileSync('my-icons.woff2', result.woff2);
 - `axes` that are not an object of numbers and `{ min, max }` — `"Invalid value for axis \"wght\": ..."`; a range in
   the icon engine — `"The icon engine builds a static font: pin axis \"wght\" to one value"`; a static font —
   `"axes is set, but the font has no variation axes"`; an axis the font lacks — `"Unknown axis \"opsz\". The font
-  has: wght 100-900, ..."`; a value outside the axis — `"Axis \"wght\" value 950 is outside the font's range
-  100-900"` (HarfBuzz would clamp it silently)
+has: wght 100-900, ..."`; a value outside the axis — `"Axis \"wght\" value 950 is outside the font's range
+100-900"` (HarfBuzz would clamp it silently)
 - A `rename` that is neither `true` nor `{ family?, style? }` with non-empty strings — `"rename must be true or an
-  object with family and/or style"`; `rename: true` without a pinned `wght` — `"rename: true takes the style from a
-  pinned wght axis: ..."`, a `wght` range without `rename.style` — `"rename takes the style from a pinned wght axis, and
-  wght is a range: set rename.style"`; a pinned weight without a usual name — `"Cannot name weight 650: set rename.style"`; a
+object with family and/or style"`; `rename: true` without a pinned `wght` — `"rename: true takes the style from a
+pinned wght axis: ..."`, a `wght` range without `rename.style` — `"rename takes the style from a pinned wght axis, and
+wght is a range: set rename.style"`; a pinned weight without a usual name — `"Cannot name weight 650: set rename.style"`; a
   family without a character a PostScript name allows — `"rename gives an empty PostScript name: ..."`
 - The subset engine keeps `ligatures` the source forms, but the `layoutFeatures` left out the feature that forms
   them — `"Ligatures do not form with these layoutFeatures: \"home\"; they need the GSUB feature(s) rlig, which the
-  subset left out. ..."` (Material Icons forms its ligatures with `rlig`, not `liga`)
+subset left out. ..."` (Material Icons forms its ligatures with `rlig`, not `liga`)
 - A `split` other than `'scripts'` — `"Invalid split: ..."`; `split` with the icon engine — `"split is not supported by
-  the icon engine: ..."`; a subset `ligatures` text whose letters belong to two scripts (Common letters such as `_` and
+the icon engine: ..."`; a subset `ligatures` text whose letters belong to two scripts (Common letters such as `_` and
   digits aside) — `"Ligature \"...\" mixes the scripts latin and greek, ..."`: split fonts can't form it
 - `transform` throws or rejects — `"transform failed: ..."` with the original error as `cause`; it returns WOFF,
   WOFF2, a collection or no font — `"transform must return an uncompressed TrueType or OpenType font, not WOFF2"` and
@@ -196,31 +197,37 @@ An object with optional keys for each requested format (`svg`, `ttf`, `woff`, `w
 
 ```typescript
 interface GlyphMeta {
-    name: string;      // ligature name
-    unicode: string[];  // unicode mappings
-    svg: string;        // SVG markup for the glyph
+  name: string; // ligature name
+  unicode: string[]; // unicode mappings
+  svg: string; // SVG markup for the glyph
 }
 
 interface OptimizationReport {
-    originalSize: number;  // input font size in bytes
-    formats: {
-        [format: string]: {
-            size: number;    // output size in bytes
-            saving: number;  // percentage saved, negative when the output is larger
-        };
+  originalSize: number; // input font size in bytes
+  formats: {
+    [format: string]: {
+      size: number; // output size in bytes
+      saving: number; // percentage saved, negative when the output is larger
     };
-    // The tables of the input (decompressed, before instancing) and of the TTF every binary format was
-    // encoded from, with their sizes in bytes; no tables when only SVG was built
-    tables?: {
-        input: Record<string, number>;   // { cmap: 808, cvt: 496, glyf: 37826, ... }
-        output: Record<string, number>;
-        dropped: string[];               // tags of the input the output lacks, sorted
-    };
+  };
+  // The tables of the input (decompressed, before instancing) and of the TTF every binary format was
+  // encoded from, with their sizes in bytes; no tables when only SVG was built
+  tables?: {
+    input: Record<string, number>; // { cmap: 808, cvt: 496, glyf: 37826, ... }
+    output: Record<string, number>;
+    dropped: string[]; // tags of the input the output lacks, sorted
+  };
+  // What became of the axes of a variable input, in the units of each axis; none for a static input or
+  // when only SVG was built
+  axes?: {
+    pinned: Record<string, number>; // axes the output no longer varies along: { wght: 700 }
+    variable: { tag: string; min: number; default: number; max: number }[]; // axes it still has
+  };
 }
 
 interface FontWarning {
-    code: "legacy-kern" | "missing-characters";  // what the output could not keep
-    message: string;
+  code: "legacy-kern" | "missing-characters"; // what the output could not keep
+  message: string;
 }
 ```
 
@@ -251,11 +258,11 @@ SDF or PDF, with HarfBuzz shaping: canvas and WebGL text (three.js `TTFLoader`, 
 animation runtimes such as Rive, PDF generators. Outline renderers use no hinting. `preset` picks defaults for
 either:
 
-| `preset`           | Hinting               | Layout features  | Name ids               | CFF             |
-|--------------------|-----------------------|------------------|------------------------|-----------------|
-| none               | kept                  | all              | 0–6 (icon: 1, 2, 4, 6) | kept as is      |
-| `'web-font'`       | kept                  | HarfBuzz default | 1, 2, 4, 6             | desubroutinized |
-| `'outline-render'` | dropped, `gasp` too   | HarfBuzz default | 1, 2, 4, 6             | kept as is      |
+| `preset`           | Hinting             | Layout features  | Name ids               | CFF             |
+| ------------------ | ------------------- | ---------------- | ---------------------- | --------------- |
+| none               | kept                | all              | 0–6 (icon: 1, 2, 4, 6) | kept as is      |
+| `'web-font'`       | kept                | HarfBuzz default | 1, 2, 4, 6             | desubroutinized |
+| `'outline-render'` | dropped, `gasp` too | HarfBuzz default | 1, 2, 4, 6             | kept as is      |
 
 A preset doesn't choose the formats: pair it with `formats`, e.g. `['woff2']` for the web and `['ttf']` for most
 outline renderers (troika reads no WOFF2, Rive only TTF and OTF). Explicit options override the preset. Without a
@@ -280,15 +287,16 @@ and the layout tables that shape text, `GSUB`, `GPOS` and `GDEF`.
 - **CFF desubroutinization** inlines the subroutines: smaller once compressed, larger raw. Measured on four CFF fonts,
   Latin to the whole font:
 
-  | Font, glyphs            | raw OTF | WOFF  | WOFF2 | brotli |
-  |-------------------------|---------|-------|-------|--------|
-  | Nimbus Sans, Latin      | +1.2%   | −5.6% | −6.5% | −5.6%  |
-  | Nimbus Sans, whole      | +22.5%  | −2.4% | −2.9% | −3.3%  |
-  | P052 Bold, Latin        | +5.3%   | −6.8% | −7.9% | −7.9%  |
-  | Source Code Pro, whole  | +44.7%  | +4.0% | −1.7% | −2.0%  |
+  | Font, glyphs           | raw OTF | WOFF  | WOFF2 | brotli |
+  | ---------------------- | ------- | ----- | ----- | ------ |
+  | Nimbus Sans, Latin     | +1.2%   | −5.6% | −6.5% | −5.6%  |
+  | Nimbus Sans, whole     | +22.5%  | −2.4% | −2.9% | −3.3%  |
+  | P052 Bold, Latin       | +5.3%   | −6.8% | −7.9% | −7.9%  |
+  | Source Code Pro, whole | +44.7%  | +4.0% | −1.7% | −2.0%  |
 
   So `web-font` desubroutinizes and `outline-render` doesn't; `desubroutinize` overrides either. TrueType outlines
   don't change.
+
 - **Tables HarfBuzz drops**: `DSIG` (a signature can't match a changed font), `JSTF`, `LTSH`, `PCLT`, `kern` (fontext
   puts its pairs back) and tables it doesn't know, such as `meta`. `keepTables` copies `meta` and `PCLT` from the
   source, whose data refers to no glyph id, and keeps `gasp` without hinting. Other tables HarfBuzz drops refer to
@@ -313,16 +321,16 @@ from the transformed font. It is not called when only `svg` is requested:
 
 ```javascript
 const result = await extract(font, {
-    fontName: 'roboto-3d',
-    engine: 'subset',
-    characters: 'ABCabc0123',
-    preset: 'outline-render',
-    formats: ['ttf'],
-    // e.g. run the font through another tool that takes and returns TTF bytes
-    transform: async (ttf) => myFontTool(ttf),
+  fontName: "roboto-3d",
+  engine: "subset",
+  characters: "ABCabc0123",
+  preset: "outline-render",
+  formats: ["ttf"],
+  // e.g. run the font through another tool that takes and returns TTF bytes
+  transform: async (ttf) => myFontTool(ttf),
 });
 
-fs.writeFileSync('roboto-3d.ttf', result.ttf);
+fs.writeFileSync("roboto-3d.ttf", result.ttf);
 ```
 
 ### Variable fonts
@@ -332,17 +340,22 @@ it, in the units of the axis (`wght` 100–900, `wdth` in percent). A pinned axi
 variation tables; a font with every axis pinned is static. The outlines, advances, shaping, legacy kern pairs, `meta`
 and the SVG font all come from the instance. A narrowed axis keeps the font's default, clamped into the range, so
 `wght: { min: 600, max: 700 }` of a font whose default is 400 draws at 600 unless CSS sets `font-weight`. The icon
-engine builds a static font, so it takes only values.
+engine builds a static font, so it takes only values. `report.axes` lists the pinned axes with their values and
+the axes the output still varies along.
+
+An instance at a master of the font (a weight the designer drew, such as the default) has the outlines of the
+source. Between masters HarfBuzz interpolates the points and rounds them to whole font units, so an outline may lie up
+to one unit (0.1% of a 1000-unit em) from what a renderer interpolating the variable font draws; advances match.
 
 ```javascript
 const result = await extract(font, {
-    fontName: 'inter-bold',
-    engine: 'subset',
-    characters: text,
-    axes: {wght: 700},
-    rename: true,
-    preset: 'outline-render',
-    formats: ['ttf'],
+  fontName: "inter-bold",
+  engine: "subset",
+  characters: text,
+  axes: { wght: 700 },
+  rename: true,
+  preset: "outline-render",
+  formats: ["ttf"],
 });
 ```
 
@@ -372,9 +385,9 @@ order they occur — what a subset of the text would lack, before building it. C
 are listed too. It reads TTF, OTF, WOFF and WOFF2 and is also in `fontext/browser` (without WOFF2).
 
 ```javascript
-import {findMissingCodePoints} from 'fontext';
+import { findMissingCodePoints } from "fontext";
 
-const missing = await findMissingCodePoints(font, translations.join(''));
+const missing = await findMissingCodePoints(font, translations.join(""));
 // [0x416, 0x1f600] — "Ж" and "😀"
 ```
 
@@ -389,12 +402,12 @@ The icon engine rejects `split`.
 
 ```typescript
 type FontChunk = Partial<Record<Formats, Buffer>> & {
-    script: string;        // "latin", "cyrillic", "old_italic"...; "unknown" (private use), "common"
-    codePoints: number[];  // everything the chunk's font maps
-    unicodeRange: string;  // "U+0020-007E,U+00A0" — what to load this font for
-    meta: GlyphMeta[];
-    report: OptimizationReport;
-    warnings: FontWarning[];
+  script: string; // "latin", "cyrillic", "old_italic"...; "unknown" (private use), "common"
+  codePoints: number[]; // everything the chunk's font maps
+  unicodeRange: string; // "U+0020-007E,U+00A0" — what to load this font for
+  meta: GlyphMeta[];
+  report: OptimizationReport;
+  warnings: FontWarning[];
 };
 ```
 
@@ -417,40 +430,43 @@ The CLI writes the chunks next to the unsplit font as `<font-name>.<script>.<for
 its script, `unicodeRange`, counts and files.
 
 ```javascript
-const {chunks} = await extract(font, {
-    fontName: 'noto',
-    engine: 'subset',
-    unicodeRanges: ['U+0000-00FF', 'U+0370-03FF', 'U+0400-04FF'],
-    formats: ['woff2'],
-    split: 'scripts',
+const { chunks } = await extract(font, {
+  fontName: "noto",
+  engine: "subset",
+  unicodeRanges: ["U+0000-00FF", "U+0370-03FF", "U+0400-04FF"],
+  formats: ["woff2"],
+  split: "scripts",
 });
 
-const css = chunks.map(({script, unicodeRange, woff2}) => {
-    fs.writeFileSync(`noto.${script}.woff2`, woff2);
-    return `@font-face {
+const css = chunks.map(({ script, unicodeRange, woff2 }) => {
+  fs.writeFileSync(`noto.${script}.woff2`, woff2);
+  return `@font-face {
   font-family: "Noto";
   src: url("noto.${script}.woff2") format("woff2");
   unicode-range: ${unicodeRange};
 }`;
 });
-fs.writeFileSync('noto.css', css.join('\n'));
+fs.writeFileSync("noto.css", css.join("\n"));
 ```
 
 In Rive, the chunks of `preset: 'outline-render', formats: ['ttf']` are fallback fonts, looked up by the missing code
 point:
 
 ```javascript
-import {RiveFont, decodeFont} from '@rive-app/webgl2';
+import { RiveFont, decodeFont } from "@rive-app/webgl2";
 
 // chunks: [{script, codePoints}] saved at build time, next to the chunks' TTF files
-const fallbacks = await Promise.all(chunks.map(async ({script, codePoints}) => {
+const fallbacks = await Promise.all(
+  chunks.map(async ({ script, codePoints }) => {
     const bytes = await fetch(`/fonts/noto.${script}.ttf`).then((res) => res.arrayBuffer());
-    return {codePoints: new Set(codePoints), font: await decodeFont(new Uint8Array(bytes))};
-}));
+    return { codePoints: new Set(codePoints), font: await decodeFont(new Uint8Array(bytes)) };
+  }),
+);
 
 // Before Rive starts rendering
 RiveFont.setFallbackFontCallback((codePoint) =>
-    fallbacks.filter(({codePoints}) => codePoints.has(codePoint)).map(({font}) => font));
+  fallbacks.filter(({ codePoints }) => codePoints.has(codePoint)).map(({ font }) => font),
+);
 ```
 
 ## Supported Input Formats
@@ -465,16 +481,21 @@ A browser entry point finds glyphs and their SVG outlines without Node.js APIs o
 and WOFF; WOFF2 is rejected with an error, so decode it first or use the Node entry, which reads WOFF2.
 
 ```javascript
-import {createFont, findMetaByLigatures, findLigaturesByRaws, findMissingCodePoints} from 'fontext/browser';
+import {
+  createFont,
+  findMetaByLigatures,
+  findLigaturesByRaws,
+  findMissingCodePoints,
+} from "fontext/browser";
 
-const response = await fetch('/fonts/icons.woff');
+const response = await fetch("/fonts/icons.woff");
 const data = new Uint8Array(await response.arrayBuffer());
 
 const font = await createFont(data);
-const meta = findMetaByLigatures(font, ['home', 'search']);
+const meta = findMetaByLigatures(font, ["home", "search"]);
 // meta[0].svg — SVG markup for the glyph
-const ligatures = await findLigaturesByRaws(data, ['\uE88A']);
-const missing = await findMissingCodePoints(data, 'home');  // [] — Material Icons maps the letters
+const ligatures = await findLigaturesByRaws(data, ["\uE88A"]);
+const missing = await findMissingCodePoints(data, "home"); // [] — Material Icons maps the letters
 ```
 
 `Font.axes` lists the variation axes of a variable font: `{ tag, min, default, max }`.
