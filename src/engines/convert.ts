@@ -2,6 +2,7 @@ import type { ConvertOption, ExtractedResult } from "../types";
 import type { Optimization } from "../optimization";
 import type { Font } from "../font/font";
 import { createFont, findMetaByCodePoints } from "../glyphs";
+import { unpinnedAxesWarning } from "./instance";
 import { buildReport } from "./report";
 import { encodeFromTtf, type FontBuffers, subsetToTtf } from "./shared";
 import { loadSource, type SourceFont } from "./source";
@@ -32,6 +33,7 @@ async function buildConvert(
           safariFix,
           transform,
           script,
+          axes: source.axes,
         },
       )
     : null;
@@ -66,7 +68,12 @@ export async function extractConvert(
   const font = await createFont(source.content);
   const convertSource: ConvertSource = { source, font, option, optimization };
 
-  const { result } = await buildConvert(convertSource, font.codePoints);
+  const built = await buildConvert(convertSource, font.codePoints);
+  // The warning about the axes goes to the unsplit font only
+  const axesWarning = unpinnedAxesWarning(source.inputAxes, option.axes);
+  const result = axesWarning
+    ? { ...built.result, warnings: [axesWarning, ...built.result.warnings] }
+    : built.result;
   if (!option.split) {
     return result;
   }

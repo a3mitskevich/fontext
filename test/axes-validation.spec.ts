@@ -61,7 +61,7 @@ describe("axes option validation", () => {
     [
       "a value that is not a number",
       { wght: "700" },
-      'Invalid value for axis "wght": "700". Use a finite number or { min, max } with min <= max',
+      'Invalid value for axis "wght": "700". Use a finite number, "default" or { min, max } with min <= max',
     ],
     ["a value that is not finite", { wght: Number.NaN }, 'Invalid value for axis "wght": NaN'],
     ["a range without max", { wght: { min: 100 } }, 'Invalid value for axis "wght"'],

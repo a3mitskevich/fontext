@@ -3,6 +3,7 @@ import type { Optimization } from "../optimization";
 import { createFont, findMetaByCodePoints, parseUnicodeRanges } from "../glyphs";
 import { missingCodePoints } from "../core";
 import { missingCharactersWarning } from "./missing-characters";
+import { unpinnedAxesWarning } from "./instance";
 import { buildReport } from "./report";
 import { encodeFromTtf, type SubsetSelection, subsetToTtf } from "./shared";
 import { loadSource, type SourceFont } from "./source";
@@ -30,6 +31,7 @@ async function buildSubset(
     safariFix,
     transform,
     script,
+    axes: source.axes,
   });
   const fonts = await encodeFromTtf(ttf, formats);
   const subsetted = await createFont(ttf);
@@ -88,10 +90,12 @@ export async function extractSubset(
   // Planned first, so a ligature of two scripts rejects before anything is subset
   const plans = option.split ? await planSplit(source.content, selection) : undefined;
   const built = await buildSubset(source, selection, option, optimization);
-  const missing = await missingCharacters(source, option.characters);
-  const result = missing
-    ? { ...built.result, warnings: [missing, ...built.result.warnings] }
-    : built.result;
+  // Warnings about the whole selection go to the unsplit font only
+  const warnings = [
+    unpinnedAxesWarning(source.inputAxes, option.axes),
+    await missingCharacters(source, option.characters),
+  ].filter((warning) => warning !== undefined);
+  const result = { ...built.result, warnings: [...warnings, ...built.result.warnings] };
   if (!plans) {
     return result;
   }

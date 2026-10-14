@@ -87,9 +87,15 @@ export function parseNameLanguages(value: string): NameLanguages {
     : (parseList(value).map((item) => parseLanguageId(item)) as number[]);
 }
 
-/** "700" pins, "600:700" narrows; any other text stays a string for extract() to reject. */
+/**
+ * "700" pins, "default" pins at the font's default, "600:700" narrows; any other text stays a
+ * string for extract() to reject.
+ */
 function parseAxisSetting(value: string): AxisSetting {
   const parts = value.split(":").map((part) => part.trim());
+  if (parts.length === 1 && parts[0] === "default") {
+    return "default";
+  }
   if (parts.length === 1 && NUMBER.test(parts[0])) {
     return Number(parts[0]);
   }
@@ -99,7 +105,7 @@ function parseAxisSetting(value: string): AxisSetting {
   return value as unknown as AxisSetting;
 }
 
-/** Comma-separated axis settings: "wght=700,wdth=75:100". */
+/** Comma-separated axis settings: "wght=700,wdth=75:100", "wght=700,*=default". */
 export function parseAxes(value: string): Axes {
   return Object.fromEntries(
     parseList(value).map((item) => {

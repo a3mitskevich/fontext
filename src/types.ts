@@ -52,10 +52,11 @@ export interface OptimizationReport {
 /**
  * Something of the source font the output could not keep. `legacy-kern`: the font kerns only in
  * the legacy kern table, and part of that kerning was left out. `missing-characters`: the font
- * has no glyph for some `characters` of the subset engine.
+ * has no glyph for some `characters` of the subset engine. `unpinned-axes`: `axes` pins every
+ * axis it names, but the font has others, so the output stays variable.
  */
 export interface FontWarning {
-  code: "legacy-kern" | "missing-characters";
+  code: "legacy-kern" | "missing-characters" | "unpinned-axes";
   message: string;
 }
 
@@ -115,11 +116,15 @@ export type LayoutFeatures = "all" | "default" | string[];
 
 /**
  * A setting of a variation axis, in the units of the axis (wght 100-900, wdth in percent): a
- * value pins the axis, `{ min, max }` narrows its range.
+ * value pins the axis, "default" pins it at the font's default, `{ min, max }` narrows its range.
  */
-export type AxisSetting = number | { min: number; max: number };
+export type AxisSetting = number | "default" | { min: number; max: number };
 
-/** Variation axis settings by axis tag, e.g. `{ wght: 700, wdth: { min: 75, max: 100 } }`. */
+/**
+ * Variation axis settings by axis tag, e.g. `{ wght: 700, wdth: { min: 75, max: 100 } }`. The key
+ * `"*"` with "default" pins every axis the others don't name at its default:
+ * `{ wght: 700, "*": "default" }` gives a static font of any variable one.
+ */
 export type Axes = Record<string, AxisSetting>;
 
 /**

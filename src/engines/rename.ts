@@ -1,4 +1,6 @@
-import type { Axes, Rename } from "../types";
+import type { Rename } from "../types";
+import type { InstanceAxes } from "./hb-subset";
+import { assertNamedWeight, PIN_WEIGHT, pinnedWeight, WEIGHT_NAMES } from "./rename-option";
 import {
   decodeName,
   encodeName,
@@ -39,19 +41,6 @@ const RENAMED_IDS = new Set([
 
 const WINDOWS = { platformId: 3, encodingId: 1, languageId: 0x4_09 } as const;
 
-/** The usual style names of the OpenType weight classes. */
-const WEIGHT_NAMES: Readonly<Record<number, string>> = {
-  100: "Thin",
-  200: "ExtraLight",
-  300: "Light",
-  400: "Regular",
-  500: "Medium",
-  600: "SemiBold",
-  700: "Bold",
-  800: "ExtraBold",
-  900: "Black",
-};
-
 const OS2_FS_SELECTION = 62;
 const HEAD_MAC_STYLE = 44;
 const FS_ITALIC = 1;
@@ -63,60 +52,9 @@ const MAC_ITALIC = 1 << 1;
 const POSTSCRIPT_MAX_LENGTH = 63;
 // Everything but printable ASCII, and the delimiters a PostScript name may not hold
 const POSTSCRIPT_EXCLUDED = /[^\x21-\x7e]|[[\](){}<>/%]/gu;
-const CONTROL = /\p{Cc}/u;
 const ITALIC = /\bitalic\b/iu;
 const RIBBI_WEIGHT = /^(?:regular|bold)$/iu;
 const BOLD = /^bold$/iu;
-
-const INVALID_RENAME = "rename must be true or an object with family and/or style";
-
-/** The weight the style is named after: a pinned wght axis. */
-const pinnedWeight = (axes: Axes | undefined): number | undefined =>
-  typeof axes?.wght === "number" ? axes.wght : undefined;
-
-function assertNamePart(key: string, value: unknown): void {
-  if (value !== undefined && (typeof value !== "string" || !value.trim() || CONTROL.test(value))) {
-    throw new Error(`rename.${key} must be a non-empty string without control characters`);
-  }
-}
-
-/**
- * Throws on a rename of the wrong shape, and on a style it can't name: without rename.style the
- * style comes from the pinned wght axis, which `true` needs, and only the weights 100-900 in
- * steps of 100 have names.
- */
-export function assertRenameOption(rename: unknown, axes?: Axes): void {
-  if (rename === undefined) {
-    return;
-  }
-  if (rename !== true && (typeof rename !== "object" || rename === null || Array.isArray(rename))) {
-    throw new TypeError(INVALID_RENAME);
-  }
-  const { family, style } = rename === true ? {} : (rename as Record<string, unknown>);
-  if (rename !== true && family === undefined && style === undefined) {
-    throw new TypeError(INVALID_RENAME);
-  }
-  assertNamePart("family", family);
-  assertNamePart("style", style);
-  if (style !== undefined) {
-    return;
-  }
-  const isWeightRange = typeof axes?.wght === "object";
-  if (isWeightRange) {
-    throw new Error(
-      "rename takes the style from a pinned wght axis, and wght is a range: set rename.style",
-    );
-  }
-  const weight = pinnedWeight(axes);
-  if (rename === true && weight === undefined) {
-    throw new Error(
-      "rename: true takes the style from a pinned wght axis: pin it with axes or set rename.style",
-    );
-  }
-  if (weight !== undefined && !Object.hasOwn(WEIGHT_NAMES, weight)) {
-    throw new Error(`Cannot name weight ${weight}: set rename.style`);
-  }
-}
 
 /** The string of a name id, in Windows English if the font has it, else in any UTF-16 record. */
 function nameOf(records: readonly NameRecord[], nameId: number): string | undefined {
@@ -135,7 +73,7 @@ interface Names {
 }
 
 /** The style of the pinned weight, italic when the source is or ital is pinned to 1. */
-function weightStyle(weight: number, sourceStyle: string, axes: Axes): string {
+function weightStyle(weight: number, sourceStyle: string, axes: InstanceAxes): string {
   const weightName = WEIGHT_NAMES[weight];
   if (!ITALIC.test(sourceStyle) && axes.ital !== 1) {
     return weightName;
@@ -144,7 +82,7 @@ function weightStyle(weight: number, sourceStyle: string, axes: Axes): string {
 }
 
 /** The family and style to write: those given, else the source's family and the pinned weight. */
-function resolveNames(rename: Rename, source: readonly NameRecord[], axes: Axes): Names {
+function resolveNames(rename: Rename, source: readonly NameRecord[], axes: InstanceAxes): Names {
   const given = rename === true ? {} : rename;
   const family = given.family ?? nameOf(source, TYPOGRAPHIC_FAMILY) ?? nameOf(source, FAMILY);
   if (!family) {
@@ -153,7 +91,12 @@ function resolveNames(rename: Rename, source: readonly NameRecord[], axes: Axes)
   const sourceStyle = nameOf(source, TYPOGRAPHIC_SUBFAMILY) ?? nameOf(source, SUBFAMILY) ?? "";
   const weight = pinnedWeight(axes);
   if (given.style === undefined && weight !== undefined) {
+    assertNamedWeight(weight);
     return { family, style: weightStyle(weight, sourceStyle, axes) };
+  }
+  // "*": "default" pins no wght in a font without one
+  if (rename === true) {
+    throw new Error(PIN_WEIGHT);
   }
   return { family, style: given.style ?? (sourceStyle || "Regular") };
 }
@@ -285,7 +228,7 @@ export function renameFont(
   font: Uint8Array,
   source: Uint8Array,
   rename: Rename,
-  axes: Axes,
+  axes: InstanceAxes,
 ): Uint8Array {
   const { records: sourceRecords } = readNameTable(requiredSfntTable(source, "name"));
   const names = resolveNames(rename, sourceRecords, axes);

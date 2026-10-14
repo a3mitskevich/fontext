@@ -56,7 +56,7 @@ ${c.bold}Optimization:${c.reset}
       ${c.cyan}--keep-tables${c.reset} <list>   Tables to keep that would be dropped: ${c.dim}gasp, meta, PCLT${c.reset}
       ${c.cyan}--glyph-names${c.reset}         Keep glyph names in post ${c.dim}(dropped by default)${c.reset}
       ${c.cyan}--desubroutinize${c.reset}      Inline CFF subroutines ${c.dim}(--no-desubroutinize keeps them)${c.reset}
-      ${c.cyan}--axes${c.reset} <list>          Pin or narrow variation axes ${c.dim}(e.g. wght=700,wdth=75:100)${c.reset}
+      ${c.cyan}--axes${c.reset} <list>          Pin or narrow variation axes ${c.dim}(e.g. wght=700,wdth=75:100; *=default pins the rest)${c.reset}
       ${c.cyan}--rename${c.reset}               Name the font after the pinned weight ${c.dim}(e.g. Bold for wght=700)${c.reset}
       ${c.cyan}--rename-family${c.reset} <name> New family name
       ${c.cyan}--rename-style${c.reset} <name>  New style name

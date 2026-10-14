@@ -27,7 +27,6 @@ describe("resolveOptimization", () => {
         desubroutinize: false,
         glyphNames: false,
         rename: undefined,
-        axes: {},
       });
     },
   );
@@ -48,7 +47,6 @@ describe("resolveOptimization", () => {
       desubroutinize: true,
       glyphNames: false,
       rename: undefined,
-      axes: {},
     });
   });
 
@@ -68,7 +66,6 @@ describe("resolveOptimization", () => {
       desubroutinize: false,
       glyphNames: false,
       rename: undefined,
-      axes: {},
     });
   });
 
@@ -94,7 +91,6 @@ describe("resolveOptimization", () => {
       desubroutinize: false,
       glyphNames: false,
       rename: undefined,
-      axes: {},
     });
     const web: SubsetOption = {
       ...subset,
@@ -110,7 +106,6 @@ describe("resolveOptimization", () => {
       desubroutinize: false,
       glyphNames: false,
       rename: undefined,
-      axes: {},
     });
   });
 
@@ -138,7 +133,6 @@ describe("resolveOptimization", () => {
       desubroutinize: true,
       glyphNames: true,
       rename: undefined,
-      axes: {},
     });
   });
 

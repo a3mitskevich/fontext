@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as hb from "harfbuzzjs";
 import type { MinifyOption } from "../src";
-import { assertRenameOption } from "../src/engines/rename";
+import { assertRenameOption } from "../src/engines/rename-option";
 import { encodeName, readNameTable, writeNameTable } from "../src/font/name";
 import { requiredSfntTable, withTable } from "../src/font/sfnt";
 import { cffFont, extract, textFont, ttfOriginalFont, variableFont } from "./setup";

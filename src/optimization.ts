@@ -1,4 +1,4 @@
-import { assertRenameOption } from "./engines/rename";
+import { assertRenameOption } from "./engines/rename-option";
 import {
   type Axes,
   type Engine,
@@ -32,14 +32,12 @@ export interface Optimization {
   readonly glyphNames: boolean;
   /** New family and style names. */
   readonly rename: Rename | undefined;
-  /** The axes the source was instanced at, for the style names. */
-  readonly axes: Axes;
 }
 
 /** What a preset sets when the options leave it open. */
 type Defaults = Omit<
   Optimization,
-  "formats" | "dropTables" | "keepTables" | "glyphNames" | "nameLanguages" | "rename" | "axes"
+  "formats" | "dropTables" | "keepTables" | "glyphNames" | "nameLanguages" | "rename"
 >;
 
 /** Family, subfamily, full name (three.js TTFLoader reads it) and PostScript name. */
@@ -127,7 +125,6 @@ interface OptimizationFields {
   readonly glyphNames?: boolean;
   readonly desubroutinize?: boolean;
   readonly rename?: Rename;
-  readonly axes?: Axes;
 }
 
 /**
@@ -152,7 +149,6 @@ export function resolveOptimization(option: MinifyOption): Optimization {
     desubroutinize: fields.desubroutinize ?? defaults.desubroutinize,
     glyphNames: fields.glyphNames ?? false,
     rename: fields.rename,
-    axes: fields.axes ?? {},
   };
 }
 

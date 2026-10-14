@@ -58,28 +58,28 @@ Requires Node.js 22.13 or later. The package is ESM only; CommonJS code can stil
 npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf -o ./fonts
 ```
 
-| Flag                                | Description                                                   |
-| ----------------------------------- | ------------------------------------------------------------- |
-| `-i, --input`                       | Path to the font file (required)                              |
-| `-n, --font-name`                   | Name for the output font (required)                           |
-| `-l, --ligatures`                   | Comma-separated ligature names                                |
-| `-r, --raws`                        | Comma-separated raw unicode characters                        |
-| `-u, --unicode-ranges`              | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)         |
-| `-f, --formats`                     | Output formats: `svg,ttf,woff,woff2,eot` (default: all)       |
-| `-o, --output`                      | Output directory (default: `.`)                               |
-| `--preset`                          | `web-font` or `outline-render`                                |
-| `--no-hinting`                      | Drop TrueType hinting and `gasp` (`--hinting` keeps them)     |
-| `--layout-features`                 | `all`, `default` or tags: `liga,kern`                         |
-| `--name-ids`                        | Name ids to keep: `1,2,4`                                     |
-| `--name-languages`                  | Name record languages to keep: `all` or `0x409,0x419`         |
-| `--drop-tables`                     | Tables to drop: `MATH,DSIG`                                   |
-| `--keep-tables`                     | Tables to keep that would be dropped: `gasp,meta,PCLT`        |
-| `--glyph-names`                     | Keep glyph names in `post`                                    |
-| `--desubroutinize`                  | Inline CFF subroutines (`--no-desubroutinize` keeps them)     |
-| `--axes`                            | Pin or narrow variation axes: `wght=700,wdth=75:100`          |
-| `--rename`                          | Name the font after its pinned weight (`Bold` for `wght=700`) |
-| `--rename-family`, `--rename-style` | New family and style names                                    |
-| `--split scripts`                   | Also write a font per script: `<font-name>.<script>.<format>` |
+| Flag                                | Description                                                    |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `-i, --input`                       | Path to the font file (required)                               |
+| `-n, --font-name`                   | Name for the output font (required)                            |
+| `-l, --ligatures`                   | Comma-separated ligature names                                 |
+| `-r, --raws`                        | Comma-separated raw unicode characters                         |
+| `-u, --unicode-ranges`              | Comma-separated unicode ranges (e.g. `U+E000-U+E100`)          |
+| `-f, --formats`                     | Output formats: `svg,ttf,woff,woff2,eot` (default: all)        |
+| `-o, --output`                      | Output directory (default: `.`)                                |
+| `--preset`                          | `web-font` or `outline-render`                                 |
+| `--no-hinting`                      | Drop TrueType hinting and `gasp` (`--hinting` keeps them)      |
+| `--layout-features`                 | `all`, `default` or tags: `liga,kern`                          |
+| `--name-ids`                        | Name ids to keep: `1,2,4`                                      |
+| `--name-languages`                  | Name record languages to keep: `all` or `0x409,0x419`          |
+| `--drop-tables`                     | Tables to drop: `MATH,DSIG`                                    |
+| `--keep-tables`                     | Tables to keep that would be dropped: `gasp,meta,PCLT`         |
+| `--glyph-names`                     | Keep glyph names in `post`                                     |
+| `--desubroutinize`                  | Inline CFF subroutines (`--no-desubroutinize` keeps them)      |
+| `--axes`                            | Pin or narrow variation axes: `wght=700,wdth=75:100,*=default` |
+| `--rename`                          | Name the font after its pinned weight (`Bold` for `wght=700`)  |
+| `--rename-family`, `--rename-style` | New family and style names                                     |
+| `--split scripts`                   | Also write a font per script: `<font-name>.<script>.<format>`  |
 
 `.fontextrc.json` and its batch entries take the same options as `preset`, `hinting`, `layoutFeatures`,
 `nameIds`, `nameLanguages`, `dropTables`, `keepTables`, `glyphNames`, `desubroutinize`, `axes`
@@ -138,7 +138,7 @@ fs.writeFileSync("my-icons.woff2", result.woff2);
 | `keepTables`     | `string[]`       | `[]`                   | Tables to keep that would be dropped: `gasp`, `meta`, `PCLT` — subset and convert engines                                                                              |
 | `glyphNames`     | `boolean`        | `false`                | Keep the glyph names (`post` format 2)                                                                                                                                 |
 | `desubroutinize` | `boolean`        | `false`                | Inline CFF subroutines — subset and convert engines                                                                                                                    |
-| `axes`           | `Axes`           | —                      | Pin (`{ wght: 700 }`) or narrow (`{ wght: { min: 600, max: 700 } }`) variation axes, see [Variable fonts](#variable-fonts)                                             |
+| `axes`           | `Axes`           | —                      | Pin (`{ wght: 700 }`, `"default"`, `"*": "default"` for the rest) or narrow (`{ wght: { min: 600, max: 700 } }`) variation axes, see [Variable fonts](#variable-fonts) |
 | `rename`         | `Rename`         | —                      | `true` or `{ family?, style? }`: rewrite the family and style names, see [Variable fonts](#variable-fonts)                                                             |
 | `transform`      | `FontTransform`  | —                      | `(ttf: Uint8Array, context?: { script }) => Uint8Array \| Promise<Uint8Array>`, rewrites the final TTF before encoding                                                 |
 | `split`          | `Split`          | —                      | `'scripts'`: also a font per Unicode script in `chunks`, see [Splitting by script](#splitting-by-script) — subset and convert engines                                  |
@@ -169,7 +169,8 @@ fs.writeFileSync("my-icons.woff2", result.woff2);
   every font needs — `"Invalid tag(s) in dropTables: \"head\". The font needs these tables: ..."`; a `keepTables`
   tag other than `gasp`, `meta` and `PCLT`, or one also in `dropTables` — `"Invalid tag(s) in keepTables: ..."`,
   `"keepTables and dropTables both name: ..."`
-- `axes` that are not an object of numbers and `{ min, max }` — `"Invalid value for axis \"wght\": ..."`; a range in
+- `axes` that are not an object of numbers, `"default"` and `{ min, max }` — `"Invalid value for axis \"wght\": ..."`;
+  `"*"` with anything but `"default"` — `"Invalid value for axes[\"*\"]: ..."`; a range in
   the icon engine — `"The icon engine builds a static font: pin axis \"wght\" to one value"`; a static font —
   `"axes is set, but the font has no variation axes"`; an axis the font lacks — `"Unknown axis \"opsz\". The font
 has: wght 100-900, ..."`; a value outside the axis — `"Axis \"wght\" value 950 is outside the font's range
@@ -226,7 +227,7 @@ interface OptimizationReport {
 }
 
 interface FontWarning {
-  code: "legacy-kern" | "missing-characters"; // what the output could not keep
+  code: "legacy-kern" | "missing-characters" | "unpinned-axes"; // what the output could not keep
   message: string;
 }
 ```
@@ -240,7 +241,9 @@ code point that could not be matched in the subset. A version of the font with k
 `missing-characters`: the source has no glyph for some `characters` of the subset engine, named by code point
 (`U+0416 "Ж", U+000A`, up to 20). Joiners and variation selectors (default ignorable code points) don't count,
 shaping hides them; control characters do, so strip line feeds from texts you pass, e.g.
-`text.replace(/\p{Cc}/gu, "")`. Unicode ranges don't warn: they cover whatever the font has.
+`text.replace(/\p{Cc}/gu, "")`. Unicode ranges don't warn: they cover whatever the font has. `unpinned-axes`: `axes`
+pins every axis it names, but the font has others, so the output stays variable along them (`fvar`, `gvar` and the
+other variation tables stay, often doubling the size); `"*": "default"` pins them.
 
 ### Icon engine output
 
@@ -340,7 +343,12 @@ it, in the units of the axis (`wght` 100–900, `wdth` in percent). A pinned axi
 variation tables; a font with every axis pinned is static. The outlines, advances, shaping, legacy kern pairs, `meta`
 and the SVG font all come from the instance. A narrowed axis keeps the font's default, clamped into the range, so
 `wght: { min: 600, max: 700 }` of a font whose default is 400 draws at 600 unless CSS sets `font-weight`. The icon
-engine builds a static font, so it takes only values. `report.axes` lists the pinned axes with their values and
+engine builds a static font, so it takes only values.
+
+`"default"` pins an axis at the font's default, and the key `"*"` with `"default"` pins every axis the others don't
+name: `{ wght: 700, "*": "default" }` gives a static Bold of Inter, whose `opsz` would otherwise stay variable. Pinning
+some axes and leaving others gives an `unpinned-axes` warning; a range keeps the font variable on purpose and gives none.
+`report.axes` lists the pinned axes with their values and
 the axes the output still varies along.
 
 An instance at a master of the font (a weight the designer drew, such as the default) has the outlines of the
@@ -363,7 +371,7 @@ HarfBuzz would clamp a value outside an axis silently and ignore an axis the fon
 `axes` on a static font. HarfBuzz sets `usWeightClass` and `usWidthClass` of the instance but leaves its names: a
 Bold instance is still called Regular. `rename` rewrites them:
 
-- `rename: true` keeps the family of the source and names the style after the pinned weight: 100 Thin, 200
+- `rename: true` keeps the family of the source and names the style after the pinned weight (`"default"` and `"*"` pin it at the font's default): 100 Thin, 200
   ExtraLight, 300 Light, 400 Regular, 500 Medium, 600 SemiBold, 700 Bold, 800 ExtraBold, 900 Black, with Italic when
   the source is italic or `ital` is pinned to 1. Other weights need `rename.style`.
 - `rename: { family, style }` sets either or both, with or without axes; a part left out comes from the source as

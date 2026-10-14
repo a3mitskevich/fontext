@@ -245,7 +245,7 @@ describe("CLI optimization flags", () => {
             fontName: "variable",
             engine: "subset",
             characters: "A",
-            axes: { wght: 600 },
+            axes: { wght: 600, "*": "default" },
             rename: { family: "Brand" },
           },
         ],
@@ -273,5 +273,7 @@ describe("CLI optimization flags", () => {
     expect(nameIdsOf(writtenTtf(outDir, "icons"))).toStrictEqual([4]);
     const variable = new hb.Face(new hb.Blob(writtenTtf(outDir, "variable")), 0);
     expect(variable.getName(1, "en")).toBe("Brand SemiBold");
+    // "*": "default" pins wdth too
+    expect(variable.getAxisInfos()).toStrictEqual({});
   });
 });

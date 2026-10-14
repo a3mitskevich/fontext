@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tagNumber } from "../font/sfnt";
-import type { AxisSetting } from "../types";
 
 /** Flags of `hb_subset_input_set_flags`, from hb-subset.h. */
 export const SubsetFlag = {
@@ -11,6 +10,12 @@ export const SubsetFlag = {
   GLYPH_NAMES: 0x80,
   NO_LAYOUT_CLOSURE: 0x2_00,
 } as const;
+
+/** Where an axis is instanced, in user units: a value pins it, `{ min, max }` narrows it. */
+export type AxisLocation = number | { readonly min: number; readonly max: number };
+
+/** Axis locations by tag. */
+export type InstanceAxes = Readonly<Record<string, AxisLocation>>;
 
 /** What to keep of a font; unset sets keep the HarfBuzz defaults. */
 export interface SubsetInput {
@@ -37,7 +42,7 @@ export interface SubsetInput {
    */
   readonly keepEverything?: boolean;
   /** Variation axes to pin (a value) or narrow (`{ min, max }`), by tag, in user units. */
-  readonly axes?: Readonly<Record<string, AxisSetting>>;
+  readonly axes?: InstanceAxes;
 }
 
 // Neither the ES lib nor @types/node declares WebAssembly; this is the one call made here
@@ -146,12 +151,7 @@ function replace(hb: HbSubsetExports, set: number, values: "*" | Iterable<number
  * lacks; callers check the settings against the font first, so a refusal is an error here. A
  * range keeps the default of the font, clamped into it.
  */
-function setAxes(
-  hb: HbSubsetExports,
-  input: number,
-  face: number,
-  axes: Readonly<Record<string, AxisSetting>>,
-): void {
+function setAxes(hb: HbSubsetExports, input: number, face: number, axes: InstanceAxes): void {
   for (const [tag, setting] of Object.entries(axes)) {
     const axisTag = tagNumber(tag.padEnd(4, " "));
     const isSet =

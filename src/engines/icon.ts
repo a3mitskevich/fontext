@@ -10,7 +10,7 @@ import {
 } from "../glyphs";
 import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
-import { hbSubset, SubsetFlag } from "./hb-subset";
+import { hbSubset, type InstanceAxes, SubsetFlag } from "./hb-subset";
 import { buildReport } from "./report";
 import { encodeFromTtf, type FontBuffers } from "./shared";
 import { loadSource } from "./source";
@@ -52,6 +52,8 @@ interface IconSettings {
   readonly safariFix?: boolean;
   readonly transform?: FontTransform;
   readonly timestamp: number;
+  /** The axes the source was instanced at, which `rename` names the style after. */
+  readonly axes: InstanceAxes;
 }
 
 /** The fonts of every format, and the TTF the binary formats were encoded from. */
@@ -62,7 +64,7 @@ interface IconFonts {
 
 async function convertByFormats(
   svgFont: Buffer,
-  { optimization, safariFix = false, transform, timestamp }: IconSettings,
+  { optimization, safariFix = false, transform, timestamp, axes }: IconSettings,
 ): Promise<IconFonts> {
   const { formats } = optimization;
   const svg = formats.includes("svg") ? { svg: svgFont } : {};
@@ -73,7 +75,7 @@ async function convertByFormats(
   const built = svg2ttf(svgFont.toString(), { ts: timestamp }).buffer;
   const packed = await repack(built, optimization);
   // Names come from svg2ttf's font, its family the font name: nameIds may filter the repacked one
-  const { rename, axes } = optimization;
+  const { rename } = optimization;
   const ttf = rename ? Buffer.from(renameFont(packed, built, rename, axes)) : packed;
   const final = await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform);
   const binaryFonts = await encodeFromTtf(final, formats);
@@ -114,6 +116,7 @@ export async function extractIcon(
     /* The source font's head.modified instead of the current time keeps the output
        byte-identical for identical input, so content-hashed asset names stay stable */
     timestamp: font.modified,
+    axes: source.axes,
   });
 
   return {

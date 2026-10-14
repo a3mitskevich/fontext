@@ -8,7 +8,7 @@ import { openFont } from "../font/font";
 import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
 import { assertLigaturesKept } from "./ligature-check";
-import { hbSubset, SubsetFlag, type SubsetInput } from "./hb-subset";
+import { hbSubset, type InstanceAxes, SubsetFlag, type SubsetInput } from "./hb-subset";
 import { keepSourceTables } from "./keep-tables";
 import { restoreKerning } from "./kerning";
 import { renameFont } from "./rename";
@@ -144,6 +144,8 @@ export interface SubsetSettings {
   readonly transform?: FontTransform;
   /** The script of the chunk being built, handed to the transform; undefined for the whole font. */
   readonly script?: string;
+  /** The axes the source was instanced at, which `rename` names the style after. */
+  readonly axes: InstanceAxes;
 }
 
 /**
@@ -153,7 +155,7 @@ export interface SubsetSettings {
 export async function subsetToTtf(
   content: Buffer,
   selection: SubsetSelection,
-  { optimization, safariFix = false, transform, script }: SubsetSettings,
+  { optimization, safariFix = false, transform, script, axes }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
   const subset = keepSourceTables(
@@ -165,7 +167,7 @@ export async function subsetToTtf(
   const { font, warnings } = optimization.dropTables.includes("kern")
     ? { font: subset, warnings: [] }
     : await restoreKerning(source, subset);
-  const { rename, axes } = optimization;
+  const { rename } = optimization;
   const renamed = rename ? renameFont(font, source, rename, axes) : font;
   const ttf = Buffer.from(renamed.buffer, renamed.byteOffset, renamed.byteLength);
   const patched = safariFix ? applySafariFix(ttf) : ttf;

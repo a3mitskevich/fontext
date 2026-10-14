@@ -44,6 +44,7 @@ describe("CLI parsing of axes, names and tables", () => {
       wdth: { min: 75, max: 100 },
       opsz: 12.5,
     });
+    expect(parseAxes("wght=default,*=default")).toStrictEqual({ wght: "default", "*": "default" });
     expect(parseAxes("wght=bold,wdth=1:2:3,slnt")).toStrictEqual({
       wght: "bold",
       wdth: "1:2:3",
