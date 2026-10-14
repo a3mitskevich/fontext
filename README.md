@@ -288,7 +288,7 @@ and the layout tables that shape text, `GSUB`, `GPOS` and `GDEF`.
 - **Names**: ids 1, 2, 4 and 6 are family, subfamily, full name (three.js `TTFLoader` reads it) and PostScript name;
   the rest saves a few hundred bytes. Only English (United States) records stay unless `nameLanguages` lists other
   language ids or is `'all'`: Arial's `name` table grows 762 → 1 904 bytes with every language. HarfBuzz keeps the
-  names `fvar` and `STAT` refer to.
+  names `fvar` and `STAT` refer to; a static instance drops `STAT` and its names.
 - **Glyph names**: `post` is format 3, without glyph names, in every engine; `glyphNames: true` keeps them (format 2),
   e.g. for PDF text extraction.
 - **CFF desubroutinization** inlines the subroutines: smaller once compressed, larger raw. Measured on four CFF fonts,
@@ -349,7 +349,9 @@ fs.writeFileSync("roboto-3d.ttf", result.ttf);
 
 `axes` instances a variable font before anything else, in every engine: a value pins an axis, `{ min, max }` narrows
 it, in the units of the axis (`wght` 100–900, `wdth` in percent). A pinned axis leaves `fvar`, `gvar` and the other
-variation tables; a font with every axis pinned is static. The outlines, advances, shaping, legacy kern pairs, `meta`
+variation tables; a font with every axis pinned is static and loses `STAT` too, with the axis and style names only it
+used (100–240 bytes on Inter, Roboto, Montserrat, Rubik, Oswald and Roboto Slab): it describes axes the font no longer
+has. While an axis stays variable, `STAT` stays. The outlines, advances, shaping, legacy kern pairs, `meta`
 and the SVG font all come from the instance. A narrowed axis keeps the font's default, clamped into the range, so
 `wght: { min: 600, max: 700 }` of a font whose default is 400 draws at 600 unless CSS sets `font-weight`. The icon
 engine builds a static font, so it takes only values.

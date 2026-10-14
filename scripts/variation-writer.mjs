@@ -1,9 +1,22 @@
 /**
- * Builders for the tables of variable TrueType test fixtures (fvar, gvar) and for the meta and
+ * Builders for the tables of variable TrueType test fixtures (fvar, gvar, STAT) and for the meta and
  * DSIG tables. They take plain numbers, so fixtures only describe their axes and deltas.
  */
 
-import { bytes, i16s, off32, offsetsOf, struct, tag, u16s, u32, u32s, u8 } from "./sfnt-writer.mjs";
+import {
+  bytes,
+  i16s,
+  off16,
+  off32,
+  offsetsOf,
+  struct,
+  tag,
+  u16,
+  u16s,
+  u32,
+  u32s,
+  u8,
+} from "./sfnt-writer.mjs";
 
 const FVAR_AXES_OFFSET = 16;
 const FVAR_AXIS_SIZE = 20;
@@ -138,6 +151,33 @@ export function meta(entries) {
   return struct(
     u32s([1, 0, 0, maps.length]),
     maps.map(({ mapTag, data }) => [tag(mapTag), off32(data), u32(data.length)]),
+  );
+}
+
+const STAT_DESIGN_AXIS_SIZE = 8;
+const AXIS_VALUE_FORMAT_1 = 1;
+/** Axis value flag: style names leave the value's name out, e.g. "Regular". */
+export const ELIDABLE_AXIS_VALUE_NAME = 0x2;
+
+/**
+ * Version 1.1 STAT: a design axis per `{ tag, nameId }` in that order, and format 1 axis values
+ * `{ axisIndex, flags, nameId, value }`, the value in user units.
+ */
+export function stat({ axes, values, elidedFallbackNameId }) {
+  const designAxes = struct(
+    axes.map((axis, ordering) => [tag(axis.tag), u16s([axis.nameId, ordering])]),
+  );
+  const axisValues = values.map(({ axisIndex, flags, nameId, value }) =>
+    struct(u16s([AXIS_VALUE_FORMAT_1, axisIndex, flags, nameId]), fixed(value)),
+  );
+  // The offsets of the axis values count from the start of their array
+  const axisValueOffsets = struct(axisValues.map((axisValue) => off16(axisValue)));
+  return struct(
+    u16s([1, 1, STAT_DESIGN_AXIS_SIZE, axes.length]),
+    off32(designAxes),
+    u16(values.length),
+    off32(axisValueOffsets),
+    u16(elidedFallbackNameId),
   );
 }
 

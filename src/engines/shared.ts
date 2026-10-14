@@ -5,6 +5,7 @@ import type { FontTransform, FontWarning, Formats } from "../types";
 import { toSfnt } from "../font/container";
 import { applySafariFix } from "../safari";
 import { openFont } from "../font/font";
+import { sfntTable } from "../font/sfnt";
 import type { Optimization } from "../optimization";
 import { layoutClosure } from "./closure";
 import { assertLigaturesKept } from "./ligature-check";
@@ -83,15 +84,33 @@ const LAYOUT_FEATURES = { all: "*", default: undefined } as const;
 
 /** NO_HINTING leaves gasp, which only tells rasterizers how to grid-fit and smooth. */
 const GASP = "gasp";
+/**
+ * Pinning every axis leaves STAT, which describes axes the static font no longer has; its names
+ * (axis and style names such as "Weight" or "Bold") go with it.
+ */
+const STAT = "STAT";
 
-/** The tables to drop: those of the options, and gasp without hinting unless it is kept. */
-function dropTablesOf({ hinting, dropTables, keepTables }: Optimization): readonly string[] {
-  const dropsGasp = !hinting && !keepTables.includes(GASP) && !dropTables.includes(GASP);
-  return dropsGasp ? [...dropTables, GASP] : dropTables;
+/**
+ * The tables to drop: those of the options, gasp without hinting unless it is kept, and STAT of
+ * a font whose axes are all pinned.
+ */
+function dropTablesOf(
+  { hinting, dropTables, keepTables }: Optimization,
+  isPinned: boolean,
+): readonly string[] {
+  const implied = [
+    ...(!hinting && !keepTables.includes(GASP) ? [GASP] : []),
+    ...(isPinned ? [STAT] : []),
+  ];
+  return [...dropTables, ...implied.filter((tag) => !dropTables.includes(tag))];
 }
 
+/** Whether `axes` made the font static: it was instanced and has no fvar left. */
+const isPinnedInstance = (sfnt: Uint8Array, axes: InstanceAxes): boolean =>
+  Object.keys(axes).length > 0 && sfntTable(sfnt, "fvar") === undefined;
+
 /** The hb-subset options of an optimization; "default" features leave HarfBuzz's own set. */
-function subsetOutputOf(optimization: Optimization): SubsetOutput {
+function subsetOutputOf(optimization: Optimization, isPinned: boolean): SubsetOutput {
   const {
     hinting,
     layoutFeatures,
@@ -111,7 +130,7 @@ function subsetOutputOf(optimization: Optimization): SubsetOutput {
       typeof layoutFeatures === "string" ? LAYOUT_FEATURES[layoutFeatures] : layoutFeatures,
     nameIds,
     nameLanguages: nameLanguages === "all" ? "*" : nameLanguages,
-    dropTables: dropTablesOf(optimization),
+    dropTables: dropTablesOf(optimization, isPinned),
   };
 }
 
@@ -166,9 +185,10 @@ export async function subsetToTtf(
   { optimization, safariFix = false, transform, script, axes }: SubsetSettings,
 ): Promise<SubsetTtf> {
   const source = await toSfnt(content, decodeWoff2);
+  const output = subsetOutputOf(optimization, isPinnedInstance(source, axes));
   const subset = keepSourceTables(
     source,
-    await subsetSfnt(source, selection, subsetOutputOf(optimization)),
+    await subsetSfnt(source, selection, output),
     optimization.keepTables,
   );
   // HarfBuzz drops the legacy kern table; it is put back unless the options drop it

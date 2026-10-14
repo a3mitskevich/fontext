@@ -68,8 +68,10 @@ describe("rename option", () => {
       2: "Bold",
       4: "Fontext Variable Bold",
       6: "FontextVariable-Bold",
-      // HarfBuzz drops the name of the pinned axis with the axis
+      // The font stays variable along wdth: STAT still describes the pinned wght and its Bold
+      256: "Weight",
       257: "Width",
+      259: "Bold",
     });
     expect(styleBitsOf(ttf)).toStrictEqual({ fsSelection: FS_BOLD, macStyle: 1 });
     expect(uint16(ttf, "OS/2", OS2_WEIGHT_CLASS)).toBe(700);
@@ -150,7 +152,7 @@ describe("rename option", () => {
       axes: { wght: 900 },
       rename: true,
     });
-    expect(nameIdsOf(ttf)).toStrictEqual([1, 2, 4, 6, 16, 17, 257]);
+    expect(nameIdsOf(ttf)).toStrictEqual([1, 2, 4, 6, 16, 17, 256, 257]);
   });
 
   it("should rename the icon engine's font, named after fontName", async () => {

@@ -158,4 +158,4 @@
 - [x] **21.9** CLI flags and `.fontextrc.json` keys for all of the above; browser checks of instances against a hand-built reference
 - [ ] **21.10** Rename the names inside CFF outlines too (Top DICT FullName / FamilyName, Name INDEX)
 - [ ] **21.11** `keepTables` for glyph-indexed tables (`SVG `, `morx`, `kerx`, `EBDT`) when convert keeps every glyph id
-- [x] **21.12** After a check on real fonts (Inter, Roboto, Rubik, Oswald, Montserrat, Roboto Slab and static ones for Rive): `"default"` and `"*": "default"` in `axes` with an `unpinned-axes` warning, `report.axes`, `notdefOutline` (on in `outline-render`), `ignoreControls` for `findMissingCodePoints` and the `missing-characters` warning
+- [x] **21.12** After a check on real fonts (Inter, Roboto, Rubik, Oswald, Montserrat, Roboto Slab and static ones for Rive): `"default"` and `"*": "default"` in `axes` with an `unpinned-axes` warning, `report.axes`, `notdefOutline` (on in `outline-render`), `ignoreControls` for `findMissingCodePoints` and the `missing-characters` warning, `STAT` and its names dropped from a static instance

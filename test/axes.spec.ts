@@ -3,6 +3,7 @@ import * as hb from "harfbuzzjs";
 import ttf2woff from "ttf2woff";
 import type { MinifyOption } from "../src";
 import { openFont } from "../src/font/font";
+import { readNameTable } from "../src/font/name";
 import { requiredSfntTable, sfntTable } from "../src/font/sfnt";
 import { encodeWoff2 } from "../src/woff2";
 import { extract, textFont, variableFont } from "./setup";
@@ -65,6 +66,13 @@ function os2Uint16(font: Uint8Array, offset: number): number {
   return new DataView(os2.buffer, os2.byteOffset, os2.byteLength).getUint16(offset);
 }
 
+/** Name ids from 256 on belong to the font: axis, instance and STAT value names. */
+const FIRST_FONT_NAME_ID = 256;
+
+const nameIdsOf = (font: Uint8Array): number[] => [
+  ...new Set(readNameTable(requiredSfntTable(font, "name")).records.map(({ nameId }) => nameId)),
+];
+
 const variationTablesOf = (font: Uint8Array): string[] =>
   VARIATION_TABLES.filter((tag) => sfntTable(font, tag) !== undefined);
 
@@ -121,6 +129,25 @@ describe("axes option", () => {
       { tag: "wdth", min: 75, default: 100, max: 100 },
     ]);
     expect(boxOf(ttf, "A")).toStrictEqual({ ...A_WGHT_600, ...A_ORIGIN });
+  });
+
+  it.each(SOURCE_ENGINES)(
+    "should drop STAT and the names only it uses with every axis pinned (%s engine)",
+    async (_, option) => {
+      const ttf = await ttfOf(variableFont, { ...option, axes: { wght: 700, wdth: 75 } });
+      expect(sfntTable(ttf, "STAT")).toBeUndefined();
+      expect(nameIdsOf(ttf).filter((id) => id >= FIRST_FONT_NAME_ID)).toStrictEqual([]);
+    },
+  );
+
+  it.each<[string, MinifyOption["axes"], number[]]>([
+    // STAT still describes the pinned wght and names its value, Bold
+    ["one axis is pinned", { wght: 700 }, [256, 257, 259]],
+    ["an axis is narrowed", { wght: { min: 600, max: 700 } }, [256, 257, 259]],
+  ])("should keep STAT while the font stays variable: %s", async (_, axes, nameIds) => {
+    const ttf = await ttfOf(variableFont, { engine: "subset", characters: "A", axes });
+    expect(sfntTable(ttf, "STAT")).toBeDefined();
+    expect(nameIdsOf(ttf).filter((id) => id >= FIRST_FONT_NAME_ID)).toStrictEqual(nameIds);
   });
 
   it("should write the weight class of the pinned weight", async () => {

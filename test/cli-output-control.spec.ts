@@ -86,7 +86,7 @@ describe("CLI flags for axes, names and tables", () => {
     const { status, stdout, stderr } = runCli([...args, "-f", "ttf", "-o", outDir, ...flags]);
     expect(stderr).toBe("");
     expect(status).toBe(0);
-    expect(stdout).toContain("dropped tables: DSIG, fvar, gvar");
+    expect(stdout).toContain("dropped tables: DSIG, STAT, fvar, gvar");
     expect(stdout).toContain("axes: wght=700 pinned, wdth=75 pinned");
     const ttf = writtenTtf(outDir, "variable");
     const face = new hb.Face(new hb.Blob(ttf), 0);

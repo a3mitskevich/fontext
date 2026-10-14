@@ -11,8 +11,9 @@
  *
  * No avar and no HVAR: advances come from the phantom points. So wght 700 (0.6) moves the right
  * edge and the advance by 60 and the top by 30; wght below 400 changes nothing. GSUB liga forms
- * "fi", a legacy kern table kerns A V. The name table also holds Russian family and subfamily
- * names, meta a dlng map, and DSIG an empty signature.
+ * "fi", a legacy kern table kerns A V. STAT describes both axes and names wght 400 "Regular"
+ * (name id 258, elidable) and 700 "Bold" (259), names only STAT refers to. The name table also
+ * holds Russian family and subfamily names, meta a dlng map, and DSIG an empty signature.
  *
  * `buildVariableFont({ location })` builds instead a static font at a location given in user
  * units (`{ wght: 700 }`, missing axes at their default), with the deltas applied by hand: the
@@ -25,7 +26,7 @@ import { pathToFileURL } from "node:url";
 import { cmap, head, hhea, kern, maxpTrueType, metrics, name, os2, post } from "./font-tables.mjs";
 import { gsub, LIGATURE_LOOKUP, ligatureSubst, lookup } from "./gsub-writer.mjs";
 import { bytes, i16s, offsetsOf, sfnt, struct, u16s, u32s, u8 } from "./sfnt-writer.mjs";
-import { dsigStub, fvar, gvar, meta } from "./variation-writer.mjs";
+import { dsigStub, ELIDABLE_AXIS_VALUE_NAME, fvar, gvar, meta, stat } from "./variation-writer.mjs";
 
 const OUTPUT = new URL("../assets/font-variable.ttf", import.meta.url);
 
@@ -44,6 +45,12 @@ const AXES = [
   { tag: "wght", min: 100, default: 400, max: 900, nameId: 256, name: "Weight" },
   { tag: "wdth", min: 75, default: 100, max: 100, nameId: 257, name: "Width" },
 ];
+/** STAT axis values of wght, named only in STAT; Regular is elided from style names. */
+const STAT_VALUES = [
+  { axisIndex: 0, flags: ELIDABLE_AXIS_VALUE_NAME, nameId: 258, value: 400, name: "Regular" },
+  { axisIndex: 0, flags: 0, nameId: 259, value: 700, name: "Bold" },
+];
+const SUBFAMILY_NAME_ID = 2;
 /** Peak tuple (normalized, one coordinate per axis) and the moves of each box glyph there. */
 const VARIATIONS = [
   { peak: [1, 0], right: 100, top: 50 },
@@ -87,6 +94,7 @@ const NAME = name({
   postScriptName: "FontextVariable-Regular",
   extra: [
     ...AXES.map((axis) => ({ id: axis.nameId, text: axis.name })),
+    ...STAT_VALUES.map((value) => ({ id: value.nameId, text: value.name })),
     { id: 1, text: "Фонтекст Вариативный", language: RUSSIAN },
     { id: 2, text: "Обычный", language: RUSSIAN },
   ],
@@ -253,6 +261,11 @@ export function buildVariableFont({ location } = {}) {
       }),
       fvar: fvar(AXES),
       gvar: GVAR,
+      STAT: stat({
+        axes: AXES,
+        values: STAT_VALUES,
+        elidedFallbackNameId: SUBFAMILY_NAME_ID,
+      }),
     });
   }
   const { right, top } = movesAt(location);

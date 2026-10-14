@@ -44,7 +44,7 @@ describe("tables in the report", () => {
       axes: { wght: 700, wdth: 75 },
     });
     expect(report.tables?.input).toMatchObject({ fvar: 56, gvar: 330 });
-    expect(report.tables?.dropped).toStrictEqual(["DSIG", "fvar", "gvar", "meta"]);
+    expect(report.tables?.dropped).toStrictEqual(["DSIG", "STAT", "fvar", "gvar", "meta"]);
   });
 
   it("should report the repacked TTF of the icon engine", async () => {
