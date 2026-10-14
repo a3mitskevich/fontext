@@ -66,11 +66,21 @@ export const maxpCff = ({ numGlyphs }) => struct(u32(CFF_MAXP_VERSION), u16(numG
 export const metrics = (pairs) =>
   struct(pairs.map(([advance, bearing]) => [u16(advance), i16(bearing)]));
 
-export function os2({ avgCharWidth, codePoints, ascent, descent, xHeight, capHeight }) {
+/** `weightClass` and `widthClass` default to Regular (400) and Medium (normal) width (5). */
+export function os2({
+  avgCharWidth,
+  codePoints,
+  ascent,
+  descent,
+  xHeight,
+  capHeight,
+  weightClass = 400,
+  widthClass = 5,
+}) {
   const firstChar = Math.min(...codePoints);
   const lastChar = Math.min(Math.max(...codePoints), LAST_CODE);
   return struct(
-    [u16(4), i16(avgCharWidth), u16s([400, 5, 0])],
+    [u16(4), i16(avgCharWidth), u16s([weightClass, widthClass, 0])],
     // Subscript, superscript and strikeout metrics, sFamilyClass
     i16s([650, 600, 0, 75, 650, 600, 0, 350, 50, 300, 0]),
     [zeros(u8, 10), zeros(u32, 4), tag("NONE")],
@@ -111,21 +121,32 @@ export function cmap(glyphsByCode) {
   return struct(u16s([0, 1, 3, 1]), off32(subTable));
 }
 
-/** Windows English names: family, subfamily, full name and PostScript name. */
-export function name({ family, postScriptName }) {
+const ENGLISH_US = 0x4_09;
+
+/** UTF-16BE, the encoding of Windows Unicode names. */
+const utf16be = (text) => new Uint8Array(Buffer.from(text, "utf16le").swap16());
+
+/**
+ * Windows Unicode names: family, subfamily, full name and PostScript name in English, plus
+ * `extra` records `{ id, text, language }` (language defaults to English, United States).
+ * Records are sorted by language, then name id, as the spec requires.
+ */
+export function name({ family, postScriptName, extra = [] }) {
   const records = [
-    [1, family],
-    [2, "Regular"],
-    [4, `${family} Regular`],
-    [6, postScriptName],
-  ].map(([id, text]) => ({
-    id,
-    data: new Uint8Array([...text].flatMap((char) => [0, char.codePointAt(0)])),
-  }));
+    { id: 1, text: family },
+    { id: 2, text: "Regular" },
+    { id: 4, text: `${family} Regular` },
+    { id: 6, text: postScriptName },
+    ...extra,
+  ]
+    .map(({ id, text, language = ENGLISH_US }) => ({ id, language, data: utf16be(text) }))
+    .toSorted((a, b) => a.language - b.language || a.id - b.id);
   const starts = offsetsOf(records.map(({ data }) => data.length));
   return struct(
     u16s([0, records.length, 6 + records.length * 12]),
-    records.map(({ id, data }, index) => u16s([3, 1, 0x4_09, id, data.length, starts[index]])),
+    records.map(({ id, language, data }, index) =>
+      u16s([3, 1, language, id, data.length, starts[index]]),
+    ),
     records.map(({ data }) => bytes(data)),
   );
 }

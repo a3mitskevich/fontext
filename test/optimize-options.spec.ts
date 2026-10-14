@@ -6,7 +6,8 @@ import { restoreKerning } from "../src/engines/kerning";
 import { openFont } from "../src/font/font";
 import { readSfnt, requiredSfntTable } from "../src/font/sfnt";
 import { glyphCount } from "../src/font/tables";
-import { extract, multiLookupFont, textFont, ttfOriginalFont } from "./setup";
+import { cffSubroutines } from "./cff-utils";
+import { cffFont, extract, multiLookupFont, textFont, ttfOriginalFont } from "./setup";
 import { readKernPairs } from "./ttf-utils";
 
 const HINTING_TABLES = ["fpgm", "prep", "cvt ", "hdmx", "VDMX", "LTSH"];
@@ -84,6 +85,9 @@ describe("hinting option (subset engine)", () => {
       expect.arrayContaining(["fpgm", "prep", "cvt ", "hdmx", "VDMX"]),
     );
     expect(tablesOf(unhinted).filter((tag) => HINTING_TABLES.includes(tag))).toStrictEqual([]);
+    // HarfBuzz keeps gasp without hinting; fontext drops it too
+    expect(tablesOf(hinted)).toContain("gasp");
+    expect(tablesOf(unhinted)).not.toContain("gasp");
 
     expect(glyfSize(unhinted)).toBeLessThan(glyfSize(hinted) / 2);
     expect(pathsOf(unhinted)).toStrictEqual(pathsOf(hinted));
@@ -216,6 +220,32 @@ describe("nameIds and dropTables options", () => {
     const padded = dropTables.map((tag) => tag.padEnd(4, " "));
     expect(before).toEqual(expect.arrayContaining(padded));
     expect(after).toStrictEqual(before.filter((tag) => !padded.includes(tag)));
+  });
+});
+
+describe("desubroutinize option", () => {
+  // Letters call the global subroutine, the ligatures at U+E001-U+E003 the local one
+  const CFF_CHARACTERS = "fixyz\u{E001}\u{E002}\u{E003}";
+
+  it.each<EngineCase>([
+    ["subset", { engine: "subset", characters: CFF_CHARACTERS }, cffFont],
+    ["convert", { engine: "convert" }, cffFont],
+  ])(
+    "should inline the CFF subroutines and keep the outlines (%s engine)",
+    async (_, option, font) => {
+      const kept = await ttfOf(font, option);
+      const inlined = await ttfOf(font, { ...option, desubroutinize: true });
+      expect(cffSubroutines(kept)).toStrictEqual({ global: 1, hasLocal: true });
+      expect(cffSubroutines(inlined)).toStrictEqual({ global: 0, hasLocal: false });
+      expect(pathsOf(inlined)).toStrictEqual(pathsOf(kept));
+    },
+  );
+
+  it("should not change TrueType outlines", async () => {
+    const option = { characters: "abc" };
+    await expect(subsetTtf(textFont, { ...option, desubroutinize: true })).resolves.toStrictEqual(
+      await subsetTtf(textFont, option),
+    );
   });
 });
 

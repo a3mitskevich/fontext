@@ -4,9 +4,11 @@ import path from "path";
 import {
   createFont,
   findLigaturesByRaws,
+  findMissingCodePoints,
   parseUnicodeRanges,
   findMetaByCodePoints,
   findMetaByLigatures,
+  type VariationAxis,
 } from "../src/browser";
 
 const fontPath = path.resolve(import.meta.dirname, "../assets/font.ttf");
@@ -25,6 +27,40 @@ describe("browser entry point", () => {
       const font = await createFont(fontUint8.buffer);
       expect(font).toBeDefined();
       expect(font.codePoints.length).toBeGreaterThan(0);
+    });
+
+    it("should read the variation axes of a variable font", async () => {
+      const variable = fs.readFileSync(
+        path.resolve(import.meta.dirname, "../assets/font-variable.ttf"),
+      );
+      const font = await createFont(new Uint8Array(variable));
+      const axes: readonly VariationAxis[] = font.axes;
+      expect(axes.map(({ tag }) => tag)).toStrictEqual(["wght", "wdth"]);
+    });
+  });
+
+  describe("findMissingCodePoints", () => {
+    it("should list the code points the font does not map, each once", async () => {
+      await expect(findMissingCodePoints(fontUint8, "\uE88A\nA\nb")).resolves.toStrictEqual([
+        // Material Icons maps the lowercase letters its ligatures are made of
+        0x0a, 0x41,
+      ]);
+      await expect(findMissingCodePoints(fontUint8.buffer, "\uE88A")).resolves.toStrictEqual([]);
+      await expect(
+        findMissingCodePoints(fontUint8, "\uE88A\nA\u200D", { ignoreControls: true }),
+      ).resolves.toStrictEqual([0x41]);
+    });
+
+    it("should reject WOFF2 and text that is not a string", async () => {
+      const woff2 = new Uint8Array(
+        fs.readFileSync(path.resolve(import.meta.dirname, "../assets/font.woff2")),
+      );
+      await expect(findMissingCodePoints(woff2, "a")).rejects.toThrow(
+        "WOFF2 input is not supported",
+      );
+      await expect(findMissingCodePoints(fontUint8, 1 as unknown as string)).rejects.toThrow(
+        "text must be a string",
+      );
     });
   });
 

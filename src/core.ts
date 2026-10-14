@@ -113,6 +113,34 @@ export function assertGlyphsSelected(
   }
 }
 
+// Control characters (line feed, tab) and default ignorable ones (ZWJ, variation selectors)
+const CONTROL_OR_IGNORABLE = /^[\p{Cc}\p{Default_Ignorable_Code_Point}]$/u;
+
+/** Throws on options of findMissingCodePoints of the wrong shape. */
+export function assertMissingCodePointsOptions(options: unknown): void {
+  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+    throw new TypeError("options must be an object");
+  }
+  const { ignoreControls } = options as Record<string, unknown>;
+  if (ignoreControls !== undefined && typeof ignoreControls !== "boolean") {
+    throw new TypeError("ignoreControls must be a boolean");
+  }
+}
+
+/**
+ * Code points of the text the cmap maps to no glyph, each once, in the order they occur. Control
+ * characters such as a line feed count like any other, a font rarely maps them, unless
+ * `ignoreControls` leaves them out together with default ignorable ones such as ZWJ.
+ */
+export function missingCodePoints(font: Font, text: string, ignoreControls = false): number[] {
+  const codePoints = new Set([...text].map((char) => char.codePointAt(0) ?? 0));
+  return [...codePoints].filter(
+    (codePoint) =>
+      (font.glyphForCodePoint(codePoint) ?? NOTDEF) === NOTDEF &&
+      !(ignoreControls && CONTROL_OR_IGNORABLE.test(String.fromCodePoint(codePoint))),
+  );
+}
+
 /** Text of the first character mapped to each glyph; "" for glyphs outside the cmap. */
 const firstString = (font: Font, glyph: number): string => font.stringsForGlyph(glyph)[0] ?? "";
 

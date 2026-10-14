@@ -1,6 +1,7 @@
 import type extract from "./extract";
 
 export { default, default as extract } from "./extract";
+export { findMissingCodePoints } from "./glyphs";
 export {
   Format,
   type Formats,
@@ -14,10 +15,19 @@ export {
   type TransformContext,
   type FontWarning,
   type OptimizationReport,
+  type TablesReport,
+  type TableSizes,
+  type AxesReport,
+  type AxisReport,
   type Engine,
   type FontInput,
+  type MissingCodePointsOptions,
   type LayoutFeatures,
+  type Axes,
+  type AxisSetting,
+  type Rename,
+  type NameLanguages,
   type FontTransform,
-  type Target,
+  type Preset,
 } from "./types";
 export type Extract = typeof extract;

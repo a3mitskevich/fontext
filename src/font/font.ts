@@ -11,6 +11,14 @@ export interface ShapedGlyph {
   readonly text: string;
 }
 
+/** A variation axis of a variable font, its values in the units of the axis. */
+export interface VariationAxis {
+  readonly tag: string;
+  readonly min: number;
+  readonly default: number;
+  readonly max: number;
+}
+
 /** A single TrueType or OpenType font, read with HarfBuzz. Glyph metrics are in font units. */
 export interface Font {
   /** Code points mapped by the cmap, ascending. */
@@ -19,6 +27,8 @@ export interface Font {
   readonly modified: number;
   /** Units per em from head; HarfBuzz reads a value outside 16-16384 as 1000. */
   readonly unitsPerEm: number;
+  /** The variation axes of fvar in their order; none for a static font. */
+  readonly axes: readonly VariationAxis[];
   /** The glyph the cmap maps `codePoint` to, without shaping. */
   glyphForCodePoint: (codePoint: number) => number | undefined;
   /** Characters the cmap maps to `glyph`, by ascending code point. */
@@ -158,6 +168,14 @@ export async function openFont(sfnt: Uint8Array): Promise<Font> {
     codePoints,
     modified: modifiedTime(head),
     unitsPerEm: face.upem,
+    axes: Object.values(face.getAxisInfos())
+      .toSorted((a, b) => a.axisIndex - b.axisIndex)
+      .map(({ tag, min, default: defaultValue, max }) => ({
+        tag,
+        min,
+        default: defaultValue,
+        max,
+      })),
     glyphForCodePoint,
     stringsForGlyph: (glyph) => strings.get(glyph) ?? [],
     shape(text, features = []) {

@@ -1,4 +1,3 @@
-import { types } from "util";
 import {
   type ConvertOption,
   type ExtractedResult,
@@ -13,19 +12,8 @@ import { extractSubset } from "./engines/subset";
 import { extractConvert } from "./engines/convert";
 import { assertOptimizationOptions, resolveOptimization } from "./optimization";
 import { assertSplit } from "./engines/split";
-
-function toBuffer(input: FontInput): Buffer {
-  if (Buffer.isBuffer(input)) {
-    return input;
-  }
-  if (ArrayBuffer.isView(input)) {
-    return Buffer.from(input.buffer, input.byteOffset, input.byteLength);
-  }
-  if (types.isAnyArrayBuffer(input)) {
-    return Buffer.from(input);
-  }
-  throw new TypeError("Font input must be a Buffer, Uint8Array or ArrayBuffer");
-}
+import { assertAxesOption } from "./engines/instance";
+import { toBuffer } from "./input";
 
 // Removed in 2.0.0; untyped callers and config files would otherwise lose the space silently
 export const WITH_WHITESPACE_REMOVED =
@@ -67,8 +55,14 @@ export default async function extract(
     }
   }
 
+  // Axes first: rename names the style after them
+  assertAxesOption(option.axes, engine);
   assertOptimizationOptions(option as unknown as Record<string, unknown>);
   assertSplit("split" in option ? option.split : undefined, engine);
+  const ignoreControls = "ignoreControls" in option ? option.ignoreControls : undefined;
+  if (ignoreControls !== undefined && typeof ignoreControls !== "boolean") {
+    throw new TypeError("ignoreControls must be a boolean");
+  }
   const optimization = resolveOptimization(option);
   const { formats } = optimization;
 
@@ -84,6 +78,7 @@ export default async function extract(
     );
   }
 
+  // Each engine reads the font with loadSource() after the checks it makes without it
   if (engine === "convert") {
     return await extractConvert(content, option as ConvertOption, optimization);
   }

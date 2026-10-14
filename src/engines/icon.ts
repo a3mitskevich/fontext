@@ -10,8 +10,11 @@ import {
 } from "../glyphs";
 import { assertGlyphsSelected, assertLigaturesForm } from "../core";
 import { applySafariFix } from "../safari";
-import { hbSubset, SubsetFlag } from "./hb-subset";
-import { buildReport, encodeFromTtf, type FontBuffers } from "./shared";
+import { hbSubset, type InstanceAxes, SubsetFlag } from "./hb-subset";
+import { buildReport } from "./report";
+import { encodeFromTtf, type FontBuffers } from "./shared";
+import { loadSource } from "./source";
+import { renameFont } from "./rename";
 import { applyTransform } from "./transform";
 import { buildSvgFont } from "./svg-font";
 
@@ -26,8 +29,8 @@ const NAME_LANGUAGES = [0x4_09];
 /**
  * Rewrites the TTF of svg2ttf with hb-subset, keeping every glyph, code point and layout feature.
  * svg2ttf writes cmap subtables for several platforms, glyph names in post and Mac and Windows
- * name records; HarfBuzz writes the cmap compactly, post without glyph names (the names are in
- * `meta`) and only the Windows records of the kept names. The head dates stay those of svg2ttf.
+ * name records; HarfBuzz writes the cmap compactly, post without glyph names unless asked to keep
+ * them (the names are in `meta`) and only the Windows records of the kept names. The head dates stay those of svg2ttf.
  * The name ids and dropped tables of the optimization apply; its hinting and layout features
  * don't: svg2ttf writes no hinting, and its `liga` feature is what forms the ligatures.
  */
@@ -35,7 +38,7 @@ async function repack(ttf: Uint8Array, optimization: Optimization): Promise<Buff
   const packed = await hbSubset(ttf, {
     unicodes: "*",
     glyphs: "*",
-    flags: SubsetFlag.NO_HINTING,
+    flags: SubsetFlag.NO_HINTING | (optimization.glyphNames ? SubsetFlag.GLYPH_NAMES : 0),
     layoutFeatures: "*",
     nameIds: optimization.nameIds ?? NAME_IDS,
     nameLanguages: NAME_LANGUAGES,
@@ -49,22 +52,34 @@ interface IconSettings {
   readonly safariFix?: boolean;
   readonly transform?: FontTransform;
   readonly timestamp: number;
+  /** The axes the source was instanced at, which `rename` names the style after. */
+  readonly axes: InstanceAxes;
+}
+
+/** The fonts of every format, and the TTF the binary formats were encoded from. */
+interface IconFonts {
+  readonly fonts: FontBuffers;
+  readonly ttf?: Buffer;
 }
 
 async function convertByFormats(
   svgFont: Buffer,
-  { optimization, safariFix = false, transform, timestamp }: IconSettings,
-): Promise<FontBuffers> {
+  { optimization, safariFix = false, transform, timestamp, axes }: IconSettings,
+): Promise<IconFonts> {
   const { formats } = optimization;
   const svg = formats.includes("svg") ? { svg: svgFont } : {};
   if (formats.every((format) => format === "svg")) {
-    return svg;
+    return { fonts: svg };
   }
 
-  const ttf = await repack(svg2ttf(svgFont.toString(), { ts: timestamp }).buffer, optimization);
+  const built = svg2ttf(svgFont.toString(), { ts: timestamp }).buffer;
+  const packed = await repack(built, optimization);
+  // Names come from svg2ttf's font, its family the font name: nameIds may filter the repacked one
+  const { rename } = optimization;
+  const ttf = rename ? Buffer.from(renameFont(packed, built, rename, axes)) : packed;
   const final = await applyTransform(safariFix ? applySafariFix(ttf) : ttf, transform);
   const binaryFonts = await encodeFromTtf(final, formats);
-  return { ...svg, ...binaryFonts };
+  return { fonts: { ...svg, ...binaryFonts }, ttf: final };
 }
 
 export async function extractIcon(
@@ -75,7 +90,8 @@ export async function extractIcon(
   const { fontName = "", ligatures = [], raws = [], unicodeRanges = [] } = option;
   const { formats } = optimization;
 
-  const font = await createFont(content);
+  const source = await loadSource(content, option.axes);
+  const font = await createFont(source.content);
   assertLigaturesForm(font, ligatures);
   const foundLigatures = resolveLigatures(font, raws);
   const ligatureMeta = findMetaByLigatures(font, [ligatures, foundLigatures].flat());
@@ -93,19 +109,21 @@ export async function extractIcon(
   assertGlyphsSelected(glyphsMeta, unicodeRanges);
 
   const svgFont = buildSvgFont(fontName, glyphsMeta, font.unitsPerEm);
-  const fonts = await convertByFormats(svgFont, {
+  const { fonts, ttf } = await convertByFormats(svgFont, {
     optimization,
     safariFix: option.safariFix,
     transform: option.transform,
     /* The source font's head.modified instead of the current time keeps the output
        byte-identical for identical input, so content-hashed asset names stay stable */
     timestamp: font.modified,
+    axes: source.axes,
   });
 
   return {
     ...fonts,
     meta: glyphsMeta,
-    report: buildReport(content.length, fonts, formats),
+    // The icon font is static: every axis of the source is pinned
+    report: buildReport(source, fonts, formats, ttf && { ttf, axes: [] }),
     warnings: [],
   };
 }

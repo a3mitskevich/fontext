@@ -30,6 +30,10 @@ export const multiLookupFont = fs.readFileSync(
 export const scriptsFont = fs.readFileSync(
   path.resolve(import.meta.dirname, "../assets/font-scripts.ttf"),
 );
+// Variable font with wght and wdth axes, see scripts/make-variable-fixture.mjs
+export const variableFont = fs.readFileSync(
+  path.resolve(import.meta.dirname, "../assets/font-variable.ttf"),
+);
 // CFF outlines, vmtx and ligatures from liga and calt, see scripts/make-cff-fixture.mjs
 export const cffFont = fs.readFileSync(
   path.resolve(import.meta.dirname, "../assets/font-cff-features.otf"),

@@ -3,13 +3,17 @@
  * generate.mjs, and each browser call is a call of the fontext/browser entry.
  *
  * Icon cases draw every glyph of the output (`required` lists texts that must be among them),
- * subset and convert cases draw their `samples`.
+ * subset and convert cases draw their `samples`. A case of the variable font with a
+ * `referenceLocation` is drawn against the static font generate.mjs builds at that location,
+ * with the deltas applied by hand instead of by HarfBuzz.
  */
 
 const char = (codePoint) => String.fromCodePoint(codePoint);
 
 // The legacy kern table of the text font kerns these pairs, see test/kerning.spec.ts
 const KERNED_TEXT = "Ye Fa P. W, V.";
+// The variable font has these glyphs, kerns A V and forms the fi ligature
+const VARIABLE_TEXT = "AVa fi";
 const TEXT_SAMPLE = "Hello, World!";
 
 export const sample = (text, extra = {}) => ({
@@ -69,6 +73,14 @@ const ICON_CASES = [
     required: ['"', "&", "<", ">"],
   },
   {
+    id: "icon-variable-pinned",
+    title: "Icon: variable font pinned to wght 700",
+    source: "variable",
+    option: { ligatures: ["fi"], unicodeRanges: ["U+0041"], axes: { wght: 700 } },
+    referenceLocation: { wght: 700 },
+    required: ["fi", "A"],
+  },
+  {
     id: "icon-safari-fix",
     title: "Icon: safariFix vertical metrics",
     source: "material",
@@ -116,6 +128,32 @@ const SUBSET_CASES = [
     samples: [sample("home"), sample("search"), sample("home search")],
   },
   {
+    id: "subset-variable-pinned",
+    title: "Subset: variable font pinned to wght 700 and wdth 75, renamed",
+    engine: "subset",
+    source: "variable",
+    option: { characters: VARIABLE_TEXT, axes: { wght: 700, wdth: 75 }, rename: true },
+    referenceLocation: { wght: 700, wdth: 75 },
+    samples: [sample(VARIABLE_TEXT), sample("AV", { kerned: true })],
+  },
+  {
+    id: "subset-variable-unpinned-control",
+    title: "Subset: the default instance differs from the wght 700 reference (control)",
+    engine: "subset",
+    source: "variable",
+    option: { characters: VARIABLE_TEXT },
+    referenceLocation: { wght: 700 },
+    samples: [sample("AVa", { expect: "mismatch" })],
+  },
+  {
+    id: "subset-text-outline-render",
+    title: "Subset: outline-render preset, hinting dropped, legacy kerning kept",
+    engine: "subset",
+    source: "text",
+    option: { characters: `${TEXT_SAMPLE} ${KERNED_TEXT}`, preset: "outline-render" },
+    samples: [sample(TEXT_SAMPLE), sample(KERNED_TEXT, { kerned: true })],
+  },
+  {
     id: "subset-material-woff2-input",
     title: "Subset: WOFF2 input",
     engine: "subset",
@@ -154,6 +192,23 @@ const CONVERT_CASES = [
     samples: [sample("fi"), sample("xy"), sample("yzx"), sample("fixyz")],
   },
   {
+    id: "convert-variable-range",
+    title: "Convert: variable font narrowed to wght 600-700, drawn at its new default 600",
+    engine: "convert",
+    source: "variable",
+    option: { axes: { wght: { min: 600, max: 700 } } },
+    referenceLocation: { wght: 600 },
+    samples: [sample(VARIABLE_TEXT)],
+  },
+  {
+    id: "convert-cff-web-font",
+    title: "Convert: CFF font with the web-font preset, desubroutinized",
+    engine: "convert",
+    source: "cff",
+    option: { preset: "web-font" },
+    samples: [sample("fi"), sample("xy"), sample("yzx"), sample("fixyz")],
+  },
+  {
     id: "convert-material-woff2-input",
     title: "Convert: Material Icons from WOFF2",
     engine: "convert",
@@ -172,6 +227,7 @@ export const BROWSER_INPUTS = [
   ["material WOFF2", "materialWoff2", "font.woff2"],
   ["CFF OTF", "cff", "font-cff-features.otf"],
   ["multi-lookup TTF", "multiLookup", "font-multi-ligature-lookups.ttf"],
+  ["variable TTF", "variable", "font-variable.ttf"],
 ];
 
 export const BROWSER_CALLS = [
@@ -187,4 +243,6 @@ export const BROWSER_CALLS = [
     "multi-lookup TTF",
     { name: "findLigaturesByRaws", raws: [char(0xe0_01), char(0xe0_02), char(0xe0_03)] },
   ],
+  ["variable TTF", { name: "findMissingCodePoints", text: `AV\nЖ${char(0x1_f6_00)}fi` }],
+  ["variable TTF", { name: "createFont" }],
 ];

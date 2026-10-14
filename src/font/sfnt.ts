@@ -53,6 +53,18 @@ export function readSfnt(sfnt: Uint8Array): { flavor: number; tables: SfntTable[
 }
 
 /**
+ * The tag and the length its record declares of every table, in directory order. The data is not
+ * read, so a record past the end of the font, which HarfBuzz tolerates, is listed as it is.
+ */
+export function tableDirectory(sfnt: Uint8Array): { tag: string; length: number }[] {
+  const reader = createReader(sfnt, "font");
+  return tableRecords(reader).map((record) => ({
+    tag: reader.tag(record),
+    length: reader.uint32(record + 12),
+  }));
+}
+
+/**
  * The data of a table of an uncompressed font, or undefined when the font has none. Only its own
  * record is read, so a broken record of another table, which HarfBuzz tolerates, does not fail it.
  */

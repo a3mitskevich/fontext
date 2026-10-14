@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type { MinifyOption } from "../src";
 import { extract, importFontext, textFont, ttfOriginalFont } from "./setup";
 
 type Arguments = Parameters<typeof extract>;
@@ -187,5 +188,36 @@ describe("validation", () => {
     });
     // Of the capitals, punctuation and "a" the font maps only "_" and "a"
     expect(meta.map((glyph) => glyph.name)).toStrictEqual(["_", "a"]);
+  });
+});
+
+describe("validation before the font is read", () => {
+  const notAFont = Buffer.from("not a font at all");
+  const subset = { fontName: "text", engine: "subset" } as const;
+
+  it.each([
+    [
+      "an empty subset selection",
+      { ...subset, ligatures: [""] },
+      "No characters to subset. Provide characters, unicodeRanges, or ligatures.",
+    ],
+    [
+      "SVG only from the subset engine",
+      { ...subset, characters: "a", formats: ["svg"] },
+      "Subset engine does not support SVG format",
+    ],
+    [
+      "axes of the wrong shape next to rename",
+      { ...subset, characters: "a", axes: { wght: Number.NaN }, rename: true },
+      'Invalid value for axis "wght": NaN',
+    ],
+  ] as const)("should reject %s before reading the input", async (_, option, message) => {
+    await expect(extract(notAFont, option as MinifyOption)).rejects.toThrow(message);
+  });
+
+  it("should reject the input once the options are valid", async () => {
+    await expect(extract(notAFont, { ...subset, characters: "a" })).rejects.toThrow(
+      "Unsupported font format",
+    );
   });
 });

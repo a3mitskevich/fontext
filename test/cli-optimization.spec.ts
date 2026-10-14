@@ -14,6 +14,7 @@ import { sfntTable } from "../src/font/sfnt";
 const CLI = path.resolve(import.meta.dirname, "../dist/cli.js");
 const TEXT_FONT = path.resolve(import.meta.dirname, "../assets/font-without-gsub.ttf");
 const ICON_FONT = path.resolve(import.meta.dirname, "../assets/font.ttf");
+const VARIABLE_FONT = path.resolve(import.meta.dirname, "../assets/font-variable.ttf");
 
 const runCli = (args: string[], cwd?: string) =>
   spawnSync("node", [CLI, ...args], { encoding: "utf8", timeout: 10_000, cwd });
@@ -40,6 +41,22 @@ const nameIdsOf = (font: Uint8Array): number[] => [
   ...new Set(new hb.Face(new hb.Blob(font), 0).listNames().map(({ nameId }) => nameId)),
 ];
 
+/** What resolveOptimizationOptions returns when neither the config nor the flags set anything. */
+const NO_OPTIONS = {
+  preset: undefined,
+  hinting: undefined,
+  layoutFeatures: undefined,
+  nameIds: undefined,
+  nameLanguages: undefined,
+  dropTables: undefined,
+  keepTables: undefined,
+  glyphNames: undefined,
+  desubroutinize: undefined,
+  notdefOutline: undefined,
+  axes: undefined,
+  rename: undefined,
+};
+
 describe("CLI optimization option parsing", () => {
   it.each([
     ["all", "all"],
@@ -58,10 +75,11 @@ describe("CLI optimization option parsing", () => {
   });
 
   it("should put the flags over the config in single mode", () => {
-    const entry = { target: "web", hinting: true, nameIds: [1], dropTables: ["DSIG"] };
-    const flags = { target: "runtime", hinting: false, "layout-features": "default" };
+    const entry = { preset: "web-font", hinting: true, nameIds: [1], dropTables: ["DSIG"] };
+    const flags = { preset: "outline-render", hinting: false, "layout-features": "default" };
     expect(resolveOptimizationOptions(entry, flags, true)).toStrictEqual({
-      target: "runtime",
+      ...NO_OPTIONS,
+      preset: "outline-render",
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1],
@@ -73,28 +91,40 @@ describe("CLI optimization option parsing", () => {
     const entry = { layoutFeatures: ["liga"], nameIds: [1, 4] };
     const flags = { "name-ids": "2", "drop-tables": "MATH" };
     expect(resolveOptimizationOptions(entry, flags, false)).toStrictEqual({
-      target: undefined,
-      hinting: undefined,
+      ...NO_OPTIONS,
       layoutFeatures: ["liga"],
       nameIds: [1, 4],
-      dropTables: undefined,
     });
   });
 
   it("should parse every flag", () => {
     const flags = {
-      target: "web",
+      preset: "web-font",
       hinting: true,
       "layout-features": "liga,kern",
       "name-ids": "1,2,4",
+      "name-languages": "0x409",
       "drop-tables": "MATH, DSIG",
+      "keep-tables": "meta",
+      "glyph-names": true,
+      desubroutinize: false,
+      "notdef-outline": true,
+      axes: "wght=700",
+      rename: true,
     };
     expect(resolveOptimizationOptions({}, flags, true)).toStrictEqual({
-      target: "web",
+      preset: "web-font",
       hinting: true,
       layoutFeatures: ["liga", "kern"],
       nameIds: [1, 2, 4],
+      nameLanguages: [0x4_09],
       dropTables: ["MATH", "DSIG"],
+      keepTables: ["meta"],
+      glyphNames: true,
+      desubroutinize: false,
+      notdefOutline: true,
+      axes: { wght: 700 },
+      rename: true,
     });
   });
 });
@@ -114,7 +144,7 @@ describe("CLI optimization flags", () => {
     const { stdout, status } = runCli(["--help"]);
     expect(status).toBe(0);
     for (const flag of [
-      "--target",
+      "--preset",
       "--no-hinting",
       "--layout-features",
       "--name-ids",
@@ -124,22 +154,11 @@ describe("CLI optimization flags", () => {
     }
   });
 
-  it.each([
-    ["web", ["text.woff2"]],
-    ["runtime", ["text.ttf"]],
-  ])("should write the formats of --target %s", (target, files) => {
-    const outDir = path.join(tmpDir, `target-${target}`);
-    const { status, stderr } = runCli(subsetArgs(outDir, "--target", target));
-    expect(stderr).toBe("");
-    expect(status).toBe(0);
-    expect(outputs(outDir)).toStrictEqual(files);
-  });
-
-  it("should drop hinting for --target runtime unless --hinting is given", () => {
-    const dropped = path.join(tmpDir, "runtime-dropped");
-    const kept = path.join(tmpDir, "runtime-kept");
-    expect(runCli(subsetArgs(dropped, "--target", "runtime")).status).toBe(0);
-    expect(runCli(subsetArgs(kept, "--target", "runtime", "--hinting")).status).toBe(0);
+  it("should drop hinting for --preset outline-render unless --hinting is given", () => {
+    const dropped = path.join(tmpDir, "outlines-dropped");
+    const kept = path.join(tmpDir, "outlines-kept");
+    expect(runCli(subsetArgs(dropped, "--preset", "outline-render")).status).toBe(0);
+    expect(runCli(subsetArgs(kept, "--preset", "outline-render", "--hinting")).status).toBe(0);
     expect(sfntTable(writtenTtf(dropped, "text"), "fpgm")).toBeUndefined();
     expect(sfntTable(writtenTtf(kept, "text"), "fpgm")).toBeDefined();
   });
@@ -169,7 +188,7 @@ describe("CLI optimization flags", () => {
   });
 
   it.each([
-    [["--target", "print"], 'Invalid target: "print"'],
+    [["--preset", "web"], 'Invalid preset: "web". Valid presets: web-font, outline-render'],
     [["--name-ids", "1,x"], 'Invalid name id(s): "x"'],
     [["--drop-tables", "GSUBX"], 'Invalid tag(s) in dropTables: "GSUBX"'],
     [["--layout-features", "liga,ligature"], 'Invalid tag(s) in layoutFeatures: "ligature"'],
@@ -208,8 +227,10 @@ describe("CLI optimization flags", () => {
       path.join(projectDir, ".fontextrc.json"),
       JSON.stringify({
         output: outDir,
-        target: "runtime",
+        formats: ["ttf"],
+        preset: "outline-render",
         nameIds: [1, 2, 4],
+        glyphNames: true,
         batch: [
           { input: TEXT_FONT, fontName: "text", engine: "subset", characters: "abc" },
           {
@@ -217,12 +238,19 @@ describe("CLI optimization flags", () => {
             fontName: "text-web",
             engine: "subset",
             characters: "abc",
-            target: "web",
-            formats: ["ttf"],
+            preset: "web-font",
             hinting: false,
             dropTables: ["gasp"],
           },
           { input: ICON_FONT, fontName: "icons", ligatures: ["home"], nameIds: [4] },
+          {
+            input: VARIABLE_FONT,
+            fontName: "variable",
+            engine: "subset",
+            characters: "A",
+            axes: { wght: 600, "*": "default" },
+            rename: { family: "Brand" },
+          },
         ],
       }),
     );
@@ -230,14 +258,25 @@ describe("CLI optimization flags", () => {
     const { status, stderr } = runCli([], projectDir);
     expect(stderr).toBe("");
     expect(status).toBe(0);
-    expect(outputs(outDir)).toStrictEqual(["icons.ttf", "text-web.ttf", "text.ttf"]);
+    expect(outputs(outDir)).toStrictEqual([
+      "icons.ttf",
+      "text-web.ttf",
+      "text.ttf",
+      "variable.ttf",
+    ]);
 
     const text = writtenTtf(outDir, "text");
     expect(sfntTable(text, "fpgm")).toBeUndefined();
     expect(nameIdsOf(text)).toStrictEqual([1, 2, 4]);
+    // Post format 2, with glyph names
+    expect(sfntTable(text, "post")?.[1]).toBe(2);
     const web = writtenTtf(outDir, "text-web");
     expect(sfntTable(web, "fpgm")).toBeUndefined();
     expect(sfntTable(web, "gasp")).toBeUndefined();
     expect(nameIdsOf(writtenTtf(outDir, "icons"))).toStrictEqual([4]);
+    const variable = new hb.Face(new hb.Blob(writtenTtf(outDir, "variable")), 0);
+    expect(variable.getName(1, "en")).toBe("Brand SemiBold");
+    // "*": "default" pins wdth too
+    expect(variable.getAxisInfos()).toStrictEqual({});
   });
 });

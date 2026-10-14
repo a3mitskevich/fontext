@@ -6,7 +6,7 @@ import { parseArgs } from "node:util";
 import extract, { WITH_WHITESPACE_REMOVED } from "./extract";
 import { type OptimizationConfig, resolveOptimizationOptions } from "./cli-optimization";
 import { chunkOutputs, chunkSummary, fileSummary, outputFiles, resolveSplit } from "./cli-split";
-import { Format, type Formats } from "./types";
+import { type AxesReport, Format, type Formats } from "./types";
 
 const VALID_FORMATS = Object.values(Format);
 
@@ -34,7 +34,7 @@ ${c.bold}Common Options:${c.reset}
   ${c.cyan}-i${c.reset}, ${c.cyan}--input${c.reset} <path>        Path to the font file ${c.dim}(required)${c.reset}
   ${c.cyan}-o${c.reset}, ${c.cyan}--output${c.reset} <dir>        Output directory ${c.dim}(default: .)${c.reset}
   ${c.cyan}-n${c.reset}, ${c.cyan}--font-name${c.reset} <name>    Name for the output font ${c.dim}(required)${c.reset}
-  ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all; subset: ttf,woff,woff2; a target sets its own)${c.reset}
+  ${c.cyan}-f${c.reset}, ${c.cyan}--formats${c.reset} <list>      Output formats: ${c.dim}${VALID_FORMATS.join(", ")}${c.reset} ${c.dim}(default: all; subset: ttf,woff,woff2)${c.reset}
       ${c.cyan}--engine${c.reset} <type>        Engine: ${c.dim}icon${c.reset} ${c.dim}(default)${c.reset} | ${c.dim}subset${c.reset} | ${c.dim}convert${c.reset}
       ${c.cyan}--safari-fix${c.reset}            Fix OS/2 and hhea tables for Safari compatibility
       ${c.cyan}--dry-run${c.reset}              Run without writing files ${c.dim}(preview output only)${c.reset}
@@ -46,12 +46,21 @@ ${c.bold}Common Options:${c.reset}
   ${c.cyan}-v${c.reset}, ${c.cyan}--version${c.reset}             Show version
 
 ${c.bold}Optimization:${c.reset}
-      ${c.cyan}--target${c.reset} <target>      Where the font goes: ${c.dim}web${c.reset} (WOFF2, CFF desubroutinized) | ${c.dim}runtime${c.reset} (TTF, no hinting)
+      ${c.cyan}--preset${c.reset} <name>        ${c.dim}web-font${c.reset} (hinting kept, CFF desubroutinized) | ${c.dim}outline-render${c.reset} (no hinting)
                               ${c.dim}Both keep the default layout features and name ids 1,2,4,6; flags below override${c.reset}
       ${c.cyan}--no-hinting${c.reset}          Drop TrueType hinting ${c.dim}(--hinting keeps it; subset and convert engines)${c.reset}
       ${c.cyan}--layout-features${c.reset} <v>  Layout features to keep: ${c.dim}all${c.reset} | ${c.dim}default${c.reset} | ${c.dim}tag,tag${c.reset} ${c.dim}(subset and convert engines)${c.reset}
       ${c.cyan}--name-ids${c.reset} <list>      Name ids to keep ${c.dim}(e.g. 1,2,4)${c.reset}
+      ${c.cyan}--name-languages${c.reset} <v>   Name record languages to keep: ${c.dim}all${c.reset} | ${c.dim}0x409,0x419${c.reset} ${c.dim}(default: 0x409)${c.reset}
       ${c.cyan}--drop-tables${c.reset} <list>   Tables to drop ${c.dim}(e.g. MATH,DSIG)${c.reset}
+      ${c.cyan}--keep-tables${c.reset} <list>   Tables to keep that would be dropped: ${c.dim}gasp, meta, PCLT${c.reset}
+      ${c.cyan}--glyph-names${c.reset}         Keep glyph names in post ${c.dim}(dropped by default)${c.reset}
+      ${c.cyan}--desubroutinize${c.reset}      Inline CFF subroutines ${c.dim}(--no-desubroutinize keeps them)${c.reset}
+      ${c.cyan}--notdef-outline${c.reset}      Keep the box of .notdef drawn for missing characters
+      ${c.cyan}--axes${c.reset} <list>          Pin or narrow variation axes ${c.dim}(e.g. wght=700,wdth=75:100; *=default pins the rest)${c.reset}
+      ${c.cyan}--rename${c.reset}               Name the font after the pinned weight ${c.dim}(e.g. Bold for wght=700)${c.reset}
+      ${c.cyan}--rename-family${c.reset} <name> New family name
+      ${c.cyan}--rename-style${c.reset} <name>  New style name
       ${c.cyan}--split${c.reset} scripts       Also write a font per Unicode script: ${c.dim}<font-name>.<script>.<format>${c.reset}
                               ${c.dim}Each keeps digits, punctuation and marks (subset and convert engines)${c.reset}
 
@@ -62,6 +71,7 @@ ${c.bold}Icon Engine:${c.reset} ${c.dim}--engine icon (default, for icon fonts)$
 
 ${c.bold}Subset Engine:${c.reset} ${c.dim}--engine subset (for text fonts, preserves kerning)${c.reset}
   ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9")${c.reset}
+      ${c.cyan}--ignore-controls${c.reset}     Don't warn about line feeds and other control characters the font lacks
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Ligature component characters
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges
 
@@ -76,8 +86,10 @@ ${c.bold}Config file:${c.reset}
   ${c.dim}{ "input": "icons.woff2", "fontName": "my-icons",${c.reset}
   ${c.dim}  "ligatures": ["home","search"], "formats": ["woff2","ttf"] }${c.reset}
 
-  ${c.dim}Optimization keys: "target", "hinting", "layoutFeatures" ("all", "default" or tags),${c.reset}
-  ${c.dim}"nameIds", "dropTables", "split"; also in batch entries.${c.reset}
+  ${c.dim}Optimization keys: "preset", "hinting", "layoutFeatures" ("all", "default" or tags),${c.reset}
+  ${c.dim}"nameIds", "nameLanguages", "dropTables", "keepTables", "glyphNames", "desubroutinize",${c.reset}
+  ${c.dim}"notdefOutline", "axes" ({ "wght": 700, "wdth": { "min": 75, "max": 100 } }), "rename"${c.reset}
+  ${c.dim}(true or { "family", "style" }), "split"; also in batch entries.${c.reset}
 
   ${c.dim}Batch mode — process multiple fonts:${c.reset}
   ${c.dim}{ "output": "./fonts", "formats": ["woff2"],${c.reset}
@@ -93,7 +105,7 @@ ${c.bold}Examples:${c.reset}
   ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto-latin --engine subset -c "ABCabc" -f woff2
   ${c.dim}$${c.reset} fontext -i Roboto.ttf -n roboto-cyrillic --engine subset -u U+0400-U+04FF -f woff2
   ${c.dim}${c.reset} fontext -i Roboto.ttf -n roboto --engine convert -f woff2,ttf
-  ${c.dim}${c.reset} fontext -i Roboto.ttf -n roboto-3d --engine subset -c "ABCabc" --target runtime
+  ${c.dim}${c.reset} fontext -i Roboto.ttf -n roboto-3d --engine subset -c "ABCabc" --preset outline-render -f ttf
   ${c.dim}$${c.reset} fontext ${c.dim}# uses .fontextrc.json${c.reset}
 `);
 }
@@ -123,6 +135,14 @@ function savingColor(saving: number): string {
     return c.yellow;
   }
   return c.red;
+}
+
+/** "wght=700 pinned, opsz 14-32 variable": the axes report in one line. */
+function describeAxes({ pinned, variable }: AxesReport): string {
+  return [
+    ...Object.entries(pinned).map(([tag, value]) => `${tag}=${value} pinned`),
+    ...variable.map(({ tag, min, max }) => `${tag} ${min}-${max} variable`),
+  ].join(", ");
 }
 
 const SAVING_BAR_WIDTH = 20;
@@ -171,6 +191,7 @@ interface ConfigEntry extends OptimizationConfig {
   raws?: string[];
   unicodeRanges?: string[];
   characters?: string;
+  ignoreControls?: boolean;
   engine?: string;
   formats?: string[];
   safariFix?: boolean;
@@ -312,14 +333,24 @@ async function main(): Promise<void> {
       raws: { type: "string", short: "r" },
       "unicode-ranges": { type: "string", short: "u" },
       characters: { type: "string", short: "c" },
+      "ignore-controls": { type: "boolean" },
       engine: { type: "string" },
       formats: { type: "string", short: "f" },
       "safari-fix": { type: "boolean", default: false },
-      target: { type: "string" },
+      preset: { type: "string" },
       hinting: { type: "boolean" },
       "layout-features": { type: "string" },
       "name-ids": { type: "string" },
+      "name-languages": { type: "string" },
       "drop-tables": { type: "string" },
+      "keep-tables": { type: "string" },
+      "glyph-names": { type: "boolean" },
+      desubroutinize: { type: "boolean" },
+      "notdef-outline": { type: "boolean" },
+      axes: { type: "string" },
+      rename: { type: "boolean" },
+      "rename-family": { type: "string" },
+      "rename-style": { type: "string" },
       split: { type: "string" },
       "dry-run": { type: "boolean", default: false },
       silent: { type: "boolean", short: "s", default: false },
@@ -330,7 +361,7 @@ async function main(): Promise<void> {
       version: { type: "boolean", short: "v", default: false },
     },
     strict: true,
-    // --no-hinting
+    // --no-hinting, --no-glyph-names, --no-desubroutinize, --no-notdef-outline
     allowNegative: true,
   });
 
@@ -432,6 +463,8 @@ async function main(): Promise<void> {
     const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
     const optimization = resolveOptimizationOptions(entry, values, cliOverrides);
     const split = resolveSplit(entry.split, values.split, cliOverrides);
+    const ignoreControls =
+      (cliOverrides ? values["ignore-controls"] : undefined) ?? entry.ignoreControls;
 
     return {
       inputPath,
@@ -443,6 +476,7 @@ async function main(): Promise<void> {
         raws,
         unicodeRanges,
         characters,
+        ...(ignoreControls === undefined ? {} : { ignoreControls }),
         engine,
         formats,
         safariFix,
@@ -483,6 +517,8 @@ async function main(): Promise<void> {
         fontName,
         glyphs: result.meta.length,
         originalSize: result.report.originalSize,
+        ...(result.report.tables ? { tables: result.report.tables } : {}),
+        ...(result.report.axes ? { axes: result.report.axes } : {}),
         files: fontFiles.map((file) => fileSummary(file)),
         meta: result.meta.map(({ name, unicode }) => ({ name, unicode })),
         warnings: result.warnings,
@@ -509,6 +545,15 @@ async function main(): Promise<void> {
       console.log(
         `  ${c.green}✓${c.reset} ${c.cyan}${paddedPath}${c.reset}  ${c.dim}${paddedSize}${c.reset}  ${savingBar(saving)} ${savingColor(saving)}${saving}%${c.reset}`,
       );
+    }
+
+    const dropped = result.report.tables?.dropped ?? [];
+    if (dropped.length > 0) {
+      console.log(`  ${c.dim}dropped tables: ${dropped.join(", ")}${c.reset}`);
+    }
+    const { axes } = result.report;
+    if (axes) {
+      console.log(`  ${c.dim}axes: ${describeAxes(axes)}${c.reset}`);
     }
 
     console.log();

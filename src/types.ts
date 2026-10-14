@@ -8,20 +8,64 @@ export const Format = {
 
 export type Formats = (typeof Format)[keyof typeof Format];
 
+/** Options of `findMissingCodePoints`. */
+export interface MissingCodePointsOptions {
+  /**
+   * Leave out control characters (line feed, tab) and default ignorable ones (ZWJ, ZWNJ,
+   * variation selectors): renderers lay them out or hide them, no font needs a glyph for them.
+   */
+  ignoreControls?: boolean;
+}
+
 /** Raw bytes of a TTF, OTF, WOFF or WOFF2 font. */
 export type FontInput = Buffer | Uint8Array | ArrayBuffer;
+
+/** Tables of a font and their lengths in bytes, by tag without trailing spaces ("cvt", "CFF"). */
+export type TableSizes = Record<string, number>;
+
+/** The tables of the input and of the output, and those of the input the output lacks. */
+export interface TablesReport {
+  /** The input after WOFF or WOFF2 decompression, before instancing. */
+  input: TableSizes;
+  /** The TTF every binary format was encoded from, after the transform hook. */
+  output: TableSizes;
+  /** Tags of the input the output has no table for, in alphabetical order. */
+  dropped: string[];
+}
+
+/** A variation axis of the output, its values in the units of the axis. */
+export interface AxisReport {
+  tag: string;
+  min: number;
+  default: number;
+  max: number;
+}
+
+/** What became of the variation axes of a variable input. */
+export interface AxesReport {
+  /** Axes the output no longer varies along, by tag: the value it was instanced at. */
+  pinned: Record<string, number>;
+  /** Axes the output still varies along, in the order of its fvar. */
+  variable: AxisReport[];
+}
 
 export interface OptimizationReport {
   originalSize: number;
   formats: Partial<Record<Formats, { size: number; saving: number }>>;
+  /** The tables of the input and the output; none when only SVG was built. */
+  tables?: TablesReport;
+  /** The axes of a variable input in the output; none for a static input or only SVG. */
+  axes?: AxesReport;
 }
 
 /**
  * Something of the source font the output could not keep. `legacy-kern`: the font kerns only in
- * the legacy kern table, and part of that kerning was left out.
+ * the legacy kern table, and part of that kerning was left out. `missing-characters`: the font
+ * has no glyph for some `characters` of the subset engine. `unpinned-axes`: `axes` pins every
+ * axis it names, but the font has others, so the output stays variable.
  */
 export interface FontWarning {
-  code: "legacy-kern";
+  code: "legacy-kern" | "missing-characters" | "unpinned-axes";
   message: string;
 }
 
@@ -67,15 +111,40 @@ export interface GlyphMeta {
 export type Engine = "icon" | "subset" | "convert";
 
 /**
- * Where the font goes. `web`: browsers, WOFF2 by default, CFF desubroutinized. `runtime`:
- * runtimes that load TTF directly and draw the outlines themselves (three.js, troika, Rive), TTF
- * by default, hinting dropped. Both keep HarfBuzz's default layout features and name ids 1, 2, 4
- * and 6. Explicit options override what the target sets.
+ * A named set of optimization options; explicit options override what it sets. `web-font`:
+ * fonts the system rasterizes, e.g. in browsers, sent compressed: hinting kept, CFF
+ * desubroutinized. `outline-render`: fonts whose outlines the runtime draws itself, as vector
+ * paths, SDF or PDF, with HarfBuzz shaping: hinting and gasp dropped, CFF subroutines kept, so the
+ * raw font stays small. Both keep HarfBuzz's default layout features and name ids 1, 2, 4 and 6.
+ * Neither sets the formats.
  */
-export type Target = "web" | "runtime";
+export type Preset = "web-font" | "outline-render";
 
 /** Layout features to keep: every one, HarfBuzz's default set or these tags. */
 export type LayoutFeatures = "all" | "default" | string[];
+
+/**
+ * A setting of a variation axis, in the units of the axis (wght 100-900, wdth in percent): a
+ * value pins the axis, "default" pins it at the font's default, `{ min, max }` narrows its range.
+ */
+export type AxisSetting = number | "default" | { min: number; max: number };
+
+/**
+ * Variation axis settings by axis tag, e.g. `{ wght: 700, wdth: { min: 75, max: 100 } }`. The key
+ * `"*"` with "default" pins every axis the others don't name at its default:
+ * `{ wght: 700, "*": "default" }` gives a static font of any variable one.
+ */
+export type Axes = Record<string, AxisSetting>;
+
+/**
+ * New names for the output font: its family and style, as in "Inter" and "SemiBold". `true`, or
+ * a part left out, takes the family of the source and the style of the pinned wght axis (700:
+ * Bold), else the style of the source.
+ */
+export type Rename = true | { family?: string; style?: string };
+
+/** Languages of the name records to keep: every one or these language ids, e.g. 0x409. */
+export type NameLanguages = "all" | number[];
 
 /**
  * How to split the output into several fonts. `scripts`: a font per Unicode script, for CSS
@@ -104,10 +173,27 @@ interface BaseOption {
   formats?: Formats[];
   safariFix?: boolean;
   silent?: boolean;
-  /** Where the font goes: browsers ("web") or runtimes that load TTF directly ("runtime"). */
-  target?: Target;
+  /** A named set of the optimization options, see `Preset`; explicit options override it. */
+  preset?: Preset;
+  /**
+   * Instance a variable font first: a value pins an axis, `{ min, max }` narrows it (not in the
+   * icon engine, whose font is static). Unknown axes, values outside the font's range and static
+   * fonts are rejected.
+   */
+  axes?: Axes;
+  /**
+   * Rewrite the family and style names, e.g. after pinning wght, which leaves the names of the
+   * default instance: name ids 1, 2, 4 and 6 (3, 16 and 17 when needed) in Windows English, and
+   * the bold and italic bits of OS/2 and head. Names inside CFF outlines stay.
+   */
+  rename?: Rename;
   /** Name ids to keep. */
   nameIds?: number[];
+  /**
+   * Keep the glyph names, a `post` table of format 2 (PDF text extraction reads them). By default
+   * `post` has format 3, without names.
+   */
+  glyphNames?: boolean;
   /** Tables to drop, tags of 1-4 printable ASCII characters; shorter tags are padded with spaces. */
   dropTables?: string[];
   /**
@@ -125,12 +211,33 @@ interface BaseOption {
  */
 interface SourceLayoutOption {
   /**
-   * Keep TrueType hinting: fpgm, prep, cvt, glyph instructions, hdmx and VDMX. HarfBuzz drops
-   * LTSH either way.
+   * Keep TrueType hinting: fpgm, prep, cvt, gasp, glyph instructions, hdmx and VDMX. HarfBuzz
+   * drops LTSH either way.
    */
   hinting?: boolean;
   /** Layout features to keep: every one ("all"), HarfBuzz's default set ("default") or these tags. */
   layoutFeatures?: LayoutFeatures;
+  /**
+   * Languages of the name records to keep: every one ("all") or these language ids. By default
+   * only English (United States), 0x409.
+   */
+  nameLanguages?: NameLanguages;
+  /**
+   * Tables to keep that HarfBuzz or `hinting: false` would drop: gasp, meta and PCLT. Other
+   * tables HarfBuzz drops refer to glyph ids it can't renumber; legacy kern is restored anyway.
+   */
+  keepTables?: string[];
+  /**
+   * Inline the subroutines of CFF outlines: about 2-8% smaller after WOFF2, WOFF or HTTP
+   * compression, up to half again as large as a raw font. TrueType outlines don't change.
+   */
+  desubroutinize?: boolean;
+  /**
+   * Keep the outline of .notdef, the box a renderer without fallback fonts draws for a character
+   * the font lacks. HarfBuzz empties it in TrueType outlines by default (CFF keeps it); the
+   * outline-render preset keeps it.
+   */
+  notdefOutline?: boolean;
 }
 
 /**
@@ -155,6 +262,11 @@ export interface IconOption extends BaseOption {
 export interface SubsetOption extends BaseOption, SourceLayoutOption, SplitOption {
   engine: "subset";
   characters?: string;
+  /**
+   * Leave control characters (line feed, tab) out of the `missing-characters` warning; default
+   * ignorable ones (ZWJ, variation selectors) are left out anyway.
+   */
+  ignoreControls?: boolean;
   ligatures?: string[];
   unicodeRanges?: string[];
 }

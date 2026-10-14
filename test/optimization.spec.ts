@@ -21,71 +21,96 @@ describe("resolveOptimization", () => {
         hinting: true,
         layoutFeatures: "all",
         nameIds: undefined,
+        nameLanguages: undefined,
         dropTables: [],
+        keepTables: [],
         desubroutinize: false,
+        glyphNames: false,
+        notdefOutline: false,
+        rename: undefined,
       });
     },
   );
 
   it.each([
-    ["icon", icon],
-    ["subset", subset],
-    ["convert", convert],
-  ] as const)("should resolve the web target (%s engine)", (_, option) => {
-    expect(resolveOptimization({ ...option, target: "web" })).toStrictEqual({
-      formats: ["woff2"],
+    ["icon", icon, ALL_FORMATS],
+    ["subset", subset, ["ttf", "woff", "woff2"]],
+    ["convert", convert, ALL_FORMATS],
+  ] as const)("should resolve the web-font preset (%s engine)", (_, option, formats) => {
+    expect(resolveOptimization({ ...option, preset: "web-font" })).toStrictEqual({
+      formats,
       hinting: true,
       layoutFeatures: "default",
       nameIds: [1, 2, 4, 6],
+      nameLanguages: undefined,
       dropTables: [],
+      keepTables: [],
       desubroutinize: true,
+      glyphNames: false,
+      notdefOutline: false,
+      rename: undefined,
     });
   });
 
   it.each([
-    ["icon", icon],
-    ["subset", subset],
-    ["convert", convert],
-  ] as const)("should resolve the runtime target (%s engine)", (_, option) => {
-    expect(resolveOptimization({ ...option, target: "runtime" })).toStrictEqual({
-      formats: ["ttf"],
+    ["icon", icon, ALL_FORMATS],
+    ["subset", subset, ["ttf", "woff", "woff2"]],
+    ["convert", convert, ALL_FORMATS],
+  ] as const)("should resolve the outline-render preset (%s engine)", (_, option, formats) => {
+    expect(resolveOptimization({ ...option, preset: "outline-render" })).toStrictEqual({
+      formats,
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 2, 4, 6],
+      nameLanguages: undefined,
       dropTables: [],
+      keepTables: [],
       desubroutinize: false,
+      glyphNames: false,
+      notdefOutline: true,
+      rename: undefined,
     });
   });
 
-  it("should let explicit options override the target", () => {
-    const runtime: SubsetOption = {
+  it("should let explicit options override the preset", () => {
+    const outlines: SubsetOption = {
       ...subset,
-      target: "runtime",
+      preset: "outline-render",
       formats: ["ttf", "woff2"],
       hinting: true,
       layoutFeatures: "all",
       nameIds: [4],
+      nameLanguages: undefined,
       dropTables: ["DSIG"],
+      notdefOutline: false,
     };
-    expect(resolveOptimization(runtime)).toStrictEqual({
+    expect(resolveOptimization(outlines)).toStrictEqual({
       formats: ["ttf", "woff2"],
       hinting: true,
       layoutFeatures: "all",
       nameIds: [4],
+      nameLanguages: undefined,
       dropTables: ["DSIG"],
+      keepTables: [],
       desubroutinize: false,
+      glyphNames: false,
+      notdefOutline: false,
+      rename: undefined,
     });
     const web: SubsetOption = {
       ...subset,
-      target: "web",
+      preset: "web-font",
       hinting: false,
       layoutFeatures: ["liga"],
+      desubroutinize: false,
     };
     expect(resolveOptimization(web)).toMatchObject({
-      formats: ["woff2"],
+      formats: ["ttf", "woff", "woff2"],
       hinting: false,
       layoutFeatures: ["liga"],
-      desubroutinize: true,
+      desubroutinize: false,
+      glyphNames: false,
+      rename: undefined,
     });
   });
 
@@ -96,15 +121,25 @@ describe("resolveOptimization", () => {
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 4],
+      nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
+      keepTables: ["gasp", "meta"],
+      glyphNames: true,
+      desubroutinize: true,
+      notdefOutline: true,
     };
     expect(resolveOptimization(option)).toStrictEqual({
       formats: ["woff"],
       hinting: false,
       layoutFeatures: "default",
       nameIds: [1, 4],
+      nameLanguages: "all",
       dropTables: ["MATH", "DSIG"],
-      desubroutinize: false,
+      keepTables: ["gasp", "meta"],
+      desubroutinize: true,
+      glyphNames: true,
+      notdefOutline: true,
+      rename: undefined,
     });
   });
 
@@ -114,6 +149,9 @@ describe("resolveOptimization", () => {
       layoutFeatures: ["liga", "ss1"],
       dropTables: ["cvt", "CFF", "a"],
     });
+    expect(
+      resolveOptimization({ ...convert, keepTables: ["PCLT", "gasp"] }).keepTables,
+    ).toStrictEqual(["PCLT", "gasp"]);
     expect(layoutFeatures).toStrictEqual(["liga", "ss1 "]);
     expect(dropTables).toStrictEqual(["cvt ", "CFF ", "a   "]);
   });
@@ -128,13 +166,34 @@ describe("resolveOptimization", () => {
 describe("optimization option validation", () => {
   it.each([
     [
-      "an unknown target",
-      { target: "print" },
-      'Invalid target: "print". Valid targets: web, runtime',
+      "an unknown preset",
+      { preset: "web" },
+      'Invalid preset: "web". Valid presets: web-font, outline-render',
     ],
-    ["a target that is not a string", { target: 1 }, "Invalid target: 1"],
-    ["a target named after an object property", { target: "toString" }, "Invalid target"],
+    ["a preset that is not a string", { preset: 1 }, "Invalid preset: 1"],
+    ["a preset named after an object property", { preset: "toString" }, "Invalid preset"],
     ["hinting that is not a boolean", { hinting: "no" }, "hinting must be a boolean"],
+    ["glyphNames that is not a boolean", { glyphNames: 1 }, "glyphNames must be a boolean"],
+    [
+      "desubroutinize that is not a boolean",
+      { desubroutinize: "yes" },
+      "desubroutinize must be a boolean",
+    ],
+    [
+      "notdefOutline that is not a boolean",
+      { notdefOutline: 1 },
+      "notdefOutline must be a boolean",
+    ],
+    [
+      "nameLanguages that are neither all nor an array",
+      { nameLanguages: "en" },
+      'nameLanguages must be "all" or an array of language ids',
+    ],
+    [
+      "name languages out of range or fractional",
+      { nameLanguages: [0x4_09, -1, 65_536, 1.5, "ru"] },
+      'Invalid name language(s): -1, 65536, 1.5, "ru". A language id is an integer from 0 to 65535',
+    ],
     [
       "an unknown layoutFeatures keyword",
       { layoutFeatures: "none" },
@@ -174,6 +233,17 @@ describe("optimization option validation", () => {
       { dropTables: ["CFF"] },
       'dropTables: "CFF". The font needs',
     ],
+    ["keepTables that are not an array", { keepTables: "meta" }, "keepTables must be an array"],
+    [
+      "a table whose data refers to glyph ids",
+      { keepTables: ["meta", "LTSH", "DSIG", "fpgm"] },
+      'Invalid tag(s) in keepTables: "LTSH", "DSIG", "fpgm". keepTables brings back tables HarfBuzz drops whose data refers to no glyph id, and gasp: gasp, meta, PCLT. The other hinting tables follow the hinting option',
+    ],
+    [
+      "a table both kept and dropped",
+      { keepTables: ["meta", "gasp"], dropTables: ["gasp", "DSIG"] },
+      'keepTables and dropTables both name: "gasp"',
+    ],
   ])("should reject %s", (_, option, message) => {
     expect(() => assertOptimizationOptions(option)).toThrow(message);
   });
@@ -184,6 +254,8 @@ describe("optimization option validation", () => {
         hinting: false,
         layoutFeatures: ["liga", "ss1", "cv01"],
         nameIds: [0, 32_767],
+        nameLanguages: [0, 0x4_09, 0xff_ff],
+        keepTables: ["gasp", "meta", "PCLT"],
         dropTables: [],
       }),
     ).not.toThrow();
