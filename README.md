@@ -77,6 +77,7 @@ npx fontext -i material-icons.woff2 -n my-icons -l home,search,menu -f woff2,ttf
 | `--glyph-names`                     | Keep glyph names in `post`                                     |
 | `--desubroutinize`                  | Inline CFF subroutines (`--no-desubroutinize` keeps them)      |
 | `--notdef-outline`                  | Keep the box of `.notdef` drawn for missing characters         |
+| `--ignore-controls`                 | Don't warn about control characters the font lacks             |
 | `--axes`                            | Pin or narrow variation axes: `wght=700,wdth=75:100,*=default` |
 | `--rename`                          | Name the font after its pinned weight (`Bold` for `wght=700`)  |
 | `--rename-family`, `--rename-style` | New family and style names                                     |
@@ -127,6 +128,7 @@ fs.writeFileSync("my-icons.woff2", result.woff2);
 | `raws`           | `string[]`       | `[]`                   | Raw unicode characters — Fontext will resolve their ligatures automatically                                                                                            |
 | `unicodeRanges`  | `string[]`       | `[]`                   | Unicode ranges to extract (e.g. `['U+E000-U+E100', 'U+F000']`)                                                                                                         |
 | `characters`     | `string`         | —                      | Characters to keep (e.g. `'ABCabc0123'`) — subset engine only                                                                                                          |
+| `ignoreControls` | `boolean`        | `false`                | Leave control characters out of the `missing-characters` warning — subset engine only                                                                                  |
 | `engine`         | `Engine`         | `'icon'`               | `'icon'` for ligature fonts, `'subset'` for text fonts (preserves kerning), `'convert'` to change format only                                                          |
 | `formats`        | `Formats[]`      | all formats            | Output formats: `'svg'`, `'ttf'`, `'woff'`, `'woff2'`, `'eot'`; the subset engine defaults to TTF, WOFF and WOFF2                                                      |
 | `safariFix`      | `boolean`        | `false`                | Patch OS/2 and hhea metrics for Safari                                                                                                                                 |
@@ -242,8 +244,8 @@ left out — an Apple or malformed table, format 2/3, cross-stream or vertical s
 code point that could not be matched in the subset. A version of the font with kerning in GPOS avoids it.
 `missing-characters`: the source has no glyph for some `characters` of the subset engine, named by code point
 (`U+0416 "Ж", U+000A`, up to 20). Joiners and variation selectors (default ignorable code points) don't count,
-shaping hides them; control characters do, so strip line feeds from texts you pass, e.g.
-`text.replace(/\p{Cc}/gu, "")`. Unicode ranges don't warn: they cover whatever the font has. `unpinned-axes`: `axes`
+shaping hides them; control characters such as a line feed do, unless `ignoreControls: true` (`--ignore-controls`)
+leaves them out. Unicode ranges don't warn: they cover whatever the font has. `unpinned-axes`: `axes`
 pins every axis it names, but the font has others, so the output stays variable along them (`fvar`, `gvar` and the
 other variation tables stay, often doubling the size); `"*": "default"` pins them.
 
@@ -397,13 +399,17 @@ Bold instance is still called Regular. `rename` rewrites them:
 
 `findMissingCodePoints(content, text)` lists the code points of a text the font has no glyph for, each once, in the
 order they occur — what a subset of the text would lack, before building it. Control characters such as a line feed
-are listed too. It reads TTF, OTF, WOFF and WOFF2 and is also in `fontext/browser` (without WOFF2).
+are listed too; `{ ignoreControls: true }` leaves them out, and default ignorable ones such as ZWJ and variation
+selectors with them, since renderers lay them out or hide them. It reads TTF, OTF, WOFF and WOFF2 and is also in
+`fontext/browser` (without WOFF2).
 
 ```javascript
 import { findMissingCodePoints } from "fontext";
 
-const missing = await findMissingCodePoints(font, translations.join(""));
-// [0x416, 0x1f600] — "Ж" and "😀"
+const missing = await findMissingCodePoints(font, translations.join("\n"), {
+  ignoreControls: true,
+});
+// [0x416, 0x1f600] — "Ж" and "😀", not the line feeds
 ```
 
 ### Splitting by script

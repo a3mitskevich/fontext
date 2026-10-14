@@ -46,6 +46,9 @@ describe("browser entry point", () => {
         0x0a, 0x41,
       ]);
       await expect(findMissingCodePoints(fontUint8.buffer, "\uE88A")).resolves.toStrictEqual([]);
+      await expect(
+        findMissingCodePoints(fontUint8, "\uE88A\nA\u200D", { ignoreControls: true }),
+      ).resolves.toStrictEqual([0x41]);
     });
 
     it("should reject WOFF2 and text that is not a string", async () => {

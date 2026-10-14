@@ -71,6 +71,7 @@ ${c.bold}Icon Engine:${c.reset} ${c.dim}--engine icon (default, for icon fonts)$
 
 ${c.bold}Subset Engine:${c.reset} ${c.dim}--engine subset (for text fonts, preserves kerning)${c.reset}
   ${c.cyan}-c${c.reset}, ${c.cyan}--characters${c.reset} <text>   Characters to keep ${c.dim}(e.g. "ABCabc0-9")${c.reset}
+      ${c.cyan}--ignore-controls${c.reset}     Don't warn about line feeds and other control characters the font lacks
   ${c.cyan}-l${c.reset}, ${c.cyan}--ligatures${c.reset} <list>    Ligature component characters
   ${c.cyan}-u${c.reset}, ${c.cyan}--unicode-ranges${c.reset} <list>  Comma-separated unicode ranges
 
@@ -190,6 +191,7 @@ interface ConfigEntry extends OptimizationConfig {
   raws?: string[];
   unicodeRanges?: string[];
   characters?: string;
+  ignoreControls?: boolean;
   engine?: string;
   formats?: string[];
   safariFix?: boolean;
@@ -331,6 +333,7 @@ async function main(): Promise<void> {
       raws: { type: "string", short: "r" },
       "unicode-ranges": { type: "string", short: "u" },
       characters: { type: "string", short: "c" },
+      "ignore-controls": { type: "boolean" },
       engine: { type: "string" },
       formats: { type: "string", short: "f" },
       "safari-fix": { type: "boolean", default: false },
@@ -460,6 +463,8 @@ async function main(): Promise<void> {
     const silent = (cliOverrides && values.silent) || (entry.silent ?? false);
     const optimization = resolveOptimizationOptions(entry, values, cliOverrides);
     const split = resolveSplit(entry.split, values.split, cliOverrides);
+    const ignoreControls =
+      (cliOverrides ? values["ignore-controls"] : undefined) ?? entry.ignoreControls;
 
     return {
       inputPath,
@@ -471,6 +476,7 @@ async function main(): Promise<void> {
         raws,
         unicodeRanges,
         characters,
+        ...(ignoreControls === undefined ? {} : { ignoreControls }),
         engine,
         formats,
         safariFix,

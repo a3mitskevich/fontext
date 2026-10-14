@@ -59,6 +59,10 @@ export default async function extract(
   assertAxesOption(option.axes, engine);
   assertOptimizationOptions(option as unknown as Record<string, unknown>);
   assertSplit("split" in option ? option.split : undefined, engine);
+  const ignoreControls = "ignoreControls" in option ? option.ignoreControls : undefined;
+  if (ignoreControls !== undefined && typeof ignoreControls !== "boolean") {
+    throw new TypeError("ignoreControls must be a boolean");
+  }
   const optimization = resolveOptimization(option);
   const { formats } = optimization;
 

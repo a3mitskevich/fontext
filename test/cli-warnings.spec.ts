@@ -69,4 +69,17 @@ describe("CLI missing characters warning", () => {
       fs.rmSync(outDir, { recursive: true, force: true });
     }
   });
+
+  it("should leave control characters out with --ignore-controls", () => {
+    const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "fontext-cli-controls-"));
+    const input = path.resolve(import.meta.dirname, "../assets/font-variable.ttf");
+    try {
+      const args = ["-i", input, "-n", "controls", "--engine", "subset", "-c", "A\n"];
+      const { stderr, status } = runCli([...args, "-f", "ttf", "-o", outDir, "--ignore-controls"]);
+      expect(status).toBe(0);
+      expect(stderr).toBe("");
+    } finally {
+      fs.rmSync(outDir, { recursive: true, force: true });
+    }
+  });
 });

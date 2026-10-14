@@ -1,12 +1,16 @@
 import { describe, it, expect } from "vitest";
 import ttf2woff from "ttf2woff";
-import type { FontInput, SubsetOption } from "../src";
+import type { FontInput, MissingCodePointsOptions, SubsetOption } from "../src";
 import { encodeWoff2 } from "../src/woff2";
 import { extract, importFontext, textFont, variableFont } from "./setup";
 
-async function findMissingCodePoints(data: FontInput, text: string): Promise<number[]> {
+async function findMissingCodePoints(
+  data: FontInput,
+  text: string,
+  options?: MissingCodePointsOptions,
+): Promise<number[]> {
   const fontext = await importFontext();
-  return fontext.findMissingCodePoints(data, text);
+  return fontext.findMissingCodePoints(data, text, options);
 }
 
 const codePointsOf = (text: string): number[] => [...text].map((char) => char.codePointAt(0) ?? 0);
@@ -31,6 +35,29 @@ describe("findMissingCodePoints", () => {
     await expect(findMissingCodePoints(variableFont, "A V\nA\t")).resolves.toStrictEqual([
       0x0a, 0x09,
     ]);
+  });
+
+  it("should leave out control and default ignorable characters with ignoreControls", async () => {
+    const text = "A V\nЖ\t\u200D\uFE0F\u0085";
+    await expect(findMissingCodePoints(variableFont, text, {})).resolves.toStrictEqual(
+      codePointsOf("\nЖ\t\u200D\uFE0F\u0085"),
+    );
+    await expect(
+      findMissingCodePoints(variableFont, text, { ignoreControls: true }),
+    ).resolves.toStrictEqual(codePointsOf("Ж"));
+  });
+
+  it.each([
+    ["options that are not an object", "all", "options must be an object"],
+    [
+      "an ignoreControls that is not a boolean",
+      { ignoreControls: 1 },
+      "ignoreControls must be a boolean",
+    ],
+  ])("should reject %s", async (_, options, message) => {
+    await expect(
+      findMissingCodePoints(variableFont, "A", options as MissingCodePointsOptions),
+    ).rejects.toThrow(message);
   });
 
   it("should read TTF, WOFF, WOFF2 and an ArrayBuffer the same way", async () => {
@@ -78,6 +105,24 @@ describe("missing-characters warning (subset engine)", () => {
   it("should not warn about joiners and variation selectors, which shaping hides", async () => {
     const { warnings } = await subset("A\u200D\uFE0F\u200B");
     expect(warnings).toStrictEqual([]);
+  });
+
+  it("should leave control characters out with ignoreControls", async () => {
+    const { warnings } = await subset("AЖ\n\t", { ignoreControls: true });
+    expect(warnings).toStrictEqual([
+      {
+        code: "missing-characters",
+        message: 'The font does not map 1 character of the selection: U+0416 "Ж"',
+      },
+    ]);
+    await expect(subset("A\n", { ignoreControls: true })).resolves.toMatchObject({
+      warnings: [],
+    });
+  });
+
+  it("should reject an ignoreControls that is not a boolean", async () => {
+    const option = { ignoreControls: "yes" } as unknown as Partial<SubsetOption>;
+    await expect(subset("A", option)).rejects.toThrow("ignoreControls must be a boolean");
   });
 
   it("should not warn without characters", async () => {

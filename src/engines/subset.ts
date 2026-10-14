@@ -60,12 +60,13 @@ async function planSplit(content: Buffer, selection: SubsetSelection): Promise<C
 /** The warning about characters the source has no glyph for; the font is read only for some. */
 async function missingCharacters(
   source: SourceFont,
-  characters: string | undefined,
+  { characters, ignoreControls }: SubsetOption,
 ): Promise<FontWarning | undefined> {
   if (!characters) {
     return undefined;
   }
-  return missingCharactersWarning(missingCodePoints(await createFont(source.content), characters));
+  const font = await createFont(source.content);
+  return missingCharactersWarning(missingCodePoints(font, characters, ignoreControls));
 }
 
 export async function extractSubset(
@@ -93,7 +94,7 @@ export async function extractSubset(
   // Warnings about the whole selection go to the unsplit font only
   const warnings = [
     unpinnedAxesWarning(source.inputAxes, option.axes),
-    await missingCharacters(source, option.characters),
+    await missingCharacters(source, option),
   ].filter((warning) => warning !== undefined);
   const result = { ...built.result, warnings: [...warnings, ...built.result.warnings] };
   if (!plans) {

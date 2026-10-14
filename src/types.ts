@@ -8,6 +8,15 @@ export const Format = {
 
 export type Formats = (typeof Format)[keyof typeof Format];
 
+/** Options of `findMissingCodePoints`. */
+export interface MissingCodePointsOptions {
+  /**
+   * Leave out control characters (line feed, tab) and default ignorable ones (ZWJ, ZWNJ,
+   * variation selectors): renderers lay them out or hide them, no font needs a glyph for them.
+   */
+  ignoreControls?: boolean;
+}
+
 /** Raw bytes of a TTF, OTF, WOFF or WOFF2 font. */
 export type FontInput = Buffer | Uint8Array | ArrayBuffer;
 
@@ -253,6 +262,11 @@ export interface IconOption extends BaseOption {
 export interface SubsetOption extends BaseOption, SourceLayoutOption, SplitOption {
   engine: "subset";
   characters?: string;
+  /**
+   * Leave control characters (line feed, tab) out of the `missing-characters` warning; default
+   * ignorable ones (ZWJ, variation selectors) are left out anyway.
+   */
+  ignoreControls?: boolean;
   ligatures?: string[];
   unicodeRanges?: string[];
 }

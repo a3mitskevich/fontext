@@ -21,6 +21,7 @@ export {
   type AxisReport,
   type Engine,
   type FontInput,
+  type MissingCodePointsOptions,
   type LayoutFeatures,
   type Axes,
   type AxisSetting,
